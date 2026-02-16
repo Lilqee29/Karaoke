@@ -2612,8 +2612,10 @@ window.startTimer = function() {
             alert("TIME UP!");
         }
     }, 1000);
-    sounds.coin();
+    sounds.coin();  //SOUNDS
 };
+
+
 window.resetTimer = function() {
     clearInterval(tmInterval);
     tmInterval = null;
