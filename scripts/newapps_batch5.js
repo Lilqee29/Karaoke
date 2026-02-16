@@ -26,24 +26,26 @@ window.getChuckJoke = async function() {
     } catch(e) { txt.textContent = "CHUCK IS TOO POWERFUL (OFFLINE)"; }
 };
 
-// ========== ANIME QUOTES ==========
-window.initAnime = function() {};
-window.getAnimeQuote = async function() {
-    const quote = document.getElementById('animeQuote');
-    const char = document.getElementById('animeChar');
-    quote.textContent = '"..."';
-    sounds.click();
-    try {
-        const res = await fetch('https://animechan.xyz/api/random');
-        const data = await res.json();
-        quote.textContent = `"${data.quote.toUpperCase()}"`;
-        char.textContent = `- ${data.character.toUpperCase()} (${data.anime.toUpperCase()})`;
-        sounds.coin();
-    } catch(e) { 
-        quote.textContent = '"BELIEVE IN YOURSELF"';
-        char.textContent = '- NARUTO';
-    }
-};
+// // ========== ANIME QUOTES ==========
+// window.initAnime = function() {};
+// window.getAnimeQuote = async function() {
+//     const quote = document.getElementById('animeQuote');
+//     const char = document.getElementById('animeChar');
+//     quote.textContent = '"..."';
+//     sounds.click();
+//     try {
+//         const res = await fetch('https://api.animechan.io/v1/quotes/random');
+//         const data = await res.json();
+//         console.log(data)
+//         quote.textContent = `"${data.quote}"`;
+//         char.textContent = `- ${data.character} (${data.anime})`;
+//         sounds.coin();
+//     } catch(e) { 
+//         console.error(e)
+//         quote.textContent = '"BELIEVE IN YOURSELF"';
+//         char.textContent = '- NARUTO';
+//     }
+// };
 
 // ========== MEME GENERATOR ==========
 window.initMeme = function() {};

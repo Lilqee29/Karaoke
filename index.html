@@ -13,6 +13,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GameBoy OS">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" href="icon-192.png">
     
     <link rel="stylesheet" href="styles.css">
     <script src="scripts/system.js"></script> <!-- Ensure system specific vars load early -->
@@ -398,6 +399,39 @@
                         </div>
                     </div>
 
+                    <!-- QUESTS -->
+                    <div id="questsScreen" class="game-screen">
+                        <div style="padding: 10px;">
+                            <div style="font-size: 10px; margin-bottom: 20px; text-align: center; border-bottom: 2px solid var(--gb-text); padding-bottom: 5px;">DAILY QUESTS</div>
+                            <div id="questList" style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto;">
+                                <!-- Quests injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WORLD NAVIGATOR -->
+                    <div id="worldScreen" class="game-screen">
+                        <!-- Content injected by JS -->
+                    </div>
+
+                    <!-- MAPS -->
+                    <div id="mapScreen" class="game-screen">
+                        <!-- Content injected by JS -->
+                    </div>
+
+                    <!-- NEW UTILITIES -->
+                    <div id="currencyScreen" class="game-screen"></div>
+                    <div id="flashlightScreen" class="game-screen">
+                        <div style="padding: 20px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; background: #000; color: #fff;">
+                            <div style="font-size: 50px; margin-bottom: 20px;">🔦</div>
+                            <button onclick="toggleFlashlight()" style="padding: 15px; font-size: 14px; background: #fff; color: #000; border: 2px solid #000; font-family: 'VT323', monospace;">TOGGLE LIGHT</button>
+                        </div>
+                    </div>
+                    <div id="levelScreen" class="game-screen"></div>
+                    <div id="sosScreen" class="game-screen"></div>
+                    <div id="unitScreen" class="game-screen"></div>
+                    <div id="tipScreen" class="game-screen"></div>
+
                     <!-- MORSE CONVERTER -->
                     <div id="morseScreen" class="game-screen">
                         <div style="padding: 10px;">
@@ -421,6 +455,7 @@
                                 <div style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 8px;">E</div>
                             </div>
                             <div id="compassDeg" style="font-size: 10px; margin-top: 20px;">0° NORTH</div>
+                            <div id="compassInfo"></div>
                         </div>
                     </div>
 
@@ -1614,76 +1649,235 @@ Type 'help' for commands.
                         </div>
                     </div>
 
-                    <!-- BITCHAT (Link Cable Chat) -->
-                    <div id="chatScreen" class="game-screen" style="background: #050505;">
-                        <div style="padding: 10px; height: 100%; display: flex; flex-direction: column;">
-                            <!-- Signal Bar -->
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 5px; margin-bottom: 5px;">
-                                <div id="chatSignal" style="display: flex; gap: 1px; height: 8px; align-items: flex-end;">
-                                    <div style="width:2px; height:2px; background:#0f0;"></div>
-                                    <div style="width:2px; height:4px; background:#333;"></div>
-                                    <div style="width:2px; height:6px; background:#333;"></div>
-                                    <div style="width:2px; height:8px; background:#333;"></div>
+                    <!-- BITCHAT v2.0 -->
+                    <div id="chatScreen" class="game-screen" style="background: #000; font-family: 'VT323', monospace;">
+                        <div style="padding: 10px; height: 100%; display: flex; flex-direction: column; color: #0f0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <div id="chatSignal" style="display: flex; gap: 1px; height: 10px; align-items: flex-end;">
+                                    <div style="width:3px; height:3px; background:#0f0;"></div>
+                                    <div style="width:3px; height:5px; background:#333;"></div>
+                                    <div style="width:3px; height:8px; background:#333;"></div>
+                                    <div style="width:3px; height:10px; background:#333;"></div>
                                 </div>
-                                <div id="chatStatusLabel" style="font-size: 5px; color: #0f0; opacity:0.8;">DISCONNECTED</div>
+                                <div id="chatStatusLabel" style="font-size: 8px; font-weight: bold; letter-spacing: 1px;">ONLINE</div>
                             </div>
                             
-                            <div style="font-size: 10px; margin-bottom: 5px; text-align: center; color: #0f0; text-shadow: 0 0 5px #0f0; font-family: monospace;">BITCHAT v1.1 [TOWER_LINK]</div>
-                            
-                            <!-- Connection View -->
-                            <div id="chatConnect" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
-                                <div id="chatMyId" style="font-size: 6px; opacity: 0.6; color: #0f0;">MY FREQ: ---</div>
-                                <div id="chatLanding" style="width: 100%; text-align: center;">
-                                    <button onclick="chatHost()" style="width: 100%; padding: 10px; margin-bottom: 5px; background: #0c0; color: #000; border: none; font-weight: bold;">BROADCAST (HOST)</button>
-                                    <button onclick="showManualJoin()" style="width: 100%; padding: 10px; background: #000; color: #0c0; border: 1px solid #0c0;">TUNE FREQ (JOIN)</button>
-                                </div>
+                            <div id="chatConnect" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;">
+                                <div style="font-size: 18px; text-shadow: 0 0 10px #0f0;">LINK CABLE v2</div>
+                                <div id="chatMyId" style="font-size: 8px; opacity: 0.6;">FREQ: ---</div>
+                                <input id="chatNick" placeholder="ENTER NICK" maxlength="8" style="width: 80%; background: #000; color: #0f0; border: 2px solid #0f0; padding: 10px; text-align: center; font-family: 'VT323'; font-size: 16px;">
                                 
+                                <div id="chatLanding" style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
+                                    <button onclick="chatHost()" style="width: 100%; padding: 15px; background: #0f0; color: #000; font-weight: bold; font-family: 'VT323'; border: none;">BROADCAST (HOST)</button>
+                                    <button onclick="showManualJoin()" style="width: 100%; padding: 15px; background: transparent; color: #0f0; border: 2px solid #0f0; font-family: 'VT323';">TUNE (JOIN)</button>
+                                </div>
+
                                 <div id="chatManualZone" style="display: none; width: 100%; text-align: center;">
-                                    <div style="font-size: 8px; color: #0f0; margin-bottom: 5px;">ENTER PEER FREQUENCY:</div>
-                                    <input id="chatTargetId" placeholder="ID-XXXX-XXXX" style="width: 100%; background: #000; color: #0f0; border: 1px solid #0c0; padding: 8px; font-size: 10px; text-align: center;">
-                                    <div style="display: flex; gap: 5px; margin-top: 10px;">
-                                        <button onclick="chatManualConnect()" style="flex: 1; padding: 10px; background: #0c0; color: #000;">LINK</button>
-                                        <button onclick="chatJoin()" style="flex: 1; padding: 10px; background: #000; color: #0c0; border: 1px solid #0c0;">SCAN</button>
+                                    <input id="chatTargetId" placeholder="FREQUENCY" style="width: 100%; background: #000; color: #0f0; border: 2px solid #0f0; padding: 10px; font-size: 16px; text-align: center; margin-bottom: 10px;">
+                                    <div style="display: flex; gap: 5px;">
+                                        <button onclick="chatManualConnect()" style="flex: 1; padding: 12px; background: #0f0; color: #000; border: none; font-family: 'VT323'; font-weight: bold;">LINK</button>
+                                        <button onclick="chatJoin()" style="flex: 1; padding: 12px; background: transparent; color: #0f0; border: 2px solid #0f0; font-family: 'VT323';">SCAN</button>
                                     </div>
-                                    <button onclick="cancelChatLink()" style="margin-top: 10px; font-size: 6px; color: #f00; background: transparent; border: none;">BACK</button>
+                                    <button onclick="cancelChatLink()" style="margin-top: 20px; color: #aaa; background: none; border: none; font-size: 10px;">[ CANCEL ]</button>
                                 </div>
-                                
+
                                 <div id="chatQrZone" style="display: none; text-align: center;">
-                                    <div style="background: #fff; padding: 8px; border-radius: 4px; margin-bottom: 8px; display: inline-block;">
-                                        <div id="chatQrCode"></div>
-                                    </div>
-                                    <div style="font-size: 8px; color: #0f0;">PEER SHOULD SCAN THIS</div>
-                                    <button onclick="cancelChatLink()" style="margin-top: 10px; font-size: 6px; color: #f00; background: transparent; border: 1px solid #f00; padding: 2px 10px;">CANCEL</button>
+                                    <div id="chatQrCode" style="background: #fff; padding: 10px; border: 4px solid #0f0; border-radius: 4px; display: inline-block;"></div>
+                                    <div style="font-size: 10px; margin-top: 15px; animation: blink 1s infinite alternate;">WAITING FOR PEER...</div>
+                                    <button onclick="cancelChatLink()" style="margin-top: 15px; color: #f00; background: none; border: none; font-size: 10px;">CANCEL</button>
                                 </div>
-                                
-                                <div id="chatScanZone" style="display: none; width: 100%; text-align: center;">
-                                    <div style="width: 100%; aspect-ratio: 1.2; background: #000; position: relative; border: 2px solid #0c0; overflow: hidden; border-radius: 4px;">
-                                        <video id="chatScannerVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-                                        <canvas id="chatScannerCanvas" style="display: none;"></canvas>
-                                        <div style="position: absolute; top:0; left:0; width:100%; height:100%; border: 20px solid rgba(0, 200, 0, 0.2); pointer-events: none;"></div>
-                                        <div style="position: absolute; top: 50%; left: 10%; width: 80%; height: 1px; background: #0f0; box-shadow: 0 0 10px #0f0; animation: scan-line 2s infinite linear;"></div>
-                                    </div>
-                                    <div style="font-size: 8px; margin-top: 5px; color: #0f0;">SCANNING FOR TOWER...</div>
-                                    <button onclick="cancelChatLink()" style="margin-top: 10px; font-size: 6px; background: transparent; color: #f00; border: 1px solid #f00;">CANCEL</button>
+
+                                <div id="chatScanZone" style="display: none; width: 100%; position: relative;">
+                                    <video id="chatScannerVideo" autoplay playsinline style="width: 100%; aspect-ratio: 1; border: 2px solid #0f0;"></video>
+                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: #0f0; box-shadow: 0 0 10px #0f0; animation: scan-line 2s infinite linear;"></div>
+                                    <button onclick="cancelChatLink()" style="width: 100%; margin-top: 10px; color: #f00; background: none; border: none;">[ BACK ]</button>
                                 </div>
                             </div>
-                            
-                            <!-- Chat View -->
+
                             <div id="chatMain" style="display: none; flex: 1; flex-direction: column;">
-                                <div id="chatLog" style="flex: 1; background: rgba(0,25,0,0.8); border: 2px solid #0c0; padding: 10px; font-size: 9px; overflow-y: auto; color: #cfc; font-family: monospace; display: flex; flex-direction: column; gap: 8px; border-radius: 4px;">
-                                    <div style="opacity: 0.5; color: #0f0;">> P2P LINK ESTABLISHED.</div>
+                                <div id="chatLog" style="flex: 1; background: rgba(0,20,0,0.9); border: 2px solid #0f0; border-radius: 8px; padding: 10px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
+                                <div id="chatEmojiBar" style="display: flex; gap: 10px; justify-content: center; padding: 8px 0; border-bottom: 1px dashed rgba(0,255,0,0.3);">
+                                    <span onclick="addChatEmoji('🚀')" style="cursor:pointer">🚀</span>
+                                    <span onclick="addChatEmoji('⚡')" style="cursor:pointer">⚡</span>
+                                    <span onclick="addChatEmoji('🔥')" style="cursor:pointer">🔥</span>
+                                    <span onclick="addChatEmoji('✅')" style="cursor:pointer">✅</span>
+                                    <span onclick="addChatEmoji('💬')" style="cursor:pointer">💬</span>
+                                    <span onclick="addChatEmoji('👾')" style="cursor:pointer">👾</span>
                                 </div>
-                                
-                                <div id="linkStartAnim" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 24px; color: #0f0; text-shadow: 0 0 15px #0f0; display: none; z-index: 100; font-weight: bold; pointer-events: none; text-align: center;">LINK<br>START!</div>
-                                
-                                <div style="display: flex; gap: 5px; margin-top: 10px;">
-                                    <input id="chatInput" placeholder="MSG..." style="flex: 1; background: #000; color: #0f0; border: 1px solid #0c0; font-size: 10px; padding: 8px;">
-                                    <button onclick="sendChatMessage()" style="font-size: 10px; background: #0c0; color: #000; border: none; padding: 0 12px; font-weight: bold;">SEND</button>
-                                    <button onclick="sendChatBuzz()" style="font-size: 10px; background: #b00; color: #fff; border: none; padding: 0 12px;">BUZZ</button>
+                                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                                    <button onclick="sendChatBuzz()" style="padding: 10px; background: #200; color: #f00; border: 1px solid #f00; font-size: 8px;">BUZ</button>
+                                    <button onclick="sendQrShout()" style="padding: 10px; background: #000; color: #0f0; border: 1px solid #0f0; font-size: 8px;">SHOUT</button>
+                                    <input id="chatInput" placeholder="CMD..." style="flex: 1; min-width: 0; background: #000; color: #0f0; border: 1px solid #0f0; padding: 10px; font-family: 'VT323'; font-size: 16px;">
+                                    <button onclick="sendChatMessage()" style="padding: 10px 15px; background: #0f0; color: #000; font-weight: bold; border: none; font-family: 'VT323';">SEND</button>
                                 </div>
-                                <button onclick="cancelChatLink()" style="font-size: 6px; margin-top: 5px; background: transparent; color: #ccc; border: none; opacity: 0.5;">DISCONNECT</button>
                             </div>
                         </div>
+                    </div>
+
+                    <div id="linkStartAnim" style="position: absolute; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column;">
+                        <div style="font-size: 80px; filter: drop-shadow(0 0 20px #0f0);">📡</div>
+                        <div style="font-size: 30px; color: #0f0; text-shadow: 0 0 10px #0f0; font-family: 'VT323';">LINK START!</div>
+                    </div>
+
+                    <!-- P2P GAMES LOBBY -->
+                    <div id="p2pLobby" class="game-screen" style="background: #000; font-family: 'VT323', monospace; color: #0f0;">
+                         <div id="p2pModeSelect" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 15px; padding: 20px;">
+                            <div id="p2pGameTitle" style="font-size: 24px; text-shadow: 0 0 10px #0f0;">GAME</div>
+                            <div style="font-size: 10px; opacity: 0.6;">CHOOSE COMPETITION</div>
+                            <button class="p2p-btn" onclick="startP2P('ai', 'easy')">VS CPU (EASY)</button>
+                            <button class="p2p-btn" onclick="startP2P('ai', 'hard')">VS CPU (HARD)</button>
+                            <button class="p2p-btn p2p-green" onclick="startP2P('p2p')">VS PEER (P2P)</button>
+                            <div id="p2pStatus" style="font-size: 8px; opacity: 0.5;">WAITING FOR LINK...</div>
+                         </div>
+                    </div>
+                            
+                            <!-- P2P GAMES (Unified Layouts) -->
+                            <div id="brawlScreen" class="game-screen" style="background: #111;">
+                                <canvas id="brawlCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
+                                <div style="background: rgba(0,255,0,0.1); padding: 5px; font-size: 10px; color: #0f0; text-align: center; font-family: 'VT323';">ARROWS=MOVE | Z=PUNCH</div>
+                            </div>
+                    <div id="chessScreen" class="game-screen">
+
+                        <!-- MODE SELECT SCREEN -->
+                        <div id="chessModeSelect" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:8px; padding:10px;">
+                             <!-- Resume button — hidden until a save exists -->
+                            <button id="chessResumeBtn" onclick="resumeChessGame()"
+                                style="display:none; width:80%; font-size:6px; padding:4px;
+                                    background:linear-gradient(135deg,#0e1a05,#142408);
+                                    color:#84c94c; border:1px solid #84c94c66;
+                                    letter-spacing:0.15em; cursor:pointer; margin-bottom:4px;">
+                            </button>
+                            <div style="font-size:9px; letter-spacing:0.3em; color:#c9a84c; margin-bottom:4px;">⚔ CYBER-CHESS ⚔</div>
+                            <div style="font-size:6px; color:#c9a84c; opacity:0.6; letter-spacing:0.2em; margin-bottom:8px;">SELECT MODE</div>
+                            <button onclick="startChessMode('ai','easy')"   style="width:80%; font-size:6px; padding:4px; background:linear-gradient(135deg,#1a0e05,#241408); color:#c9a84c; border:1px solid #c9a84c44; letter-spacing:0.2em; cursor:pointer;">VS AI — EASY</button>
+                            <button onclick="startChessMode('ai','normal')" style="width:80%; font-size:6px; padding:4px; background:linear-gradient(135deg,#1a0e05,#241408); color:#c9a84c; border:1px solid #c9a84c44; letter-spacing:0.2em; cursor:pointer;">VS AI — NORMAL</button>
+                            <button onclick="startChessMode('ai','hard')"   style="width:80%; font-size:6px; padding:4px; background:linear-gradient(135deg,#1a0e05,#241408); color:#c9a84c; border:1px solid #c9a84c88; letter-spacing:0.2em; cursor:pointer;">VS AI — HARD</button>
+                            <button onclick="startChessMode('p2p','normal')" style="width:80%; font-size:6px; padding:4px; background:linear-gradient(135deg,#0e1a05,#142408); color:#84c94c; border:1px solid #84c94c44; letter-spacing:0.2em; cursor:pointer;">VS PEER — P2P</button>
+                            <div id="chessWinsDisplay" style="margin-top:8px; font-size:5.5px; color:#c9a84c88; letter-spacing:0.15em; text-align:center;"></div>
+                        </div>
+
+                        <!-- GAME SCREEN -->
+                        <div id="chessGameArea" style="display:none; flex-direction:column; align-items:center; width:100%;">
+
+                            <!-- Top bar: status + wins -->
+                            <div style="display:flex; justify-content:space-between; align-items:center; width:100%; padding:2px 4px; margin-bottom:3px;">
+                                <div id="chessStatus" style="font-size:6px; color:#c9a84c; letter-spacing:0.2em;"></div>
+                                <div id="chessWinsBar" style="font-size:5px; color:#c9a84c88; letter-spacing:0.1em;"></div>
+                            </div>
+
+                            <!-- Board + captured pieces layout -->
+                            <div style="display:flex; gap:4px; align-items:flex-start; width:100%;">
+
+                                <!-- Captured by AI (black took white) -->
+                                <div id="chessCapturedByAI" style="display:flex; flex-direction:column; flex-wrap:wrap; width:14px; gap:0px; align-content:flex-start; min-height:20px;"></div>
+
+                                <!-- Board -->
+                                <div id="chessGrid" style="flex:1;"></div>
+
+                                <!-- Captured by Player (white took black) -->
+                                <div id="chessCapturedByPlayer" style="display:flex; flex-direction:column; flex-wrap:wrap; width:14px; gap:0px; align-content:flex-start; min-height:20px;"></div>
+
+                            </div>
+
+                            <div style="text-align:center; font-size:5px; margin-top:4px; color:#c9a84c44; letter-spacing:0.2em;">CYBER-CHESS | P2P TACTICS</div>
+                        </div>
+
+                        <!-- GAME OVER SCREEN -->
+                        <div id="chessGameOver" style="display:none; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:8px; padding:10px;">
+                            <div id="chessGameOverTitle" style="font-size:11px; color:#c9a84c; letter-spacing:0.3em;"></div>
+                            <div id="chessGameOverSub"   style="font-size:6px;  color:#c9a84c88; letter-spacing:0.25em; margin-bottom:6px;"></div>
+                            <div id="chessGameOverWins"  style="font-size:5.5px; color:#c9a84c66; letter-spacing:0.15em; margin-bottom:8px;"></div>
+                            <button onclick="restartChess()" style="font-size:6px; padding:4px 12px; background:linear-gradient(135deg,#1a0e05,#241408); color:#c9a84c; border:1px solid #c9a84c66; letter-spacing:0.25em; cursor:pointer;">↺ REMATCH</button>
+                            <button onclick="backToChessMenu()" style="font-size:6px; padding:4px 12px; background:transparent; color:#c9a84c44; border:1px solid #c9a84c22; letter-spacing:0.25em; cursor:pointer;">MENU</button>
+                        </div>
+
+                    </div>
+
+                    <div id="racerScreen" class="game-screen" style="background: #000;">
+                        <canvas id="racerCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
+                    </div>
+
+                    <div id="duelScreen" class="game-screen" style="background: #000;">
+                        <canvas id="duelCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
+                    </div>
+
+                    <div id="syncScreen" class="game-screen" style="background: #000;">
+                        <!-- Content generated dynamically by startSync -->
+                    </div>
+
+                    <div id="voidScreen" class="game-screen" style="background: #000; font-family: 'VT323', monospace;">
+                        <div style="height: 100%; display: flex; flex-direction: column; color: #0f0; padding:10px; position: relative;">
+                            <!-- Main HUD -->
+                            <div id="voidHeadsup" style="display:flex; justify-content: space-between; font-size: 8px; border-bottom: 1px solid #0f02; padding-bottom: 5px;">
+                                <div id="voidRoleDisplay">CONNECTING...</div>
+                                <div id="voidLocation">CORE SECTOR</div>
+                            </div>
+                            
+                            <!-- Presence / Social Awareness -->
+                            <div id="voidPresence" style="font-size: 6px; padding: 5px 0; color: #ffa; display: flex; gap: 5px; overflow-x: auto;"></div>
+
+                            <!-- Map / Movement -->
+                            <div id="voidMapContainer" style="flex:1; position: relative; background: #000; border: 1px solid #0f03; margin: 5px 0; overflow: hidden;">
+                                <canvas id="voidCanvas" width="640" height="480" style="width: 100%; height: 100%; image-rendering: pixelated; cursor: crosshair;"></canvas>
+                            </div>
+
+                            <!-- Tactical Actions -->
+                            <div id="voidActions" style="display:flex; gap: 3px; height: 40px;">
+                                <button id="voidBtnTask" onclick="voidDoTask()" class="p2p-btn" style="flex:1; border-color: #0ff; color:#0ff; font-size:10px; padding: 5px;">TASK</button>
+                                <button id="voidBtnReport" onclick="voidReport()" class="p2p-btn" style="flex:1; border-color: #f00; color:#f00; font-size:10px; padding: 5px;">REPORT</button>
+                                <button id="voidBtnKill" onclick="voidKill()" class="p2p-btn" style="flex:1; border-color: #f0f; color:#f0f; font-size:10px; display:none; padding: 5px;">INFECT</button>
+                            </div>
+
+                            <div id="voidLog" style="height: 25px; font-size: 5px; color: #0c0; overflow:hidden; margin-top:2px; opacity:0.8; line-height: 1.2;"></div>
+
+                            <!-- INTRO SCREEN -->
+                            <div id="voidIntro" style="position: absolute; inset: 0; background: #000; z-index: 2000; display: flex; flex-direction: column; padding: 20px; text-align: center; border: 2px solid #0f0;">
+                                <div style="font-size: 24px; color: #0f0; text-shadow: 0 0 10px #0f0; margin-bottom: 10px;">MISSION BRIEFING</div>
+                                <div style="flex: 1; overflow-y: auto; text-align: left; font-size: 10px; line-height: 1.4; color: #0f0;">
+                                    <div style="border: 1px solid #0f04; padding: 8px; margin-bottom: 10px;">
+                                        <b style="color: #0ff;">[ DECODER ]</b><br>
+                                        - MOVE WITH D-PAD<br>
+                                        - COMPLETE TASKS AT YELLOW NODES<br>
+                                        - FIND THE BODIES & REPORT<br>
+                                        - HIDE IN BUNKERS TO SURVIVE
+                                    </div>
+                                    <div style="border: 1px solid #0f04; padding: 8px; margin-bottom: 10px;">
+                                        <b style="color: #f0f;">[ GLITCH ]</b><br>
+                                        - INFECT ALL PERSONNEL<br>
+                                        - USE VENTS TO FAST TRAVEL<br>
+                                        - SABOTAGE SENSORS
+                                    </div>
+                                    <div style="color: #aaa; font-style: italic;">"TRUST NO ONE. THE VOID IS WATCHING."</div>
+                                </div>
+                                <button onclick="hideVoidIntro()" class="p2p-btn" style="margin-top: 10px;">INITIALIZE LINK</button>
+                            </div>
+
+                            <!-- DEBATE OVERLAY (Emergencies) -->
+                            <div id="voidDebate" style="position: absolute; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; display: none; flex-direction: column; padding: 20px;">
+                                <div style="color: #f00; font-size: 20px; text-align: center; margin-bottom: 15px; border-bottom: 2px solid #f00;">EMERGENCY LOCKDOWN</div>
+                                <div id="voidDebateLog" style="flex: 1; border: 1px solid #0f03; padding: 10px; font-size: 10px; overflow-y: auto; margin-bottom: 10px;"></div>
+                                <div id="voidVoteGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; margin-bottom: 10px;"></div>
+                                <div style="display: flex; gap: 5px;">
+                                    <input id="voidDebateInput" placeholder="ARGUMENT..." style="flex: 1; background: #000; color: #0f0; border: 1px solid #0f0; padding: 8px; font-family: 'VT323';">
+                                    <button onclick="voidSendDebate()" style="background: #0f0; color: #000; border: none; padding: 0 15px; font-family: 'VT323'; font-weight: bold;">TALK</button>
+                                </div>
+                                <div id="voidTimer" style="text-align: center; color: #ffa; font-size: 10px; margin-top: 10px;">TIME LEFT: 60s</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="adventureScreen" class="game-screen" style="background:#000; padding:0; overflow:hidden;">
+                        <iframe id="adventureFrame" src="BigAdventureGame/index.html" style="width:100%; height:100%; border:none; background:#000; display:block;"></iframe>
+                    </div>
+
+                    <div id="trollScreen" class="game-screen" style="position: relative;">
+                        <!-- Transparent Floating HUD - No more 'Bar' at the top -->
+                        <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; z-index: 1000; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 100%);">
+                            <div id="mainTrollLevel" style="font-size: 8px; color: var(--gb-text); font-weight: bold; text-shadow: 0 1px 1px rgba(255,255,255,0.4);">LVL: 1</div>
+                            <div id="mainTrollDeaths" style="font-size: 8px; color: var(--accent); font-weight: bold; text-shadow: 0 1px 1px rgba(255,255,255,0.4);">☠ 0</div>
+                        </div>
+                        
+                        <iframe id="trollFrame" src="MiniTrollGame/index.html"></iframe>
                     </div>
 
                     <!-- Settings -->
@@ -1714,6 +1908,48 @@ Type 'help' for commands.
                             <button onclick="resetData()" style="padding: 10px; background: #f00; color: #fff; margin-top: 10px; border: none; cursor:pointer; border-radius: 4px;">🗑️ WIPE DATA</button>
                         </div>
                     </div>
+
+                    <!-- HABIT TRACKER -->
+                    <div id="habitScreen" class="game-screen">
+                        <div style="padding: 10px;">
+                            <div style="font-size: 10px; margin-bottom: 15px; text-align: center; font-weight: bold;">HABIT TRACKER</div>
+                            <div id="habitList" style="max-height: 220px; overflow-y: auto; margin-bottom: 10px;">
+                                <!-- Habits injected by JS -->
+                            </div>
+                            <button onclick="addHabit()" style="width: 100%; background: #33aa33; color: #fff; padding: 10px;">+ ADD HABIT</button>
+                            <div style="font-size: 5px; text-align: center; margin-top: 8px; opacity: 0.7;">CHECK IN DAILY TO BUILD STREAKS!</div>
+                        </div>
+                    </div>
+
+                    <!-- JOURNAL -->
+                    <div id="journalScreen" class="game-screen">
+                        <!-- Content dynamically injected by productivity_apps.js -->
+                    </div>
+
+                    <!-- WORKOUT TRACKER -->
+                    <div id="workoutScreen" class="game-screen">
+                        <!-- Content dynamically injected by productivity_apps.js -->
+                    </div>
+
+                    <!-- STUDY (FLASHCARDS) -->
+                    <div id="studyScreen" class="game-screen">
+                        <!-- Content dynamically injected by productivity_apps.js -->
+                    </div>
+
+                    <!-- BUDGET TRACKER -->
+                    <div id="budgetScreen" class="game-screen">
+                        <!-- Content dynamically injected by productivity_apps.js -->
+                    </div>
+
+                    <!-- ADVENTURE GAME -->
+                    <div id="adventureScreen" class="game-screen">
+                        <div style="padding: 0; width: 100%; height: 100%; background: #000;">
+                            <canvas id="advCanvas" width="300" height="280" style="display: block; margin: 0 auto; image-rendering: pixelated;"></canvas>
+                            <div style="position: absolute; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.8); padding: 5px; border-radius: 4px; font-size: 6px; color: #fff; text-align: center; display: none;" id="advHelp">
+                                Arrow Keys = Move | Collect Golden Crystal | Enter Cyan Portal to advance
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1727,6 +1963,11 @@ Type 'help' for commands.
                 <button class="dpad-btn dpad-right" aria-label="Right"></button>
             </div>
             
+            <div class="system-controls">
+                <button class="select-btn" aria-label="Select">SELECT</button>
+                <button class="start-btn" aria-label="Start">START</button>
+            </div>
+
             <div class="ab-buttons">
                 <button class="ab-btn" aria-label="Button B">B</button>
                 <button class="ab-btn" aria-label="Button A">A</button>
@@ -1747,12 +1988,51 @@ Type 'help' for commands.
     </div>
 
 
+    <style>
+        /* Maximize Troll Screen space by covering the header */
+        #trollScreen.active {
+            display: flex !important;
+            flex-direction: column;
+            position: absolute;
+            inset: 0;
+            z-index: 100;
+            background: var(--gb-screen);
+            padding: 0 !important;
+            margin: 0 !important;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #trollFrame {
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            border: none;
+            display: block;
+            margin: 0;
+            padding: 0;
+            background: var(--gb-screen);
+            transform: translateZ(0); /* Force GPU */
+        }
+    </style>
+
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="scripts/games.js"></script>
     <script src="scripts/newapps.js"></script>
     <script src="scripts/newapps_batch5.js"></script>
+    <script src="scripts/newapps_utility.js"></script>
+    <script src="scripts/productivity_apps.js"></script>
+    <script src="scripts/retro_quest.js"></script>
+    <!-- P2P GAMES -->
+    <script src="scripts/p2p-games/engine.js"></script>
+    <script src="scripts/p2p-games/brawl.js"></script>
+    <script src="scripts/p2p-games/chess.js"></script>
+    <script src="scripts/p2p-games/racer.js"></script>
+    <script src="scripts/p2p-games/duel.js"></script>
+    <script src="scripts/p2p-games/sync.js"></script>
+    <script src="scripts/p2p-games/void.js"></script>
     <script src="scripts/batch6.js"></script>
     <script src="scripts/utils_expanded.js"></script>
     <script src="app.js"></script>
@@ -1767,16 +2047,17 @@ Type 'help' for commands.
             });
         }
         
-        // Resume AudioContext on first user interaction to fix the warning
-        function resumeAudio() {
-            if (window.audioCtx && window.audioCtx.state === 'suspended') {
-                window.audioCtx.resume();
-            }
-            document.removeEventListener('click', resumeAudio);
-            document.removeEventListener('keydown', resumeAudio);
-        }
-        document.addEventListener('click', resumeAudio);
-        document.addEventListener('keydown', resumeAudio);
+        // Global Audio Resumption
+        const handleGesture = () => {
+            if (window.resumeAudio) window.resumeAudio();
+            document.removeEventListener('click', handleGesture);
+            document.removeEventListener('keydown', handleGesture);
+            document.removeEventListener('touchstart', handleGesture);
+        };
+        document.addEventListener('click', handleGesture);
+        document.addEventListener('keydown', handleGesture);
+        document.addEventListener('touchstart', handleGesture);
+
     </script>
 </body>
 </html>

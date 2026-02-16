@@ -1,126 +1,133 @@
-// ========== MAIN APP LOADER (v2.1) ==========
+// ========== MAIN APP LOADER (v3.0 - STREAMLINED) ==========
 
 const apps = [
+    // ── CORE GAMES (Keep - High Engagement) ──────────────────────────────
     { id: 'karaoke', name: 'KARAOKE', icon: '🎤' },
     { id: 'snake', name: 'SNAKE', icon: '🐍' },
     { id: 'flappy', name: 'FLAPPY', icon: '🐦' },
     { id: 'breakout', name: 'BREAKOUT', icon: '🧱' },
     { id: 'tetris', name: 'TETRIS', icon: '🧱' },
     { id: 'memory', name: 'MEMORY', icon: '🃏' },
+    { id: 'ttt', name: 'TTT', icon: '❌' },
+    { id: 'rps', name: 'R-P-S', icon: '✂️' },
+    { id: 'mines', name: 'MINES', icon: '💣' },
+    { id: '2048', name: '2048', icon: '🔢' },
+    
+    // ── PRODUCTIVITY (Enhanced) ───────────────────────────────────────────
     { id: 'todo', name: 'TO-DO', icon: '📝' },
     { id: 'notes', name: 'NOTES', icon: '📒' },
     { id: 'calc', name: 'CALC', icon: '🔢' },
+    { id: 'timer', name: 'TIMER', icon: '⏲️' },
+    { id: 'stopwatch', name: 'CHRONO', icon: '⏱️' },
+    { id: 'counter', name: 'COUNT', icon: '🔢' },
+    { id: 'pomo', name: 'POMO', icon: '🍅' },
+    { id: 'habit', name: 'HABIT', icon: '✅' },        // NEW
+    { id: 'journal', name: 'JOURNAL', icon: '📔' },   // NEW
+    { id: 'workout', name: 'WORKOUT', icon: '💪' },   // NEW
+    { id: 'study', name: 'STUDY', icon: '🎓' },       // NEW
+    { id: 'budget', name: 'BUDGET', icon: '💰' },     // NEW
+    
+    // ── CREATIVE ──────────────────────────────────────────────────────────
     { id: 'paint', name: 'PAINT', icon: '🎨' },
     { id: 'pixel', name: 'PIXEL', icon: '🖌️' },
-    { id: 'miner', name: 'MINER', icon: '💎' },
-    { id: 'pet', name: 'PET', icon: '🐱' },
-    { id: 'flash', name: 'CARDS', icon: '🎴' },
-    { id: 'draw', name: 'DRAW', icon: '🖍️' },
-    
-    // Batch 1 (Info)
-    { id: 'weather', name: 'WEATH', icon: '☀️' },
-    { id: 'clock', name: 'TIME', icon: '🕒' },
-    { id: 'news', name: 'NEWS', icon: '📰' },
-    { id: 'stock', name: 'STOCK', icon: '📈' },
-    { id: 'dict', name: 'WORD', icon: '📖' },
-    { id: 'quote', name: 'QUOTE', icon: '❝' },
-    { id: 'ip', name: 'NET', icon: '🌐' },
-    { id: 'translate', name: 'TRANS', icon: '🌐' },
-    
-    // Batch 2 (Fun)
-    { id: 'joke', name: 'JOKES', icon: '😂' },
-    { id: 'fact', name: 'FACTS', icon: '💡' },
-    { id: 'dog', name: 'DOGS', icon: '🐶' },
-    { id: 'fox', name: 'FOX', icon: '🦊' },
-    { id: 'book', name: 'BOOKS', icon: '📚' },
-    { id: 'pokedex', name: 'DEX', icon: '🔴' },
-    { id: 'trivia', name: 'TRIVIA', icon: '❓' },
-    { id: 'advice', name: 'SAGE', icon: '🧙' },
-    { id: 'zodiac', name: 'ZODIAC', icon: '♈' },
-    { id: 'fortune', name: 'FORTUNE', icon: '🥠' },
-    { id: 'riddle', name: 'RIDDLE', icon: '❓' },
-    { id: 'guess', name: 'GUESS', icon: '🔢' },
-    { id: 'reaction', name: 'FAST', icon: '⚡' },
+    { id: 'remix', name: 'BEATS', icon: '🎹' },
+    { id: 'groove', name: 'GROOVE', icon: '🥁' },
     { id: 'music', name: 'MUSIC', icon: '🎵' },
     { id: 'radio', name: 'RADIO', icon: '📻' },
     
-    // Batch 3 (Tools)
-    { id: 'stopwatch', name: 'CHRONO', icon: '⏱️' },
-    { id: 'timer', name: 'TIMER', icon: '⏲️' },
-    { id: 'counter', name: 'COUNT', icon: '🔢' },
-    { id: 'compass', name: 'COMPASS', icon: '🧭' },
-    { id: 'contacts', name: 'PHONE', icon: '📔' },
-    { id: 'calendar', name: 'CAL', icon: '📅' },
-    { id: 'streak', name: 'STREAK', icon: '🔥' },
-    { id: 'breathe', name: 'CALM', icon: '🌬️' },
-    { id: 'map', name: 'MAPS', icon: '🗺️' },
-    { id: 'barcode', name: 'SCAN', icon: '🔍' },
-    { id: 'alerts', name: 'ALARM', icon: '⏰' },
-    { id: 'world', name: 'WORLD', icon: '🌍' },
-    { id: 'quests', name: 'QUESTS', icon: '⚔️' },
-    
-    // Batch 4 (Futuristic)
+    // ── INFORMATION & LEARNING ────────────────────────────────────────────
+    { id: 'news', name: 'NEWS', icon: '📰' },
+    { id: 'weather', name: 'WEATH', icon: '☀️' },
+    { id: 'dict', name: 'WORD', icon: '📖' },
+    { id: 'translate', name: 'TRANS', icon: '🌐' },
+    { id: 'wiki', name: 'WIKI', icon: '🌐' },
+    { id: 'book', name: 'BOOKS', icon: '📚' },
+    { id: 'trivia', name: 'TRIVIA', icon: '❓' },
+    { id: 'pokedex', name: 'DEX', icon: '🔴' },
     { id: 'space', name: 'SPACE', icon: '🚀' },
-    { id: 'oracle', name: 'FATE', icon: '🎱' },
-    { id: 'robo', name: 'BOTS', icon: '🤖' },
-    { id: 'identity', name: 'WHO?', icon: '🕵️' },
-    { id: 'vault', name: 'VAULT', icon: '🔐' },
-    { id: 'spirit', name: 'RADAR', icon: '👻' },
-    { id: 'idle', name: 'MINER', icon: '⛏️' },
-    { id: 'egg', name: 'HATCH', icon: '🥚' },
-    { id: 'morse', name: 'MORSE', icon: '📡' },
+    { id: 'nasa', name: 'COSMOS', icon: '🌌' },
+    { id: 'elem', name: 'CHEM', icon: '⚛️' },
     
-    // Games
-    { id: 'ttt', name: 'TTT', icon: '❌' },
-    { id: 'rps', name: 'R-P-S', icon: '✂️' },
+    // ── FUN & ENTERTAINMENT ───────────────────────────────────────────────
+    { id: 'joke', name: 'JOKES', icon: '😂' },
+    { id: 'fact', name: 'FACTS', icon: '💡' },
+    { id: 'meme', name: 'MEME', icon: '😹' },
+    { id: 'catfact', name: 'CATS', icon: '🐱' },
+    { id: 'quote', name: 'QUOTE', icon: '❝' },
+    { id: 'advice', name: 'SAGE', icon: '🧙' },
+    { id: 'fortune', name: 'FORTUNE', icon: '🥠' },
+    { id: 'riddle', name: 'RIDDLE', icon: '❓' },
+    { id: 'zodiac', name: 'ZODIAC', icon: '♈' },
+    { id: 'cocktail', name: 'DRINK', icon: '🍸' },
+    
+    // ── MINI GAMES ────────────────────────────────────────────────────────
+    { id: 'guess', name: 'GUESS', icon: '🔢' },
+    { id: 'reaction', name: 'FAST', icon: '⚡' },
     { id: 'coin', name: 'FLIP', icon: '🪙' },
     { id: 'dice', name: 'DICE', icon: '🎲' },
     { id: 'ball', name: '8-BALL', icon: '🎱' },
-    { id: 'remix', name: 'BEATS', icon: '🎹' },
-    { id: 'mines', name: 'MINES', icon: '💣' },
+    { id: 'miner', name: 'MINER', icon: '💎' },
+    { id: 'pet', name: 'PET', icon: '🐱' },
+    { id: 'flash', name: 'CARDS', icon: '🎴' },
     
-    // Batch 5 (New APIs)
-    { id: 'catfact', name: 'CATS', icon: '🐱' },
-    { id: 'chuck', name: 'CHUCK', icon: '🤠' },
-    { id: 'anime', name: 'ANIME', icon: '🎭' },
-    { id: 'meme', name: 'MEME', icon: '😹' },
-    { id: 'nasa', name: 'COSMOS', icon: '🌌' },
-    { id: 'kanye', name: 'KANYE', icon: '🎤' },
-    { id: 'bored', name: 'IDEAS', icon: '💡' },
-    { id: 'zen', name: 'ZEN', icon: '🧘' },
-    { id: 'cocktail', name: 'DRINK', icon: '🍸' },
-    { id: 'camera', name: 'CAM', icon: '📷' },
-    
-    // Batch 6 (Utilities Expanded)
+    // ── UTILITY TOOLS ─────────────────────────────────────────────────────
+    { id: 'clock', name: 'TIME', icon: '🕒' },
+    { id: 'calendar', name: 'CAL', icon: '📅' },
+    { id: 'compass', name: 'COMPASS', icon: '🧭' },
+    { id: 'contacts', name: 'PHONE', icon: '📔' },
+    { id: 'qr', name: 'QR', icon: '📱' },
+    { id: 'barcode', name: 'SCAN', icon: '🔍' },
+    { id: 'alerts', name: 'ALARM', icon: '⏰' },
     { id: 'bmi', name: 'BMI', icon: '⚖️' },
+    { id: 'bmr', name: 'BMR', icon: '🔥' },
     { id: 'unit', name: 'UNITS', icon: '📏' },
-    { id: 'pass', name: 'PASS', icon: '🔑' },
-    { id: 'pomo', name: 'POMO', icon: '🍅' },
     { id: 'tip', name: 'TIP', icon: '💸' },
     { id: 'bin', name: 'BIN', icon: '01' },
-    { id: 'water', name: 'H2O', icon: '💧' },
-    { id: 'groove', name: 'GROOVE', icon: '🥁' },
-    { id: 'wiki', name: 'WIKI', icon: '🌐' },
-    { id: 'emulator', name: 'RETRO', icon: '💾' },
-    { id: 'bmr', name: 'BMR', icon: '🔥' },
-    { id: 'int', name: 'INT', icon: '💰' },
-    { id: 'metro', name: 'BEAT', icon: '⏱️' },
-    { id: '2048', name: '2048', icon: '🔢' },
-    { id: 'term', name: 'ZSH', icon: '💻' },
-    // Batch 6 (Power Tools)
-    { id: 'qr', name: 'QR', icon: '📱' },
-    { id: 'ascii', name: 'ART', icon: '🖼️' },
-    { id: 'noise', name: 'NOISE', icon: '📻' },
-    { id: 'level', name: 'LEVEL', icon: '📐' },
-    { id: 'hex', name: 'HEX', icon: '🔢' },
-    { id: 'elem', name: 'CHEM', icon: '⚛️' },
-    { id: 'sfx', name: 'SFX', icon: '🔊' },
+    { id: 'pass', name: 'PASS', icon: '🔑' },
     { id: 'regex', name: 'REGEX', icon: '🔠' },
-    { id: 'lorem', name: 'IPSUM', icon: '📝' },
-    { id: 'typer', name: 'TYPE', icon: '⌨️' },
+    { id: 'ascii', name: 'ART', icon: '🖼️' },
+    
+    // ── WELLNESS ──────────────────────────────────────────────────────────
+    { id: 'breathe', name: 'CALM', icon: '🌬️' },
+    { id: 'streak', name: 'STREAK', icon: '🔥' },
+    { id: 'water', name: 'H2O', icon: '💧' },
+    
+    // ── ADVANCED/TECH ─────────────────────────────────────────────────────
+    { id: 'stock', name: 'STOCK', icon: '📈' },
+    { id: 'ip', name: 'NET', icon: '🌐' },
+    { id: 'camera', name: 'CAM', icon: '📷' },
+    { id: 'currency', name: 'EXCH', icon: '💱' },
+    { id: 'flashlight', name: 'BEAM', icon: '🔦' },
+    { id: 'level', name: 'LEVEL', icon: '📏' },
+    { id: 'sos', name: 'S.O.S', icon: '🆘' },
+    { id: 'term', name: 'ZSH', icon: '💻' },
+    { id: 'morse', name: 'MORSE', icon: '📡' },
+    { id: 'sfx', name: 'SFX', icon: '🔊' },
+    { id: 'metro', name: 'BEAT', icon: '⏱️' },
+    { id: 'emulator', name: 'RETRO', icon: '💾' },
+    
+    // ── SPECIAL/UNIQUE ────────────────────────────────────────────────────
+    { id: 'vault', name: 'VAULT', icon: '🔐' },
+    { id: 'world', name: 'WORLD', icon: '🌍' },
+    { id: 'map', name: 'MAPS', icon: '🗺️' },
+    { id: 'quests', name: 'QUESTS', icon: '⚔️' },
+    { id: 'bored', name: 'IDEAS', icon: '💡' },
+    { id: 'idle', name: 'IDLE', icon: '⛏️' },
     { id: 'chat', name: 'BITCHAT', icon: '📡' },
     
-    // System
+    // ── P2P MULTIPLAYER GAMES ─────────────────────────────────────────────
+    { id: 'chess', name: 'TACTIC', icon: '♟️' },
+    { id: 'brawl', name: 'BRAWL', icon: '🥋' },
+    { id: 'racer', name: 'RACER', icon: '🏁' },
+    { id: 'duel', name: 'DUEL', icon: '🚀' },
+    { id: 'sync', name: 'PULSE', icon: '⚡' },
+    { id: 'void', name: 'VOID', icon: '👽' },
+    { id: 'troll', name: 'TROLL', icon: '👺' },
+    
+    // ── ADVENTURE (Enhanced) ──────────────────────────────────────────────
+    { id: 'adventure', name: 'QUEST', icon: '🗺️' },
+    
+    // ── SYSTEM ────────────────────────────────────────────────────────────
     { id: 'credits', name: 'INFO', icon: 'ℹ️' },
     { id: 'settings', name: 'SETUP', icon: '⚙️' }
 ];
@@ -242,7 +249,7 @@ function updateMenuSelection() {
     items.forEach((item, i) => {
         if (i === selectedIndex) {
             item.classList.add('selected');
-            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            item.scrollIntoView({ behavior: 'auto', block: 'nearest' });
             
             // Update status bar icon
             const app = displayedApps[i];
@@ -261,6 +268,7 @@ function launchApp(appId) {
     if(screen) screen.classList.add('active');
     
     currentScreen = appId;
+    if(window.trackQuest) trackQuest('any', 1);
     
     const t = translations[state.lang] || translations.en;
     let title = appId.toUpperCase();
@@ -291,6 +299,13 @@ function launchApp(appId) {
 function goBack() {
     if (currentScreen !== 'home') {
         sounds.back();
+        
+        // Clear all intervals using interval manager
+        if (typeof intervalManager !== 'undefined') {
+            intervalManager.clearAll();
+        }
+        
+        // Legacy manual cleanup for safety
         if (typeof clockInterval !== 'undefined') clearInterval(clockInterval);
         if (typeof snakeGame !== 'undefined' && snakeGame) snakeGame.stop();
         if (typeof flappyGame !== 'undefined') cancelAnimationFrame(flappyGame);
@@ -357,29 +372,101 @@ window.saveNotes = function() {
     }
 };
 
-// Physical Buttons (assuming order B, A in DOM)
+// Physical Buttons (sustained press support)
 const abBtns = document.querySelectorAll('.ab-btn');
 if(abBtns.length >= 2) {
-    // B Button (Back)
-    abBtns[0].onclick = goBack;
-    // A Button (Select)
-    abBtns[1].onclick = () => { 
-        if(currentScreen==='home') launchApp(displayedApps[selectedIndex].id);
+    const btnB = abBtns[0]; // Left (B)
+    const btnA = abBtns[1]; // Right (A)
+
+    const handleA = (down) => {
+        if (down && currentScreen === 'home') launchApp(displayedApps[selectedIndex].id);
+        else document.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup', { key: 'z' }));
+    };
+    const handleB = (down) => {
+        if (!down) {
+            document.dispatchEvent(new KeyboardEvent('keyup', { key: 'x' }));
+            return;
+        }
+        
+        // Define apps that use B for gameplay instead of Back
+        const gameModeApps = ['adventure', 'troll', 'racer', 'duel', 'brawl', 'void'];
+        
+        if (gameModeApps.includes(currentScreen)) {
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
+        } else {
+            goBack();
+        }
+    };
+
+    btnA.addEventListener('mousedown', () => handleA(true));
+    btnA.addEventListener('mouseup',   () => handleA(false));
+    btnA.addEventListener('touchstart', (e) => { 
+        if (e.cancelable) e.preventDefault(); 
+        handleA(true); 
+    }, { passive: false });
+    btnA.addEventListener('touchend',   (e) => { 
+        if (e.cancelable) e.preventDefault(); 
+        handleA(false); 
+    }, { passive: false });
+
+    btnB.addEventListener('mousedown', () => handleB(true));
+    btnB.addEventListener('mouseup',   () => handleB(false));
+    btnB.addEventListener('touchstart', (e) => { 
+        if (e.cancelable) e.preventDefault(); 
+        handleB(true); 
+    }, { passive: false });
+    btnB.addEventListener('touchend',   (e) => { 
+        if (e.cancelable) e.preventDefault(); 
+        handleB(false); 
+    }, { passive: false });
+}
+
+// Bind SELECT / START
+const selectBtn = document.querySelector('.select-btn');
+const startBtn  = document.querySelector('.start-btn');
+
+if (selectBtn) {
+    selectBtn.onclick = () => {
+        sounds.back();
+        goBack();
     };
 }
 
-// Universal Controller Handling
-function triggerKey(key) {
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: key }));
-    setTimeout(() => document.dispatchEvent(new KeyboardEvent('keyup', { key: key })), 50);
+if (startBtn) {
+    startBtn.onclick = () => {
+        // Start usually acts as Enter or a special Menu
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+        setTimeout(() => document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' })), 100);
+        
+        // Special: In Adventure Game, cycle visual modes (if implemented in script)
+        if (currentScreen === 'adventure' && typeof RetroQuest !== 'undefined' && RetroQuest.cycleMode) {
+            RetroQuest.cycleMode();
+        }
+    };
 }
 
-const dpadUp = document.querySelector('.dpad-up');
-const dpadDown = document.querySelector('.dpad-down');
-const dpadLeft = document.querySelector('.dpad-left');
-const dpadRight = document.querySelector('.dpad-right');
+// Universal Controller (D-Pad)sustained press
+function bindHold(selector, key) {
+    const el = document.querySelector(selector);
+    if(!el) return;
+    const press = (d) => {
+        document.dispatchEvent(new KeyboardEvent(d?'keydown':'keyup', { key: key }));
+        if(d) el.classList.add('pressed'); else el.classList.remove('pressed');
+    };
+    el.addEventListener('mousedown', () => press(true));
+    el.addEventListener('mouseup', () => press(false));
+    el.addEventListener('mouseleave', () => press(false));
+    el.addEventListener('touchstart', (e) => { 
+        if (e.cancelable) e.preventDefault(); 
+        press(true); 
+    }, { passive: false });
+    el.addEventListener('touchend', (e) => { 
+        if (e.cancelable) e.preventDefault(); 
+        press(false); 
+    }, { passive: false });
+}
 
-if(dpadUp) dpadUp.onclick = () => triggerKey('ArrowUp');
-if(dpadDown) dpadDown.onclick = () => triggerKey('ArrowDown');
-if(dpadLeft) dpadLeft.onclick = () => triggerKey('ArrowLeft');
-if(dpadRight) dpadRight.onclick = () => triggerKey('ArrowRight');
+bindHold('.dpad-up', 'ArrowUp');
+bindHold('.dpad-down', 'ArrowDown');
+bindHold('.dpad-left', 'ArrowLeft');
+bindHold('.dpad-right', 'ArrowRight');

@@ -1,0 +1,43 @@
+<!-- ============================================ -->
+<!-- NEW PRODUCTIVITY APP SCREENS -->
+<!-- Add these BEFORE the closing </div> of screen-content -->
+<!-- ============================================ -->
+
+<!-- HABIT TRACKER -->
+<div id="habitScreen" class="game-screen">
+    <div style="padding: 10px;">
+        <div style="font-size: 10px; margin-bottom: 15px; text-align: center; font-weight: bold;">HABIT TRACKER</div>
+        <div id="habitList" style="max-height: 220px; overflow-y: auto; margin-bottom: 10px;">
+            <!-- Habits injected by JS -->
+        </div>
+        <button onclick="addHabit()" style="width: 100%; background: #33aa33; color: #fff; padding: 10px;">+ ADD HABIT</button>
+        <div style="font-size: 5px; text-align: center; margin-top: 8px; opacity: 0.7;">CHECK IN DAILY TO BUILD STREAKS!</div>
+    </div>
+</div>
+
+<!-- JOURNAL -->
+<div id="journalScreen" class="game-screen">
+    <!-- Content dynamically injected by productivity_apps.js -->
+</div>
+
+<!-- WORKOUT TRACKER -->
+<div id="workoutScreen" class="game-screen">
+    <!-- Content dynamically injected by productivity_apps.js -->
+</div>
+
+<!-- STUDY (FLASHCARDS) -->
+<div id="studyScreen" class="game-screen">
+    <!-- Content dynamically injected by productivity_apps.js -->
+</div>
+
+<!-- BUDGET TRACKER -->
+<div id="budgetScreen" class="game-screen">
+    <!-- Content dynamically injected by productivity_apps.js -->
+</div>
+
+<!-- ============================================ -->
+<!-- ADD THIS SCRIPT TAG BEFORE CLOSING </body> -->
+<!-- ============================================ -->
+<!--
+<script src="scripts/productivity_apps.js"></script>
+-->

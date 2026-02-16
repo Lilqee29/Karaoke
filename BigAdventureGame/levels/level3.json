@@ -1,0 +1,48 @@
+{
+    "level": 3,
+    "name": "The Crystal Forge",
+    "theme": "shadow",
+    "bgColor": "#2e1a47",
+    "tileSize": 32,
+    "tiles": [
+        [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,2],
+        [2,0,1,1,1,0,0,0,1,1,1,0,0,0,0,0,0,0,0,2],
+        [2,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,0,0,0,0,0,0,0,0,0,0,1,1,0,0,3,3,3,0,2],
+        [2,0,0,3,3,3,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,2],
+        [2,0,1,1,1,0,0,0,0,0,0,0,0,0,1,1,1,0,0,2],
+        [2,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+    ],
+    "enemies": [
+        {"type": "goblin", "x": 10, "y": 2, "patrol": true, "patrolDist": 5},
+        {"type": "goblin", "x": 15, "y": 7, "patrol": true, "patrolDist": 4},
+        {"type": "goblin", "x": 4, "y": 4, "patrol": true, "patrolDist": 3},
+        {"type": "slime", "x": 17, "y": 4, "patrol": true}
+    ],
+    "npcs": [
+        {
+            "id": "guardian",
+            "x": 16, "y": 8,
+            "sprite": "elder",
+            "name": "Forge Guardian",
+            "dialog": [
+                "Intruder! This forge is off-limits.",
+                "Wait... the mark on your hand...",
+                "It can't be... the lost prince?",
+                "If you truly are him, take this shard.",
+                "The Shadow Rift is closing, but the real enemy is still out there.",
+                "Go to the northern spires. Find the Crystal of Dawn!"
+            ]
+        }
+    ],
+    "items": [
+        {"type": "herb", "x": 2, "y": 2, "heal": 50},
+        {"type": "chest", "x": 18, "y": 2, "contains": "dawn_crystal"}
+    ],
+    "spawn": {"x": 2, "y": 9}
+}

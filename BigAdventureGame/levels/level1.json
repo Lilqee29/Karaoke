@@ -1,0 +1,67 @@
+{
+    "world": 1,
+    "level": 1,
+    "name": "The Green Fields",
+    "theme": "spring",
+    "bgColor": "#3a7d44",
+    "tileSize": 32,
+    "music": "spring",
+    "tiles": [
+        [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,0,0,1,1,0,0,0,0,1,1,1,0,0,0,0,0,0,0,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,2],
+        [2,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,0,1,1,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,2],
+        [2,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,2],
+        [2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2],
+        [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
+    ],
+    "tileKey": {
+        "0": "grass",
+        "1": "stone",
+        "2": "wall",
+        "3": "tree",
+        "4": "exit"
+    },
+    "enemies": [
+        {"type": "slime", "x": 4,  "y": 5, "patrol": true, "patrolDist": 3},
+        {"type": "slime", "x": 10, "y": 3, "patrol": true, "patrolDist": 2},
+        {"type": "goblin","x": 14, "y": 8, "patrol": false}
+    ],
+    "npcs": [
+        {
+            "id": "elder",
+            "x": 2, "y": 2,
+            "sprite": "old_man",
+            "name": "Elder Mirwen",
+            "dialog": [
+                "Young one... you've finally awakened.",
+                "The Shadow Rift has torn open to the east. Monsters flood our fields.",
+                "The Crystal of Dawn is the only thing that can seal it.",
+                "It was shattered into three shards — scattered across the three realms.",
+                "You must find them all. The fate of Aethoria rests with you.",
+                "Start by clearing these fields of the slimes. They carry a fragment of shadow energy.",
+                "Be careful. And... trust no one wearing a red cloak."
+            ]
+        }
+    ],
+    "items": [
+        {"type": "herb",   "x": 6,  "y": 2, "heal": 20},
+        {"type": "herb",   "x": 12, "y": 6, "heal": 20},
+        {"type": "chest",  "x": 17, "y": 9, "contains": "iron_sword"}
+    ],
+    "spawn": {"x": 2, "y": 9},
+    "story": {
+        "intro": [
+            "WORLD 1 — THE GREEN FIELDS",
+            "Three days ago, the sky cracked open.",
+            "You woke in a field, your past erased.",
+            "Only one thing remains: a mark on your hand,",
+            "glowing faintly... like a dying star."
+        ]
+    }
+}

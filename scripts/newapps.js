@@ -173,97 +173,203 @@ function startRadioVisual() {
 }
 
 // ========== 10 NEW APPS INIT ==========
-window.initTranslate = function() { 
-    const el = document.getElementById('transOutput');
-    if (el) el.textContent = "READY..."; 
-};
-
-// ========== NEWS APP ==========
-let newsItems = [];
-let newsIndex = 0;
-let newsView = 'list';
-
-window.initNews = async function() {
-    newsView = 'list';
-    newsIndex = 0;
-    const list = document.getElementById('newsList');
-    if(!list) return;
-    list.innerHTML = 'LOADING HEADLINES...';
-    try {
-        const res = await fetch('https://api.spaceflightnewsapi.net/v4/articles/?limit=10');
-        const data = await res.json();
-        newsItems = data.results;
-        renderNewsList();
-    } catch(e) { 
-        list.innerHTML = 'OFFLINE MODE<br>CHECK CONNECTION'; 
-    }
-};
-
-function renderNewsList() {
-    const list = document.getElementById('newsList');
-    if(!list) return;
-    list.innerHTML = '';
-    newsItems.forEach((item, i) => {
-        const div = document.createElement('div');
-        div.style.cssText = `padding: 8px; border-bottom: 1px solid #0f380f; margin-bottom: 2px; background: ${i === newsIndex ? '#0f380f' : 'transparent'}; color: ${i === newsIndex ? '#9bbc0f' : '#0f380f'}; cursor: pointer; font-size: 10px;`;
-        div.innerHTML = `<strong>${item.title.substring(0, 50)}...</strong>`;
-        div.onclick = () => openNewsDetail(i);
-        list.appendChild(div);
-    });
-    if(list.children[newsIndex]) list.children[newsIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-window.handleNewsInput = function(key) {
-    if(newsView === 'list') {
-        if(key === 'ArrowUp') {
-            newsIndex = (newsIndex - 1 + newsItems.length) % newsItems.length;
-            renderNewsList();
-            sounds.click();
-        } else if(key === 'ArrowDown') {
-            newsIndex = (newsIndex + 1) % newsItems.length;
-            renderNewsList();
-            sounds.click();
-        } else if(key === 'Enter' || key === 'a' || key === 'z') {
-            openNewsDetail(newsIndex);
-            sounds.launch();
-        }
+// ========== WEATHER (REAL ACCURATE DATA) ==========
+window.initWeather = async function() {
+    const screen = document.getElementById('weatherScreen');
+    if(!screen) return;
+    
+    screen.innerHTML = '<div style="text-align:center; padding-top:100px; font-family: monospace;">CONNECTING TO SATELLITE...</div>';
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                const data = await res.json();
+                const temp = data.current_weather.temperature;
+                const code = data.current_weather.weathercode;
+                
+                const conditions = {
+                    0: "☀️ CLEAR SKY",
+                    1: "🌤️ MAINLY CLEAR", 2: "⛅ PARTLY CLOUDY", 3: "☁️ OVERCAST",
+                    45: "🌫️ FOGGY", 48: "🌫️ RIME FOG",
+                    51: "🌧️ LIGHT DRIZZLE", 53: "🌧️ MODERATE DRIZZLE", 55: "🌧️ DENSE DRIZZLE",
+                    61: "🌧️ SLIGHT RAIN", 63: "🌧️ MODERATE RAIN", 65: "🌧️ HEAVY RAIN",
+                    71: "❄️ SLIGHT SNOW", 73: "❄️ MODERATE SNOW", 75: "❄️ HEAVY SNOW",
+                    95: "⛈️ THUNDERSTORM"
+                };
+                
+                screen.innerHTML = `
+                    <div style="padding: 10px; text-align: center; background: #9bbc0f; color: #0f380f; height: 100%; font-family: 'VT323', monospace;">
+                        <div style="font-size: 14px; border-bottom: 2px solid #0f380f; margin-bottom: 20px;">LOCAL WEATHER</div>
+                        <div style="font-size: 60px; margin-bottom: 10px;">${conditions[code]?.split(' ')[0] || '🌡️'}</div>
+                        <div style="font-size: 40px; font-weight: bold;">${temp.toFixed(1)}°C</div>
+                        <div style="font-size: 14px; margin-top: 10px; letter-spacing: 2px;">${conditions[code]?.split(' ').slice(1).join(' ') || 'UNKNOWN'}</div>
+                        
+                        <div style="margin-top: 30px; font-size: 8px; opacity: 0.6;">
+                            LAT: ${lat.toFixed(2)} | LON: ${lon.toFixed(2)}
+                            <br>UPDATE: ${new Date().toLocaleTimeString()}
+                        </div>
+                    </div>
+                `;
+            } catch(e) {
+                screen.innerHTML = '<div style="text-align:center; padding-top:100px; color: #f00;">STATION OFFLINE</div>';
+            }
+        }, () => {
+            screen.innerHTML = '<div style="text-align:center; padding-top:100px;">GPS SIGNAL LOST</div>';
+        });
     } else {
-        if(key === 'b' || key === 'Backspace' || key === 'Escape') {
-            newsView = 'list';
-            document.getElementById('newsList').style.display = 'block';
-            const det = document.getElementById('newsDetail');
-            if(det) det.style.display = 'none';
-            sounds.back();
-        }
+        screen.innerHTML = '<div style="text-align:center; padding-top:100px;">NO SENSOR DETECTED</div>';
     }
 };
 
-function openNewsDetail(index) {
+window.initFlashlight = function() {
+    const screen = document.getElementById('flashlightScreen');
+    if(!screen) return;
+    // Handled by the HTML button already, but good for launcher compatibility
+};
+
+window.openNewsDetail = function(index) {
     const item = newsItems[index];
     if(!item) return;
     newsView = 'detail';
     
-    const list = document.getElementById('newsList');
+    // Hide list and category buttons
+    document.getElementById('newsList').style.display = 'none';
+    const catBar = document.getElementById('newsCategoryBar');
+    if(catBar) catBar.style.display = 'none';
+    
     let detail = document.getElementById('newsDetail');
     if(!detail) {
         detail = document.createElement('div');
         detail.id = 'newsDetail';
         detail.style.cssText = "display:none; position:absolute; top:35px; left:0; width:100%; height:calc(100% - 35px); background:#9bbc0f; color:#0f380f; padding:10px; overflow-y:auto; font-family: 'Courier New', monospace; z-index:9999;";
-        list.parentNode.appendChild(detail);
+        document.getElementById('newsScreen').appendChild(detail);
     }
     
-    // Ensure detail is visible and clickable
-    detail.onclick = () => { /* Prevent accidental close if needed */ };
-    
-    list.style.display = 'none';
     detail.style.display = 'block';
     detail.innerHTML = `
-        <h2 style="font-size:12px; border-bottom:2px solid #0f380f; padding-bottom:5px; margin-bottom: 5px;">${item.title}</h2>
-        <div style="font-size:8px; opacity:0.7; margin-bottom: 10px;">${new Date(item.published_at).toLocaleDateString()}</div>
-        <p style="font-size:10px; line-height:1.4;">${item.summary}</p>
-        <button onclick="newsView='list'; document.getElementById('newsList').style.display='block'; document.getElementById('newsDetail').style.display='none'; sounds.back();" style="width: 100%; margin-top: 15px;">BACK TO HEADLINES</button>
+        <h2 style="font-size:10px; border-bottom:2px solid #0f380f; padding-bottom:5px; margin-bottom: 5px; line-height: 1.2;">${item.title.toUpperCase()}</h2>
+        <div style="font-size:7px; opacity:0.7; margin-bottom: 10px;">${new Date(item.published_at).toLocaleString().toUpperCase()}</div>
+        <p style="font-size:9px; line-height:1.4;">${item.summary ? item.summary.toUpperCase() : 'NO SUMMARY AVAILABLE'}</p>
+        <button onclick="closeNewsDetail()" style="width: 100%; margin-top: 15px; padding: 10px;">BACK</button>
     `;
-}
+};
+
+window.closeNewsDetail = function() {
+    newsView = 'list';
+    document.getElementById('newsList').style.display = 'block';
+    const catBar = document.getElementById('newsCategoryBar');
+    if(catBar) catBar.style.display = 'flex';
+    document.getElementById('newsDetail').style.display = 'none';
+    sounds.back();
+};
+
+window.setNewsCategory = function(cat) {
+    sounds.click();
+    window.initNews(cat);
+};
+
+window.initNews = async function(category = 'world') {
+    newsView = 'list';
+    newsIndex = 0;
+    const list = document.getElementById('newsList');
+    const screen = document.getElementById('newsScreen');
+    if(!list || !screen) return;
+    
+    // Create Category Bar if missing
+    let catBar = document.getElementById('newsCategoryBar');
+    if(!catBar) {
+        catBar = document.createElement('div');
+        catBar.id = 'newsCategoryBar';
+        catBar.style.cssText = "display: flex; gap: 5px; padding: 5px; overflow-x: auto; border-bottom: 2px solid #0f380f; white-space: nowrap; font-size: 6px; background: rgba(0,0,0,0.05);";
+        screen.prepend(catBar);
+    }
+    
+    const categories = [
+        { id: 'world', name: '🌍 TOUT' },
+        { id: 'politique', name: '⚖️ POLIT' },
+        { id: 'economie', name: '📈 ECO' },
+        { id: 'societe', name: '👥 SOC' },
+        { id: 'culture', name: '🎨 CULT' },
+        { id: 'international', name: '🌍 INT' }
+    ];
+    
+    catBar.innerHTML = categories.map(c => `
+        <button onclick="setNewsCategory('${c.id}')" style="background: ${category === c.id ? '#0f380f' : 'transparent'}; color: ${category === c.id ? '#9bbc0f' : '#0f380f'}; padding: 4px 8px; border: 1px solid #0f380f; font-family: 'VT323', monospace;">
+            ${c.name}
+        </button>
+    `).join('');
+
+    list.innerHTML = '<div style="text-align:center; padding: 40px; font-family: monospace;">SCANNING LE MONDE...</div>';
+    
+    try {
+        const today = new Date();
+        // Le Monde archives use DD-MM-YYYY
+        const d = String(today.getDate()).padStart(2, '0');
+        const m = String(today.getMonth() + 1).padStart(2, '0');
+        const y = today.getFullYear();
+        const dateStr = `${d}-${m}-${y}`;
+        
+        const archiveUrl = `https://www.lemonde.fr/archives-du-monde/${dateStr}/`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(archiveUrl)}`;
+        
+        const res = await fetch(proxyUrl);
+        const data = await res.json();
+        
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, 'text/html');
+        const teasers = doc.querySelectorAll('.teaser');
+        
+        newsItems = [];
+        teasers.forEach(t => {
+            // Filter non-premium as requested in the tutorial
+            if(!t.querySelector('.icon__premium')) {
+                const titleEl = t.querySelector('.teaser__title');
+                const linkEl = t.querySelector('a');
+                const descEl = t.querySelector('.teaser__desc');
+                
+                if(titleEl && linkEl) {
+                    const title = titleEl.textContent.trim();
+                    const url = linkEl.href.startsWith('http') ? linkEl.href : 'https://www.lemonde.fr' + linkEl.getAttribute('href');
+                    
+                    // Filter out videos (en-direct) as per tutorial
+                    if (url.includes('en-direct')) return;
+
+                    const desc = descEl ? descEl.textContent.trim() : 'CLICK TO READ MORE...';
+                    
+                    // Simple category extraction from URL
+                    const theme = url.split('/')[3] || 'GENERAL';
+                    
+                    if(!category || category === 'world' || theme.toLowerCase().includes(category)) {
+                        newsItems.push({
+                            title: title.toUpperCase(),
+                            published_at: new Date().toISOString(),
+                            summary: desc.toUpperCase(),
+                            url: url,
+                            theme: theme.toUpperCase()
+                        });
+                    }
+                }
+            }
+        });
+
+        if(newsItems.length === 0 && category === 'world') {
+            // If today is empty (early morning), try yesterday
+            today.setDate(today.getDate() - 1);
+            const d2 = String(today.getDate()).padStart(2, '0');
+            const m2 = String(today.getMonth() + 1).padStart(2, '0');
+            const y2 = today.getFullYear();
+            window.initNews(category, `${d2}-${m2}-${y2}`);
+            return;
+        }
+
+        renderNewsList();
+    } catch(e) { 
+        list.innerHTML = '<div style="text-align:center; padding: 40px; color: #f00;">SIGNAL LOST<br>TRY AGAIN LATER</div>'; 
+    }
+};
 window.initTranslate = function() { document.getElementById('transOutput').textContent = "READY..."; };
 async function translateText() {
     const text = document.getElementById('transInput').value;
@@ -314,8 +420,38 @@ let contacts = [{ name: 'PROF. OAK', phone: '555-001' }];
 function initContacts() { renderContacts(); }
 function renderContacts() { const list = document.getElementById('contactList'); list.innerHTML = ''; contacts.forEach(c => { const item = document.createElement('div'); item.style.cssText = `padding: 5px; border: 1px solid #333; margin-bottom: 2px;`; item.innerHTML = `<strong>${c.name}</strong><br>${c.phone}`; list.appendChild(item); }); }
 function addContact() { const name = prompt("NAME:"); if(name) { contacts.push({ name: name.toUpperCase(), phone: '555-OS' }); renderContacts(); } }
-function initBarcode() { document.getElementById('qrPlaceholder').innerHTML = ''; }
-function generateQR() { const input = document.getElementById('qrInput').value; document.getElementById('qrPlaceholder').innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${input}" style="width:100%">`; }
+function initBarcode() { 
+    const placeholder = document.getElementById('qrPlaceholder');
+    if (placeholder) placeholder.innerHTML = ''; 
+}
+
+function generateQR() {
+    const input = document.getElementById('qrInput').value.trim();
+    const placeholder = document.getElementById('qrPlaceholder');
+    
+    if (!input) {
+        placeholder.textContent = 'ENTER TEXT FIRST!';
+        return;
+    }
+    
+    if (input.length > 500) {
+        placeholder.textContent = 'TEXT TOO LONG!';
+        return;
+    }
+    
+    // Safely create image using DOM
+    placeholder.innerHTML = '';
+    const img = document.createElement('img');
+    const encodedData = encodeURIComponent(input);
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodedData}`;
+    img.style.width = '100%';
+    img.alt = 'QR Code';
+    img.onerror = () => {
+        placeholder.textContent = 'QR GENERATION FAILED!';
+    };
+    placeholder.appendChild(img);
+    sounds.click();
+}
 let alarmTimeStr = "07:00";
 function initAlerts() { document.getElementById('alarmTime').textContent = alarmTimeStr; }
 function adjAlarm(amt) { let [h, m] = alarmTimeStr.split(':').map(Number); h = (h + amt + 24) % 24; alarmTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`; document.getElementById('alarmTime').textContent = alarmTimeStr; }
@@ -843,14 +979,26 @@ window.guessNumber = function() {
     const input = document.getElementById('guessInput');
     const fb = document.getElementById('guessFeedback');
     if(!input || !fb) return;
-    const val = parseInt(input.value);
     
     if(!window.targetNum) window.targetNum = Math.floor(Math.random() * 100) + 1;
     if(!window.guesses) window.guesses = 0;
     
+    // Validate input
+    const inputValue = input.value.trim();
+    if (!inputValue) {
+        fb.innerHTML = "<span style='color:red'>ENTER A NUMBER!</span>";
+        return;
+    }
+    
+    const val = parseInt(inputValue);
     if(isNaN(val)) { 
-        fb.innerHTML = "<span style='color:red'>ENTER A NUMBER!</span>"; 
+        fb.innerHTML = "<span style='color:red'>MUST BE A NUMBER!</span>"; 
         return; 
+    }
+    
+    if(val < 1 || val > 100) {
+        fb.innerHTML = "<span style='color:red'>RANGE: 1-100!</span>";
+        return;
     }
     
     window.guesses++;
@@ -1044,117 +1192,259 @@ window.crackEgg = function(el) {
 };
 
 // ========== WORLD ==========
+// ========== WORLD (REAL GLOBAL SATELLITE) ==========
+let worldMap = null;
 window.initWorld = function() {
     const screen = document.getElementById('worldScreen');
-    if(screen) {
-        screen.innerHTML = '<canvas id="worldCanvas" width="160" height="144" style="width:100%; height:100%"></canvas>';
-        const ctx = document.getElementById('worldCanvas').getContext('2d');
-        // Draw simple map
-        ctx.fillStyle = '#0f380f'; // Water
-        ctx.fillRect(0,0,160,144);
-        ctx.fillStyle = '#9bbc0f'; // Land
-        ctx.beginPath();
-        // Continent 1
-        ctx.moveTo(30, 50); ctx.lineTo(60, 30); ctx.lineTo(80, 50); ctx.lineTo(70, 80); ctx.lineTo(40, 90); ctx.fill();
-        // Continent 2
-        ctx.beginPath();
-        ctx.moveTo(100, 80); ctx.lineTo(130, 70); ctx.lineTo(140, 100); ctx.lineTo(110, 120); ctx.fill();
+    if(!screen) return;
+
+    screen.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; background: #000;">
+            <div id="worldMapLeaflet" style="width: 100%; height: 100%;"></div>
+            <div style="position: absolute; top: 10px; left: 0; right: 0; text-align: center; pointer-events: none; z-index: 1000;">
+                <span style="background: rgba(0,0,0,0.7); color: #0f0; padding: 5px 10px; font-family: 'VT323', monospace; border: 1px solid #0f0;">SATELLITE VIEW</span>
+            </div>
+            <div id="worldGpsDetails" style="position: absolute; bottom: 10px; left: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 8px; font-size: 8px; font-family: monospace; z-index: 1000; border: 1px solid #0f0;">
+                LOCATION: <span id="wLat">---</span>, <span id="wLng">---</span><br>
+                DIST TO BASE: <span id="wHomeDist">---</span>
+            </div>
+        </div>
+    `;
+
+    if(!window.L) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
         
-        ctx.fillStyle = '#0f380f';
-        ctx.font = '10px monospace';
-        ctx.fillText("WORLD MAP", 55, 15);
-        ctx.font = '8px monospace';
-        ctx.fillText("YOU ARE HERE", 45, 65);
-    }
-};
-
-// ========== VAULT ==========
-// Already defined in newapps.js earlier, but need to make sure logic works.
-window.initVault = initVault; // Export existing
-
-
-
-// ========== TODO APP ==========
-function renderTodos() {
-    const list = document.getElementById('todoList');
-    if(!list) return;
-    list.innerHTML = '';
-    state.todos.forEach((todo, i) => {
-        const div = document.createElement('div');
-        div.style.cssText = 'padding: 5px; border-bottom: 1px solid #333; display: flex; justify-content: space-between;';
-        div.innerHTML = `<span>${todo.text}</span> <button onclick="removeTodo(${i})" style="font-size: 5px;">X</button>`;
-        list.appendChild(div);
-    });
-}
-window.renderTodos = renderTodos;
-
-window.addTodo = function() {
-    const input = document.getElementById('todoInput');
-    if(input && input.value.trim()) {
-        state.todos.push({ text: input.value.trim(), done: false });
-        input.value = '';
-        saveState();
-        renderTodos();
-    }
-};
-
-window.removeTodo = function(index) {
-    state.todos.splice(index, 1);
-    saveState();
-    renderTodos();
-};
-
-// ========== COUNTER APP ==========
-window.initCounter = function() {
-    if(state.counter === undefined) state.counter = 0;
-    document.getElementById('countDisplay').textContent = state.counter;
-};
-
-window.updateCounter = function(delta) {
-    if(delta === 0) {
-        state.counter = 0;
-        sounds.back();
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => setupWorldMap();
+        document.head.appendChild(script);
     } else {
-        state.counter += delta;
-        sounds.click();
+        setupWorldMap();
     }
-    document.getElementById('countDisplay').textContent = state.counter;
-    saveState();
 };
 
-// ========== PIXEL DRAW APP ==========
-let drawColor = '#000000';
-window.initDraw = function() {
-    const grid = document.getElementById('drawGrid');
-    if(!grid) return;
-    grid.innerHTML = '';
-    for(let i=0; i<256; i++) {
-        const div = document.createElement('div');
-        div.style.background = '#fff';
-        div.onclick = function() { 
-            this.style.background = drawColor; 
-            sounds.click();
-        };
-        grid.appendChild(div);
+function setupWorldMap() {
+    if(worldMap) worldMap.remove();
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            
+            document.getElementById('wLat').textContent = lat.toFixed(4);
+            document.getElementById('wLng').textContent = lng.toFixed(4);
+            
+            worldMap = L.map('worldMapLeaflet').setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OSM'
+            }).addTo(worldMap);
+            
+            L.marker([lat, lng]).addTo(worldMap).bindPopup('YOU ARE HERE').openPopup();
+            
+            const home = JSON.parse(localStorage.getItem('gbHome'));
+            if(home) {
+                const dist = calculateDistance(lat, lng, home.lat, home.lng);
+                document.getElementById('wHomeDist').textContent = dist.toFixed(2) + ' KM';
+                L.marker([home.lat, home.lng], {
+                    icon: L.divIcon({className: 'home-icon', html: '🏠', iconSize: [20, 20]})
+                }).addTo(worldMap).bindPopup('HOUSE');
+                L.polyline([[lat, lng], [home.lat, home.lng]], {color: 'red', dashArray: '5, 5'}).addTo(worldMap);
+            }
+        });
     }
 }
-window.initDraw = initDraw;
 
-window.clearDraw = function() {
-    const pixels = document.querySelectorAll('#drawGrid div');
-    pixels.forEach(p => p.style.background = '#fff');
+// ========== MAPS (Interactive) ==========
+// ========== MAPS (GPS & DISTANCE) ==========
+// ========== MAPS (REAL GPS NAVIGATION) ==========
+let navMap = null;
+window.initMap = function() {
+    const screen = document.getElementById('mapScreen');
+    if(!screen) return;
+    
+    const home = JSON.parse(localStorage.getItem('gbHome')) || null;
+
+    screen.innerHTML = `
+        <div style="padding: 10px; height: 100%; display: flex; flex-direction: column; background: #9bbc0f; color: #0f380f; font-family: 'VT323', monospace;">
+            <div style="font-size: 14px; text-align: center; border-bottom: 2px solid #0f380f; padding-bottom: 4px; margin-bottom: 8px;">NAV-COMP v3.0</div>
+            
+            <div id="mapLeafletContainer" style="flex: 1; border: 2px solid #0f380f; background: #000; position: relative;">
+                <div id="navMapLeaflet" style="width: 100%; height: 100%;"></div>
+                <div id="mapOverlay" style="position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,0.7); color: #0f0; padding: 4px; font-size: 6px; z-index: 1000; border: 1px solid #0f0;">
+                    DIST: <span id="mapHomeDist">---</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 5px; margin-top: 10px;">
+                <button onclick="setHomeLocation()" style="flex: 1; padding: 10px; border: 2px solid #0f380f; background: #0f380f; color: #9bbc0f; font-family: 'VT323', monospace;">SET HOUSE</button>
+                <button onclick="updateMapGps()" style="flex: 1; padding: 10px; border: 2px solid #0f380f; background: transparent; color: #0f380f; font-family: 'VT323', monospace;">REFRESH</button>
+            </div>
+        </div>
+    `;
+    
+    if(!window.L) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet'; link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => setupNavMap();
+        document.head.appendChild(script);
+    } else {
+        setupNavMap();
+    }
 };
 
-window.setDrawColor = function(color) {
-    drawColor = color;
-    // Highlight selected color
-    document.querySelectorAll('[id^="color"]').forEach(el => el.style.border = '1px solid #fff');
+function setupNavMap() {
+    if(navMap) navMap.remove();
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            const home = JSON.parse(localStorage.getItem('gbHome'));
+            
+            navMap = L.map('navMapLeaflet').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(navMap);
+            
+            L.marker([lat, lng]).addTo(navMap).bindPopup('YOU').openPopup();
+            
+            if(home) {
+                const dist = calculateDistance(lat, lng, home.lat, home.lng);
+                document.getElementById('mapHomeDist').textContent = dist.toFixed(2) + ' KM';
+                L.marker([home.lat, home.lng], {
+                    icon: L.divIcon({className: 'home-icon', html: '🏠', iconSize: [20, 20]})
+                }).addTo(navMap).bindPopup('HOUSE');
+                L.polyline([[lat, lng], [home.lat, home.lng]], {color: 'blue', weight: 2}).addTo(navMap);
+                
+                // Adjust view to fit both
+                const bounds = L.latLngBounds([[lat, lng], [home.lat, home.lng]]);
+                navMap.fitBounds(bounds, {padding: [30, 30]});
+            }
+        });
+    }
+}
+
+window.updateMapGps = function() {
+    setupNavMap();
+    sounds.click();
 };
 
-// ========== PAINT APP (Canvas) ==========
-let isPainting = false;
-let paintCtx = null;
-let brushSize = 3;
+window.setHomeLocation = function() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            const home = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            localStorage.setItem('gbHome', JSON.stringify(home));
+            sounds.launch();
+            alert("BASE LOCATION SET!");
+            initMap();
+        });
+    }
+};
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+
+// ========== CURRENCY CONVERTER ==========
+window.initCurrency = async function() {
+    const screen = document.getElementById('calcScreen'); // Reuse calc screen or use its own
+    // Better add it as a new screen or update an existing one
+    const appId = 'currency';
+    let screenEl = document.getElementById('currencyScreen');
+    if(!screenEl) {
+        // Fallback to updating calc if not in HTML
+        screenEl = document.getElementById('calcScreen'); 
+    }
+    
+    screenEl.innerHTML = `
+        <div style="padding: 10px; background: #9bbc0f; color: #0f380f; font-family: 'VT323', monospace; height: 100%;">
+            <div style="font-size: 14px; text-align: center; border-bottom: 2px solid #0f380f; margin-bottom: 10px;">CURRENCY EXCH</div>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div>
+                    <div style="font-size: 8px;">FROM: USD</div>
+                    <input type="number" id="currInput" value="1" oninput="updateCurrency()" style="width: 100%; font-size: 20px; background: rgba(0,0,0,0.05); border: 1px solid #0f380f;">
+                </div>
+                
+                <div style="text-align: center; font-size: 20px;">⬇</div>
+                
+                <div style="background: #0f380f; color: #9bbc0f; padding: 10px; border-radius: 4px;">
+                    <div style="font-size: 8px;">TO EUR:</div>
+                    <div id="currEUR" style="font-size: 18px; font-weight: bold;">---</div>
+                </div>
+                
+                <div style="background: #0f380f; color: #9bbc0f; padding: 10px; border-radius: 4px;">
+                    <div style="font-size: 8px;">TO GBP:</div>
+                    <div id="currGBP" style="font-size: 18px; font-weight: bold;">---</div>
+                </div>
+                
+                <div style="background: #0f380f; color: #9bbc0f; padding: 10px; border-radius: 4px;">
+                    <div style="font-size: 8px;">TO JPY:</div>
+                    <div id="currJPY" style="font-size: 18px; font-weight: bold;">---</div>
+                </div>
+            </div>
+            
+            <div style="font-size: 6px; text-align: center; margin-top: 10px; opacity: 0.5;">REAL-TIME BANK RATES</div>
+        </div>
+    `;
+    updateCurrency();
+};
+
+window.updateCurrency = async function() {
+    const amount = document.getElementById('currInput').value || 1;
+    try {
+        const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const data = await res.json();
+        document.getElementById('currEUR').textContent = (amount * data.rates.EUR).toFixed(2) + ' EUR';
+        document.getElementById('currGBP').textContent = (amount * data.rates.GBP).toFixed(2) + ' GBP';
+        document.getElementById('currJPY').textContent = (amount * data.rates.JPY).toFixed(0) + ' JPY';
+    } catch(e) {
+        console.error("Currency API Error", e);
+    }
+};
+
+// ========== FLASHLIGHT ==========
+let isTorchOn = false;
+window.toggleFlashlight = async function() {
+    isTorchOn = !isTorchOn;
+    sounds.click();
+    
+    // Visual feedback for non-camera devices
+    const screen = document.querySelector('.game-screen.active');
+    if(screen) {
+        screen.style.boxShadow = isTorchOn ? '0 0 50px #fff inset' : 'none';
+        screen.style.backgroundColor = isTorchOn ? '#fff' : '';
+    }
+
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevice = devices.find(device => device.kind === 'videoinput');
+        if (videoDevice) {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { deviceId: videoDevice.deviceId, facingMode: 'environment' }
+            });
+            const track = stream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities();
+            if (capabilities.torch) {
+                await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+            }
+        }
+    } catch (e) {
+        console.warn("Flashlight not available", e);
+    }
+};
 
 function initPaint() {
     const canvas = document.getElementById('paintCanvas');
@@ -2105,11 +2395,31 @@ function updateClock() {
 
 // ========== COMPASS ==========
 window.initCompass = function() {
+    const degEl = document.getElementById('compassDeg');
+    const info = document.getElementById('compassInfo');
+    
     if (window.DeviceOrientationEvent) {
-        window.addEventListener('deviceorientation', handleOrientation);
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS 13+ requires permission
+            const btn = document.createElement('button');
+            btn.textContent = "ENABLE SENSORS";
+            btn.style.cssText = "padding: 10px; margin-top: 20px;";
+            btn.onclick = async () => {
+                try {
+                    const status = await DeviceOrientationEvent.requestPermission();
+                    if (status === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                        btn.remove();
+                    }
+                } catch(e) { alert("Permission Error"); }
+            };
+            if(info) info.innerHTML = '';
+            if(info) info.appendChild(btn);
+        } else {
+            window.addEventListener('deviceorientation', handleOrientation);
+        }
     } else {
-        const deg = document.getElementById('compassDeg');
-        if(deg) deg.textContent = "NOT SUPPORTED";
+        if(degEl) degEl.textContent = "NOT SUPPORTED";
     }
 };
 
@@ -2130,6 +2440,103 @@ function handleOrientation(event) {
         degEl.textContent = `${Math.round(alpha)}° ${dir}`;
     }
 }
+
+// ========== DAILY QUESTS ==========
+let quests = [];
+window.initQuests = function() {
+    const list = document.getElementById('questList');
+    if(!list) return;
+    
+    const today = new Date().toDateString();
+    const lastReset = localStorage.getItem('gbQuestReset');
+    
+    if(lastReset !== today) {
+        generateDailyQuests();
+        localStorage.setItem('gbQuestReset', today);
+    } else {
+        quests = JSON.parse(localStorage.getItem('gbQuests')) || [];
+        if(quests.length === 0) generateDailyQuests();
+    }
+    
+    renderQuests();
+};
+
+function generateDailyQuests() {
+    const pool = [
+        { id: 'flappy', name: 'FLAPPY BIRD', target: 5, unit: 'score', reward: 20 },
+        { id: 'snake', name: 'SNAKE MASTER', target: 10, unit: 'score', reward: 25 },
+        { id: 'breakout', name: 'BRICK SMASH', target: 15, unit: 'score', reward: 30 },
+        { id: 'habit', name: 'HABIT CHECK', target: 1, unit: 'toggle', reward: 15 },
+        { id: 'journal', name: 'DEAF DIARY', target: 1, unit: 'entry', reward: 20 },
+        { id: 'game', name: 'PLAY TIME', target: 3, unit: 'apps', reward: 10 }
+    ];
+    
+    // Pick 3 random quests
+    quests = pool.sort(() => 0.5 - Math.random()).slice(0, 3).map(q => ({
+        ...q,
+        current: 0,
+        completed: false
+    }));
+    
+    localStorage.setItem('gbQuests', JSON.stringify(quests));
+}
+
+window.renderQuests = function() {
+    const list = document.getElementById('questList');
+    if(!list) return;
+    
+    list.innerHTML = '';
+    quests.forEach((q, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = `
+            padding: 10px;
+            border: 2px solid ${q.completed ? '#306230' : 'var(--gb-text)'};
+            background: ${q.completed ? 'rgba(48, 98, 48, 0.2)' : 'rgba(0,0,0,0.05)'};
+            border-radius: 4px;
+            margin-bottom: 8px;
+            position: relative;
+        `;
+        
+        const progress = Math.min(100, (q.current / q.target) * 100);
+        div.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <div style="font-size: 8px; font-weight: bold;">${q.name} ${q.completed ? '✅' : ''}</div>
+                <div style="font-size: 6px; color: #ffca28;">💎 ${q.reward}</div>
+            </div>
+            <div style="font-size: 6px; opacity: 0.7; margin-bottom: 5px;">DO ${q.target} ${q.unit.toUpperCase()}</div>
+            <div style="width: 100%; height: 4px; background: rgba(0,0,0,0.2); border-radius: 2px; overflow: hidden;">
+                <div style="width: ${progress}%; height: 100%; background: var(--gb-text);"></div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+};
+
+window.trackQuest = function(type, amount = 1) {
+    if(!quests || quests.length === 0) {
+        quests = JSON.parse(localStorage.getItem('gbQuests')) || [];
+    }
+    if(quests.length === 0) return;
+    
+    let changed = false;
+    quests.forEach(q => {
+        if((q.id === type || (type === 'any' && q.id === 'game')) && !q.completed) {
+            q.current += amount;
+            if(q.current >= q.target) {
+                q.current = q.target;
+                q.completed = true;
+                addGems(q.reward);
+                if(window.sounds && sounds.launch) sounds.launch();
+                alert(`QUEST COMPLETE: ${q.name}! +${q.reward} Gems`);
+            }
+            changed = true;
+        }
+    });
+    if(changed) {
+        localStorage.setItem('gbQuests', JSON.stringify(quests));
+        if(typeof currentScreen !== 'undefined' && currentScreen === 'quests') renderQuests();
+    }
+};
 
 // ========== STOPWATCH ==========
 let swTime = 0;
@@ -2601,32 +3008,219 @@ window.initCamera = async function(mode = null) {
     }
 };
 
+// ---- FILTER IMPLEMENTATIONS (pixel-level) ----
+function applyFilterToCanvas(ctx, w, h, filterName) {
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const d = imageData.data;
+
+    switch (filterName) {
+        case 'classic':
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                const warm = gray * 1.1;
+                d[i]   = Math.min(255, warm * 1.05);   // R slight warm
+                d[i+1] = Math.min(255, warm * 0.95);   // G
+                d[i+2] = Math.min(255, warm * 0.75);   // B sepia-ish
+            }
+            break;
+
+        case 'contrast':
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                // High contrast B&W — threshold around midpoint
+                const v = gray > 128 ? Math.min(255, gray * 1.6) : Math.max(0, gray * 0.4);
+                d[i] = d[i+1] = d[i+2] = v;
+            }
+            break;
+
+        case 'reverse':
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                const inv = 255 - gray;
+                d[i] = d[i+1] = d[i+2] = inv;
+            }
+            break;
+
+        case 'vhs':
+            for (let i = 0; i < d.length; i += 4) {
+                // Desaturated, slightly warm, low contrast
+                const gray = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                d[i]   = Math.min(255, gray * 0.85 + d[i]   * 0.3 + 20);
+                d[i+1] = Math.min(255, gray * 0.85 + d[i+1] * 0.2 + 10);
+                d[i+2] = Math.min(255, gray * 0.85 + d[i+2] * 0.15);
+            }
+            // VHS scanline artifacts
+            for (let y = 0; y < h; y += 3) {
+                for (let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4;
+                    d[i] = Math.min(255, d[i] + 15);       // R channel bleed
+                    d[i+2] = Math.max(0, d[i+2] - 10);    // B channel drop
+                }
+            }
+            break;
+
+        case 'bad90s':
+            for (let i = 0; i < d.length; i += 4) {
+                // Over-saturated, warm, high brightness
+                d[i]   = Math.min(255, d[i]   * 1.4 + 20);
+                d[i+1] = Math.min(255, d[i+1] * 1.1);
+                d[i+2] = Math.min(255, d[i+2] * 0.8);
+            }
+            break;
+
+        case 'glitch':
+            // Color channel shift: R shifted left, B shifted right
+            for (let y = 0; y < h; y++) {
+                const shift = (y % 7 === 0) ? 6 : 2; // glitch rows
+                for (let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4;
+                    const rSrc = (y * w + Math.min(w - 1, x + shift)) * 4;
+                    const bSrc = (y * w + Math.max(0, x - shift)) * 4;
+                    d[i]   = imageData.data[rSrc];      // R shifted right
+                    d[i+2] = imageData.data[bSrc + 2];  // B shifted left
+                }
+            }
+            break;
+
+        case 'night':
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                const boosted = Math.min(255, gray * 1.5);
+                d[i]   = 0;
+                d[i+1] = Math.min(255, boosted * 1.1); // Green channel boost
+                d[i+2] = 0;
+            }
+            break;
+
+        case 'matrix':
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                const v = Math.min(255, gray * 1.4);
+                d[i]   = 0;
+                d[i+1] = v;     // Pure green
+                d[i+2] = 0;
+            }
+            break;
+
+        case 'crt':
+            for (let i = 0; i < d.length; i += 4) {
+                // Slight green tint, boosted
+                d[i]   = Math.min(255, d[i]   * 0.9);
+                d[i+1] = Math.min(255, d[i+1] * 1.1);
+                d[i+2] = Math.min(255, d[i+2] * 0.85);
+            }
+            // CRT scanlines baked in
+            for (let y = 0; y < h; y += 4) {
+                for (let x = 0; x < w; x++) {
+                    const i = (y * w + x) * 4;
+                    d[i]     = Math.max(0, d[i]     - 60);
+                    d[i + 1] = Math.max(0, d[i + 1] - 60);
+                    d[i + 2] = Math.max(0, d[i + 2] - 60);
+                }
+            }
+            break;
+
+        case 'vintage':
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                // Sepia
+                d[i]   = Math.min(255, gray * 1.08 + 40);
+                d[i+1] = Math.min(255, gray * 0.95 + 20);
+                d[i+2] = Math.min(255, gray * 0.82);
+                // Vignette
+                const px = (i / 4) % w;
+                const py = Math.floor((i / 4) / w);
+                const dx = (px / w) - 0.5;
+                const dy = (py / h) - 0.5;
+                const vignette = Math.max(0, 1 - (dx*dx + dy*dy) * 3.5);
+                d[i]   *= vignette;
+                d[i+1] *= vignette;
+                d[i+2] *= vignette;
+            }
+            break;
+
+        case 'dots':
+            // Pixelate (8x8 blocks)
+            for (let y = 0; y < h; y += 8) {
+                for (let x = 0; x < w; x += 8) {
+                    const si = (y * w + x) * 4;
+                    const gray = d[si] * 0.299 + d[si+1] * 0.587 + d[si+2] * 0.114;
+                    const v = Math.min(255, gray * 1.2);
+                    for (let dy = 0; dy < 8 && y+dy < h; dy++) {
+                        for (let dx = 0; dx < 8 && x+dx < w; dx++) {
+                            const pi = ((y+dy) * w + (x+dx)) * 4;
+                            d[pi] = d[pi+1] = d[pi+2] = v;
+                        }
+                    }
+                }
+            }
+            break;
+
+        case 'ntsc':
+            for (let i = 0; i < d.length; i += 4) {
+                // NTSC-style: slight horizontal blur + chroma noise
+                const noise = (Math.random() - 0.5) * 20;
+                d[i]   = Math.min(255, Math.max(0, d[i]   + noise * 1.2));
+                d[i+1] = Math.min(255, Math.max(0, d[i+1] + noise * 0.8));
+                d[i+2] = Math.min(255, Math.max(0, d[i+2] + noise));
+            }
+            break;
+
+        default: // grayscale fallback
+            for (let i = 0; i < d.length; i += 4) {
+                const gray = d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114;
+                d[i] = d[i+1] = d[i+2] = gray;
+            }
+            break;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+}
+
+// ---- ACTIVE FILTER STATE ----
+let activeCameraFilter = 'classic'; // default
+
 function startCameraLoop() {
-    const video = document.getElementById('cameraVideo');
+    const video  = document.getElementById('cameraVideo');
     const canvas = document.getElementById('cameraCanvas');
-    if(!video || !canvas) return;
-    const ctx = canvas.getContext('2d');
-    
+    if (!video || !canvas) return;
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    // ^ willReadFrequently: true is critical for performance when using getImageData every frame
+
     function loop() {
-        if(video.paused || video.ended) return;
-        
-        canvas.width = video.videoWidth || 320;
-        canvas.height = video.videoHeight || 240;
-        
-        // Apply baked filters
-        ctx.filter = video.style.filter || 'grayscale(100%)';
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        // Bake Overlays
-        ctx.filter = 'none';
-        if (document.getElementById('crtOverlay')?.style.display === 'block') {
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
-            for (let i = 0; i < canvas.height; i += 4) ctx.fillRect(0, i, canvas.width, 2);
+        if (!cameraStream) return;
+        if (video.paused || video.ended) {
+            canvasLoopReq = requestAnimationFrame(loop);
+            return;
         }
-        
+
+        const w = video.videoWidth;
+        const h = video.videoHeight;
+
+        if (!w || !h) {
+            canvasLoopReq = requestAnimationFrame(loop);
+            return;
+        }
+
+        if (canvas.width !== w)  canvas.width  = w;
+        if (canvas.height !== h) canvas.height = h;
+
+        // 1. Draw raw video frame
+        ctx.filter = 'none';
+        ctx.drawImage(video, 0, 0, w, h);
+
+        // 2. Apply pixel-level filter (bakes into canvas pixels)
+        applyFilterToCanvas(ctx, w, h, activeCameraFilter);
+
         canvasLoopReq = requestAnimationFrame(loop);
     }
-    loop();
+
+    if (video.readyState >= 2) {
+        loop();
+    } else {
+        video.addEventListener('loadeddata', loop, { once: true });
+    }
 }
 
 window.switchCamera = function() {
@@ -2645,40 +3239,20 @@ window.stopCamera = function() {
     overlays.forEach(o => o.style.display = 'none');
 };
 
-window.setCameraFilter = function(filter) {
+// ---- NEW setCameraFilter ----
+// Remove CSS filter from video — we handle everything in canvas now.
+window.setCameraFilter = function (filter) {
+    activeCameraFilter = filter;
+
+    // Clear CSS filters — canvas handles it all
     const video = document.getElementById('cameraVideo');
     const preview = document.getElementById('selfiePreview');
-    const overlays = {
-        crt: document.getElementById('crtOverlay'),
-        matrix: document.getElementById('matrixOverlay'),
-        ntsc: document.getElementById('ntscOverlay')
-    };
-    
-    Object.values(overlays).forEach(o => { if(o) o.style.display = 'none'; });
-    
-    let filterString = '';
-    switch(filter) {
-        case 'classic': filterString = 'brightness(120%) contrast(120%) grayscale(100%) sepia(50%) hue-rotate(60deg)'; break;
-        case 'contrast': filterString = 'brightness(110%) contrast(250%) grayscale(100%)'; break;
-        case 'reverse': filterString = 'invert(100%) grayscale(100%)'; break;
-        case 'dots': filterString = 'brightness(110%) contrast(150%) grayscale(100%) blur(0.5px)'; break;
-        case 'vhs': filterString = 'brightness(130%) contrast(85%) sepia(20%) saturate(60%) blur(0.4px)'; break;
-        case 'bad90s': filterString = 'brightness(140%) contrast(150%) saturate(200%) hue-rotate(-10deg)'; break;
-        case 'glitch': filterString = 'invert(10%) hue-rotate(90deg) contrast(200%) brightness(120%)'; break;
-        case 'matrix': 
-            filterString = 'brightness(120%) contrast(150%) grayscale(100%) sepia(100%) hue-rotate(80deg) saturate(500%)';
-            if(overlays.matrix) { overlays.matrix.style.display = 'block'; initMatrixRain(); }
-            break;
-        case 'night': filterString = 'brightness(150%) contrast(120%) sepia(100%) hue-rotate(100deg) saturate(200%)'; break;
-        case 'crt': 
-            filterString = 'brightness(110%) contrast(130%) grayscale(50%) saturate(150%)'; 
-            if(overlays.crt) overlays.crt.style.display = 'block';
-            break;
-        default: filterString = 'grayscale(100%)';
-    }
-    
-    if(video) video.style.filter = filterString;
-    if(preview) preview.style.filter = filterString;
+    if (video)   video.style.filter   = 'none';
+    if (preview) preview.style.filter = 'none';
+
+    // Hide all overlays (matrix/crt/ntsc are now baked into canvas)
+    document.querySelectorAll('.camera-overlay').forEach(o => o.style.display = 'none');
+
     sounds.click();
 };
 
@@ -2705,42 +3279,79 @@ function generateMatrixText(len) {
     }
     return str;
 }
-// ##take selfie
-window.takeSelfie = function() {
-    const video = document.getElementById('cameraVideo');
-    const canvas = document.getElementById('cameraCanvas');
+// ---- NEW takeSelfie ----
+// Reads directly from the already-filtered canvas — no re-apply needed.
+window.takeSelfie = function () {
+    const canvas  = document.getElementById('cameraCanvas');
+    const video   = document.getElementById('cameraVideo');
     const preview = document.getElementById('selfiePreview');
-    const flash = document.getElementById('cameraFlash');
-    
-    // Use the loop-rendered canvas for the capture
-    flash.style.opacity = '1';
-    setTimeout(() => flash.style.opacity = '0', 100);
-    
+    const flash   = document.getElementById('cameraFlash');
+
+    if (!canvas.width || !canvas.height) {
+        alert("CAMERA NOT READY YET");
+        return;
+    }
+
+    // Flash
+    if (flash) {
+        flash.style.opacity = '1';
+        setTimeout(() => (flash.style.opacity = '0'), 120);
+    }
+
     sounds.coin();
-    
-    // Bake current filter to dataUrl
+
+    // Canvas already has filter baked — just grab it
     const dataUrl = canvas.toDataURL('image/png');
     preview.src = dataUrl;
-    
-    video.style.display = 'none';
+    preview.style.filter = 'none'; // Never use CSS filter on preview
+
+    video.style.display   = 'none';
     preview.style.display = 'block';
-    
-    document.getElementById('captureBtn').style.display = 'none';
-    if(document.getElementById('recordBtn')) document.getElementById('recordBtn').style.display = 'none';
+
+    document.getElementById('captureBtn').style.display    = 'none';
+    const recordBtn = document.getElementById('recordBtn');
+    if (recordBtn) recordBtn.style.display = 'none';
     document.getElementById('saveSelfieBtn').style.display = 'block';
-    document.getElementById('retakeBtn').style.display = 'block';
+    document.getElementById('retakeBtn').style.display     = 'block';
 };
 
-window.saveSelfie = function() {
+window.saveSelfie = function () {
     const preview = document.getElementById('selfiePreview');
-    const link = document.createElement('a');
-    link.download = `gb-cam-${Date.now()}.png`;
-    link.href = preview.src;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
     sounds.launch();
-    alert("SAVED!");
+
+    if (isIOS) {
+        // Open image in new tab — iOS user long-presses to save
+        const newTab = window.open(preview.src, '_blank');
+        if (newTab) {
+            alert("IMAGE OPENED!\n\nLong-press the image and tap 'Add to Photos' to save.");
+        } else {
+            // If pop-up blocked, show inline save instructions
+            const msg = document.createElement('div');
+            msg.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.9); z-index: 9999;
+                display: flex; flex-direction: column; align-items: center;
+                justify-content: center; color: #9bbc0f; font-family: monospace;
+                padding: 20px; text-align: center; box-sizing: border-box;
+            `;
+            msg.innerHTML = `
+                <img src="${preview.src}" style="max-width:90%; max-height:60vh; border: 3px solid #9bbc0f; margin-bottom: 15px;">
+                <div style="font-size: 12px; margin-bottom: 10px;">LONG-PRESS IMAGE → "ADD TO PHOTOS"</div>
+                <button onclick="this.parentNode.remove()" style="margin-top: 10px; padding: 8px 20px;">CLOSE</button>
+            `;
+            document.body.appendChild(msg);
+        }
+    } else {
+        const link = document.createElement('a');
+        link.download = `gb-cam-${Date.now()}.png`;
+        link.href = preview.src;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        alert("SAVED!");
+    }
 };
 
 window.retakeSelfie = function() {
@@ -2758,33 +3369,66 @@ window.toggleVideoRecord = function() {
     else startRecording();
 };
 
+// ---- NEW startRecording ----
+// Uses canvas.captureStream() on desktop (works great, filters baked).
+// Falls back to raw stream on iOS where captureStream is unavailable.
 async function startRecording() {
     const canvas = document.getElementById('cameraCanvas');
+    const btn    = document.getElementById('recordBtn');
     const status = document.getElementById('videoStatus');
-    const btn = document.getElementById('recordBtn');
-    
+
+    if (typeof MediaRecorder === 'undefined') {
+        alert("VIDEO RECORDING NOT SUPPORTED ON THIS DEVICE.");
+        return;
+    }
+
     recordedChunks = [];
-    
-    // CAPTURE FROM CANVAS (This ensures filters and overlays stick!)
-    const stream = canvas.captureStream(30); 
-    
-    let options = { mimeType: 'video/webm;codecs=vp8' };
-    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/mp4' }; // iOS Fallback
+
+    let stream;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (!isIOS && canvas.captureStream) {
+        // Desktop: capture from canvas → filters are FULLY BAKED into video
+        stream = canvas.captureStream(30);
+    } else {
+        // iOS fallback: raw camera stream (no baked filters, iOS limitation)
+        if (!cameraStream) { alert("NO CAMERA STREAM."); return; }
+        stream = cameraStream;
+    }
+
+    // Best supported MIME type
+    const mimeTypes = [
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm',
+        'video/mp4',
+        ''
+    ];
+    let selectedMime = '';
+    for (const mime of mimeTypes) {
+        if (!mime || MediaRecorder.isTypeSupported(mime)) {
+            selectedMime = mime;
+            break;
+        }
     }
 
     try {
+        const options = selectedMime ? { mimeType: selectedMime } : {};
         mediaRecorder = new MediaRecorder(stream, options);
-        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+
+        mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+        };
         mediaRecorder.onstop = saveVideo;
-        mediaRecorder.start();
-        
+        mediaRecorder.start(500); // collect chunks every 500ms
+
         isRecording = true;
-        if(status) status.style.display = 'block';
-        if(btn) { btn.textContent = 'STOP'; btn.style.background = '#f00'; }
+        if (status) status.style.display = 'block';
+        if (btn)    { btn.textContent = 'STOP'; btn.style.background = '#f00'; }
         sounds.launch();
-    } catch(e) {
-        alert("VIDEO RECORDING NOT SUPPORTED");
+    } catch (e) {
+        alert("RECORDING FAILED: " + e.message);
+        console.error(e);
     }
 }
 
@@ -2798,33 +3442,57 @@ function stopRecording() {
     sounds.back();
 }
 
+// ---- saveVideo (same iOS-safe version) ----
 function saveVideo() {
-    const blob = new Blob(recordedChunks, { type: recordedChunks[0].type });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `gb-vid-${Date.now()}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    alert("VIDEO SAVED!");
+    if (!recordedChunks.length) { alert("NO VIDEO DATA."); return; }
+
+    const mimeType = recordedChunks[0].type || 'video/webm';
+    const blob = new Blob(recordedChunks, { type: mimeType });
+    const url  = URL.createObjectURL(blob);
+    const ext  = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    if (isIOS) {
+        const tab = window.open(url, '_blank');
+        if (tab) alert("VIDEO OPENED!\nLong-press → Save to Camera Roll.");
+        else     alert("Pop-up blocked. Allow pop-ups to save video.");
+    } else {
+        const a = document.createElement('a');
+        a.href     = url;
+        a.download = `gb-vid-${Date.now()}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        alert("VIDEO SAVED!");
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 
 // ========== BITCHAT (Link Cable Chat) ==========
-let peer = null;
-let conn = null;
+window.gbPeer = null;
+window.gbConn = null; // Last active connection
+window.gbConns = [];  // All active connections for Multi-Chat
 let scanInterval = null;
 
 window.initChat = function() {
-    if(peer) return;
+    // Persistent local frequency
+    if(!localStorage.getItem('gb_freq')) {
+        localStorage.setItem('gb_freq', 'GB-' + (Math.floor(Math.random() * 900000) + 100000));
+    }
+    const myFreq = localStorage.getItem('gb_freq');
     
-    updateSignalBars(1); // One bar for starting
     const idEl = document.getElementById('chatMyId');
-    if(idEl) idEl.textContent = "SIGNALING TOWER...";
+    if(idEl) idEl.textContent = `MY FREQ: ${myFreq}`;
     
-    // Config with Global TURN servers for "Bridge" connectivity
-    peer = new Peer({
+    // If peer already exists, don't re-init
+    if(window.gbPeer) return;
+    
+    updateSignalBars(1);
+    document.getElementById('chatStatusLabel').textContent = "SIGNALING...";
+
+    // Start Peer with deterministic ID
+    window.gbPeer = new Peer(myFreq, {
         config: {
             'iceServers': [
                 { url: 'stun:stun.l.google.com:19302' },
@@ -2833,24 +3501,23 @@ window.initChat = function() {
         }
     }); 
     
-    peer.on('open', (id) => {
-        if(idEl) idEl.textContent = `MY FREQ: ${id}`;
+    window.gbPeer.on('open', (id) => {
         document.getElementById('chatStatusLabel').textContent = "ONLINE";
-        updateSignalBars(3); // Connected to server
-        console.log("PeerJS Tower Open:", id);
+        updateSignalBars(3);
+        console.log("Link Tower Open:", id);
     });
 
-    peer.on('connection', (connection) => {
-        conn = connection;
-        setupChatConnection();
+    window.gbPeer.on('connection', (connection) => {
+        addConnection(connection);
     });
     
-    peer.on('error', (err) => {
+    window.gbPeer.on('error', (err) => {
         updateSignalBars(0);
-        document.getElementById('chatStatusLabel').textContent = "ERROR";
+        document.getElementById('chatStatusLabel').textContent = "LINK ERR";
         console.error("PeerJS Error:", err);
+        // If ID is taken, we might need to change it, but for simplicity we keep it
     });
-}
+};
 
 function updateSignalBars(count) {
     const bars = document.getElementById('chatSignal')?.children;
@@ -2882,19 +3549,49 @@ window.chatHost = function() {
     qrZone.style.display = 'block';
     qrEl.innerHTML = '';
     
-    if(!peer || !peer.id) {
-        alert("CONNECTING TO TOWER... PLEASE WAIT.");
-        return;
-    }
+    const myFreq = localStorage.getItem('gb_freq') || 'GB-000000';
 
+    // INSTANT QR! No need to wait for signaling tower
     new QRCode(qrEl, {
-        text: peer.id,
+        text: myFreq,
         width: 128,
         height: 128,
         colorDark : "#000000",
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.H
     });
+    sounds.launch();
+};
+
+window.sendQrShout = function() {
+    const input = document.getElementById('chatInput');
+    const msg = input.value.trim();
+    if(!msg) return;
+    
+    const qrZone = document.getElementById('chatQrZone');
+    const landing = document.getElementById('chatLanding');
+    const chatMain = document.getElementById('chatMain');
+    const qrEl = document.getElementById('chatQrCode');
+    
+    // Switch to QR view but showing message
+    chatMain.style.display = 'none';
+    qrZone.style.display = 'block';
+    qrEl.innerHTML = '';
+    
+    const myNick = document.getElementById('chatNick').value || 'ME';
+    const packet = `MSG:${myNick}:${msg}`;
+
+    new QRCode(qrEl, {
+        text: packet,
+        width: 128,
+        height: 128,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.L
+    });
+    
+    appendChat('SYSTEM', 'SHOUTING OFFLINE MSG...');
+    input.value = '';
     sounds.launch();
 };
 
@@ -2909,7 +3606,14 @@ window.chatJoin = async function() {
     
     const video = document.getElementById('chatScannerVideo');
     const canvas = document.getElementById('chatScannerCanvas');
-    const ctx = canvas.getContext('2d');
+    if(!canvas) {
+        // Create hidden canvas for processing
+        const c = document.createElement('canvas');
+        c.id = 'chatScannerCanvas';
+        c.style.display = 'none';
+        document.body.appendChild(c);
+    }
+    const ctx = document.getElementById('chatScannerCanvas').getContext('2d');
     
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -2917,16 +3621,28 @@ window.chatJoin = async function() {
         
         scanInterval = setInterval(() => {
             if(video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const c = document.getElementById('chatScannerCanvas');
+                c.height = video.videoHeight;
+                c.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, c.width, c.height);
+                const imageData = ctx.getImageData(0, 0, c.width, c.height);
                 const code = jsQR(imageData.data, imageData.width, imageData.height);
                 
                 if(code) {
                     clearInterval(scanInterval);
                     video.srcObject.getTracks().forEach(t => t.stop());
-                    connectToPeer(code.data);
+                    
+                    if(code.data.startsWith('MSG:')) {
+                        // Offline packet!
+                        const parts = code.data.split(':');
+                        const nick = parts[1] || 'STRANGER';
+                        const text = parts.slice(2).join(':');
+                        appendChat(nick, text + " [OFFLINE]");
+                        cancelChatLink(); // Return to landing
+                    } else {
+                        // Normal frequency link
+                        connectToPeer(code.data);
+                    }
                 }
             }
         }, 300);
@@ -2938,64 +3654,97 @@ window.chatJoin = async function() {
 };
 
 function connectToPeer(id) {
-    if(!peer) return;
+    if(!window.gbPeer) return;
     appendChat('SYSTEM', 'TUNING TO FREQUENCY...');
-    conn = peer.connect(id);
-    setupChatConnection();
+    const connection = window.gbPeer.connect(id);
+    addConnection(connection);
 }
 
-function setupChatConnection() {
-    if(!conn) return;
+function addConnection(connection) {
+    window.gbConn = connection;
+    if(!window.gbConns.find(c => c.peer === connection.peer)) {
+        window.gbConns.push(connection);
+        setupChatConnection(connection);
+    }
+}
+
+function setupChatConnection(targetConn) {
+    if(!targetConn) return;
     
-    conn.on('open', () => {
+    targetConn.on('open', () => {
         showChatStartAnim();
         updateSignalBars(4);
         document.getElementById('chatConnect').style.display = 'none';
         document.getElementById('chatMain').style.display = 'flex';
-        document.getElementById('chatStatusLabel').textContent = "LINK STABLE";
         appendChat('SYSTEM', 'ENCRYPTED LINK ESTABLISHED.');
         sounds.coin();
+        
+        // Identity handshake
+        const myNick = document.getElementById('chatNick').value || 'USER-' + Math.floor(Math.random()*999);
+        targetConn.send({ type: 'identify', nick: myNick });
     });
     
-    conn.on('data', (data) => {
+    targetConn.on('data', (data) => {
         if(data.type === 'msg') {
-            appendChat('PEER', data.content);
+            appendChat(data.nick || 'PEER', data.content);
             sounds.click();
         } else if(data.type === 'buzz') {
             handleChatBuzz();
+        } else if(data.type === 'identify') {
+            targetConn.peerNick = data.nick;
+            appendChat('SYSTEM', `${data.nick.toUpperCase()} LINKED TO FREQUENCY.`);
+        } else if(data.type === 'p2p-game') {
+            if(window.onP2PGameData) window.onP2PGameData(data.payload);
         }
     });
     
-    conn.on('close', () => {
-        updateSignalBars(3);
-        document.getElementById('chatStatusLabel').textContent = "ONLINE";
-        alert("LINK DISCONNECTED.");
-        cancelChatLink();
+    targetConn.on('close', () => {
+        const nick = targetConn.peerNick || 'A PEER';
+        window.gbConns = window.gbConns.filter(c => c.peer !== targetConn.peer);
+        if(window.gbConns.length === 0) {
+            updateSignalBars(3);
+            document.getElementById('chatStatusLabel').textContent = "ONLINE";
+            appendChat('SYSTEM', 'ALL PEERS DISCONNECTED.');
+        } else {
+            appendChat('SYSTEM', `${nick.toUpperCase()} HAS LEFT.`);
+        }
     });
 }
 
 function showChatStartAnim() {
     const anim = document.getElementById('linkStartAnim');
     if(anim) {
-        anim.style.display = 'block';
+        anim.style.display = 'flex';
         setTimeout(() => anim.style.display = 'none', 2000);
     }
 }
 
+window.addChatEmoji = function(emoji) {
+    const input = document.getElementById('chatInput');
+    input.value += emoji;
+    input.focus();
+    sounds.click();
+};
+
 window.sendChatMessage = function() {
     const input = document.getElementById('chatInput');
     const msg = input.value.trim();
-    if(!msg || !conn) return;
+    const myNick = document.getElementById('chatNick').value || 'ME';
+    if(!msg || window.gbConns.length === 0) return;
     
-    conn.send({ type: 'msg', content: msg });
+    window.gbConns.forEach(c => {
+        if(c.open) c.send({ type: 'msg', content: msg, nick: myNick });
+    });
     appendChat('ME', msg);
     input.value = '';
     sounds.click();
 };
 
 window.sendChatBuzz = function() {
-    if(!conn) return;
-    conn.send({ type: 'buzz' });
+    if(window.gbConns.length === 0) return;
+    window.gbConns.forEach(c => {
+        if(c.open) c.send({ type: 'buzz' });
+    });
     appendChat('SYSTEM', '!!! BUZZ !!!');
     sounds.launch();
     if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -3010,21 +3759,21 @@ function handleChatBuzz() {
         setTimeout(() => log.style.background = 'rgba(0,25,0,0.8)', 500);
     }
 }
-
 function appendChat(who, text) {
     const log = document.getElementById('chatLog');
     if(!log) return;
     const msg = document.createElement('div');
-    msg.style.marginBottom = '5px';
-    const color = who === 'ME' ? '#cfc' : (who === 'PEER' ? '#0f0' : '#ffa');
-    msg.innerHTML = `<span style="color:${color}; font-weight:bold;">${who}:</span> ${text.toUpperCase()}`;
+    msg.style.cssText = "padding: 6px 10px; border-radius: 6px; background: rgba(0,255,0,0.1); border-left: 3px solid #0f0; margin-bottom: 2px;";
+    const color = who === 'ME' ? '#cfc' : (who === 'SYSTEM' ? '#ffa' : '#0f0');
+    msg.innerHTML = `<span style="color:${color}; font-size: 8px; font-weight:bold;">${who}:</span><br>${text.toUpperCase()}`;
     log.appendChild(msg);
     log.scrollTop = log.scrollHeight;
 }
 
 window.cancelChatLink = function() {
-    if(conn) conn.close();
-    conn = null;
+    window.gbConns.forEach(c => c.close());
+    window.gbConns = [];
+    window.gbConn = null;
     if(scanInterval) clearInterval(scanInterval);
     const video = document.getElementById('chatScannerVideo');
     if(video && video.srcObject) video.srcObject.getTracks().forEach(t => t.stop());
@@ -3331,4 +4080,20 @@ window.loadRomFile = function(input) {
             if(zone) zone.style.opacity = "1";
         }
     }, 1500);
+};
+
+// ========== ADVENTURE & TROLL HELPERS ==========
+window.trollJumpToLevel = function() {
+    const lvlInput = document.getElementById('trollLevelSearch');
+    const frame = document.getElementById('trollFrame');
+    if(!lvlInput || !frame) return;
+    
+    const lvl = parseInt(lvlInput.value);
+    if(isNaN(lvl) || lvl < 1 || lvl > 10000) return alert("ENTER LEVEL 1-10,000");
+    
+    // Inject into iframe
+    if(frame.contentWindow && frame.contentWindow.loadTrollLevel) {
+        frame.contentWindow.loadTrollLevel(lvl);
+        sounds.launch();
+    }
 };

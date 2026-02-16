@@ -1,0 +1,46 @@
+<!-- ============================================ -->
+<!-- RETRO QUEST ADVENTURE GAME SCREEN -->
+<!-- Add this to index.html in the screen-content section -->
+<!-- ============================================ -->
+
+<!-- ADVENTURE GAME -->
+<div id="adventureScreen" class="game-screen">
+    <div style="padding: 0; width: 100%; height: 100%; background: #000;">
+        <canvas 
+            id="advCanvas" 
+            width="300" 
+            height="280" 
+            style="
+                display: block; 
+                margin: 0 auto; 
+                image-rendering: pixelated;
+                image-rendering: crisp-edges;
+                background: #2a5a2a;
+            "
+        ></canvas>
+        
+        <!-- Instructions overlay (can be removed after first play) -->
+        <div style="
+            position: absolute; 
+            bottom: 10px; 
+            left: 10px; 
+            right: 10px; 
+            background: rgba(0,0,0,0.8); 
+            padding: 5px; 
+            border-radius: 4px;
+            font-size: 6px;
+            color: #fff;
+            text-align: center;
+            display: none;
+        " id="advHelp">
+            Arrow Keys = Move | Collect Golden Crystal | Enter Cyan Portal to advance
+        </div>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- ADD THIS SCRIPT TAG BEFORE CLOSING </body> -->
+<!-- ============================================ -->
+<!--
+<script src="scripts/retro_quest.js"></script>
+-->
