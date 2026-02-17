@@ -536,7 +536,7 @@
                     </div>
 
                     <!-- HABIT STREAK -->
-                    <div id="streakScreen" class="game-screen">
+                    <div id="habitScreen" class="game-screen">
                         <div style="padding: 10px;">
                             <div style="font-size: 10px; margin-bottom: 15px;">HABIT TRACKER</div>
                             <div id="habitList" style="display: flex; flex-direction: column; gap: 8px;">
@@ -675,8 +675,8 @@
                         </div>
                     </div>
 
-                    <!-- SCAN (Barcode) -->
-                    <div id="barcodeScreen" class="game-screen">
+                    <!-- QR GENERATOR -->
+                    <div id="qrScreen" class="game-screen">
                         <div style="text-align: center; padding: 20px;">
                             <div style="font-size: 8px; margin-bottom: 20px;">QR/BARCODE GEN</div>
                             <input type="text" id="qrInput" placeholder="ENTER TEXT/URL..." style="width: 100%; margin-bottom: 20px;">
@@ -684,6 +684,20 @@
                                 <div id="qrPlaceholder" style="width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #000, #000 5px, #fff 5px, #fff 10px);"></div>
                             </div>
                             <button onclick="generateQR()" style="width: 100%; margin-top: 20px;">GENERATE</button>
+                        </div>
+                    </div>
+
+                    <!-- SCANNER -->
+                    <div id="scanScreen" class="game-screen">
+                         <div style="text-align: center; padding: 20px; height: 100%; display: flex; flex-direction: column;">
+                            <div style="font-size: 8px; margin-bottom: 10px;">SCANNER PRO</div>
+                            <div id="scanPreview" style="flex: 1; background: #000; position: relative; overflow: hidden; border: 2px solid var(--gb-text);">
+                                <video id="scanVideo" playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+                                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; border: 20px solid rgba(0,0,0,0.5); box-sizing: border-box;"></div>
+                                <div style="position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; background: #f00; box-shadow: 0 0 5px #f00;"></div>
+                            </div>
+                            <div id="scanResult" style="font-size: 6px; padding: 10px; word-break: break-all; min-height: 40px;">POINT CAMERA AT CODE</div>
+                            <button onclick="startScanning()" id="scanBtn" style="margin-top: 10px;">START SCAN</button>
                         </div>
                     </div>
 
@@ -1942,6 +1956,57 @@ Type 'help' for commands.
                     </div>
 
                     <!-- ADVENTURE GAME -->
+                    <!-- BATCH 7 SCREENS -->
+                    <div id="stopwatchScreen" class="game-screen"></div>
+                    <div id="pomoScreen" class="game-screen"></div>
+                    <div id="unitScreen" class="game-screen"></div>
+                    <div id="tipScreen" class="game-screen"></div>
+                    <div id="speedScreen" class="game-screen"></div>
+                    <div id="bmiScreen" class="game-screen"></div>
+                    <div id="counterScreen" class="game-screen"></div>
+                    <div id="levelScreen" class="game-screen"></div>
+                    <div id="sosScreen" class="game-screen"></div>
+
+                    <!-- COMPASS -->
+                    <div id="compassScreen" class="game-screen">
+                        <div style="padding: 20px; text-align: center; height: 100%; position: relative;">
+                            <div style="font-size: 8px; margin-bottom: 20px;">DIGITAL COMPASS</div>
+                            <div style="width: 150px; height: 150px; border: 4px solid var(--gb-text); border-radius: 50%; margin: 0 auto; position: relative; background: rgba(15, 56, 15, 0.05);">
+                                <div style="position: absolute; top: 5px; left: 50%; transform: translateX(-50%); font-size: 8px;">N</div>
+                                <div style="position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); font-size: 8px;">S</div>
+                                <div style="position: absolute; left: 5px; top: 50%; transform: translateY(-50%); font-size: 8px;">W</div>
+                                <div style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); font-size: 8px;">E</div>
+                                <div id="compassNeedle" style="
+                                    position: absolute;
+                                    top: 50%; left: 50%;
+                                    width: 4px; height: 100px;
+                                    background: linear-gradient(to bottom, #f00 50%, #000 50%);
+                                    transform: translateX(-50%) rotate(0deg);
+                                    transform-origin: center center;
+                                    margin-top: -50px;
+                                    transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+                                    border-radius: 2px;
+                                "></div>
+                            </div>
+                            <div id="compassDeg" style="font-size: 20px; font-weight: bold; margin-top: 20px;">0° NORTH</div>
+                        </div>
+                    </div>
+
+                    <!-- TO-DO LIST -->
+                    <div id="todoScreen" class="game-screen">
+                        <div style="padding: 10px; display: flex; flex-direction: column; height: 100%;">
+                            <div style="font-size: 10px; text-align: center; margin-bottom: 10px;">TASK MANAGER</div>
+                            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                                <input type="text" id="todoInput" placeholder="NEW TASK..." style="flex: 1; font-size: 8px;">
+                                <button onclick="addTodo()" style="width: 30px;">+</button>
+                            </div>
+                            <div id="todoList" style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.05); padding: 5px; border: 1px dotted var(--gb-text);">
+                                <!-- Tasks injected here -->
+                            </div>
+                            <div style="font-size: 6px; text-align: center; opacity: 0.6; margin-top: 5px;">STAY ORGANIZED</div>
+                        </div>
+                    </div>
+
                     <div id="adventureScreen" class="game-screen">
                         <div style="padding: 0; width: 100%; height: 100%; background: #000;">
                             <canvas id="advCanvas" width="300" height="280" style="display: block; margin: 0 auto; image-rendering: pixelated;"></canvas>
@@ -2034,6 +2099,7 @@ Type 'help' for commands.
     <script src="scripts/p2p-games/sync.js"></script>
     <script src="scripts/p2p-games/void.js"></script>
     <script src="scripts/batch6.js"></script>
+    <script src="scripts/batch7.js"></script>
     <script src="scripts/utils_expanded.js"></script>
     <script src="app.js"></script>
     

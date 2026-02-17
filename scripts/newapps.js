@@ -271,104 +271,110 @@ window.setNewsCategory = function(cat) {
     window.initNews(cat);
 };
 
-window.initNews = async function(category = 'world') {
-    newsView = 'list';
-    newsIndex = 0;
+// ========== TECH NEWS (HACKER NEWS API) ==========
+window.initNews = async function(category = 'top') {
     const list = document.getElementById('newsList');
     const screen = document.getElementById('newsScreen');
     if(!list || !screen) return;
-    
-    // Create Category Bar if missing
+
+    // Category Bar (Top, Best, New)
     let catBar = document.getElementById('newsCategoryBar');
     if(!catBar) {
         catBar = document.createElement('div');
         catBar.id = 'newsCategoryBar';
-        catBar.style.cssText = "display: flex; gap: 5px; padding: 5px; overflow-x: auto; border-bottom: 2px solid #0f380f; white-space: nowrap; font-size: 6px; background: rgba(0,0,0,0.05);";
+        catBar.style.cssText = "display: flex; gap: 5px; padding: 5px; border-bottom: 2px solid #0f380f; justify-content: center; background: rgba(0,0,0,0.05);";
         screen.prepend(catBar);
     }
-    
+
     const categories = [
-        { id: 'world', name: '🌍 TOUT' },
-        { id: 'politique', name: '⚖️ POLIT' },
-        { id: 'economie', name: '📈 ECO' },
-        { id: 'societe', name: '👥 SOC' },
-        { id: 'culture', name: '🎨 CULT' },
-        { id: 'international', name: '🌍 INT' }
+        { id: 'top', name: '🔥 TOP' },
+        { id: 'best', name: '🏆 BEST' },
+        { id: 'new', name: '✨ NEW' }
     ];
-    
+
     catBar.innerHTML = categories.map(c => `
-        <button onclick="setNewsCategory('${c.id}')" style="background: ${category === c.id ? '#0f380f' : 'transparent'}; color: ${category === c.id ? '#9bbc0f' : '#0f380f'}; padding: 4px 8px; border: 1px solid #0f380f; font-family: 'VT323', monospace;">
+        <button onclick="initNews('${c.id}')" style="background: ${category === c.id ? '#0f380f' : 'transparent'}; color: ${category === c.id ? '#9bbc0f' : '#0f380f'}; padding: 4px 8px; border: 1px solid #0f380f; font-family: 'VT323', monospace;">
             ${c.name}
         </button>
     `).join('');
 
-    list.innerHTML = '<div style="text-align:center; padding: 40px; font-family: monospace;">SCANNING LE MONDE...</div>';
-    
+    list.innerHTML = '<div style="text-align:center; padding: 40px; font-family: monospace;">FETCHING HACKER NEWS...</div>';
+
     try {
-        const today = new Date();
-        // Le Monde archives use DD-MM-YYYY
-        const d = String(today.getDate()).padStart(2, '0');
-        const m = String(today.getMonth() + 1).padStart(2, '0');
-        const y = today.getFullYear();
-        const dateStr = `${d}-${m}-${y}`;
-        
-        const archiveUrl = `https://www.lemonde.fr/archives-du-monde/${dateStr}/`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(archiveUrl)}`;
-        
-        const res = await fetch(proxyUrl);
-        const data = await res.json();
-        
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
-        const teasers = doc.querySelectorAll('.teaser');
-        
-        newsItems = [];
-        teasers.forEach(t => {
-            // Filter non-premium as requested in the tutorial
-            if(!t.querySelector('.icon__premium')) {
-                const titleEl = t.querySelector('.teaser__title');
-                const linkEl = t.querySelector('a');
-                const descEl = t.querySelector('.teaser__desc');
-                
-                if(titleEl && linkEl) {
-                    const title = titleEl.textContent.trim();
-                    const url = linkEl.href.startsWith('http') ? linkEl.href : 'https://www.lemonde.fr' + linkEl.getAttribute('href');
-                    
-                    // Filter out videos (en-direct) as per tutorial
-                    if (url.includes('en-direct')) return;
+        const typeMap = { 'top': 'topstories', 'best': 'beststories', 'new': 'newstories' };
+        const res = await fetch(`https://hacker-news.firebaseio.com/v0/${typeMap[category]}.json`);
+        const ids = await res.json();
+        const top10 = ids.slice(0, 10);
 
-                    const desc = descEl ? descEl.textContent.trim() : 'CLICK TO READ MORE...';
-                    
-                    // Simple category extraction from URL
-                    const theme = url.split('/')[3] || 'GENERAL';
-                    
-                    if(!category || category === 'world' || theme.toLowerCase().includes(category)) {
-                        newsItems.push({
-                            title: title.toUpperCase(),
-                            published_at: new Date().toISOString(),
-                            summary: desc.toUpperCase(),
-                            url: url,
-                            theme: theme.toUpperCase()
-                        });
-                    }
-                }
-            }
-        });
+        const stories = await Promise.all(top10.map(async id => {
+            const r = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
+            return r.json();
+        }));
 
-        if(newsItems.length === 0 && category === 'world') {
-            // If today is empty (early morning), try yesterday
-            today.setDate(today.getDate() - 1);
-            const d2 = String(today.getDate()).padStart(2, '0');
-            const m2 = String(today.getMonth() + 1).padStart(2, '0');
-            const y2 = today.getFullYear();
-            window.initNews(category, `${d2}-${m2}-${y2}`);
-            return;
-        }
-
-        renderNewsList();
-    } catch(e) { 
-        list.innerHTML = '<div style="text-align:center; padding: 40px; color: #f00;">SIGNAL LOST<br>TRY AGAIN LATER</div>'; 
+        window.newsItems = stories; // Cache for detail view
+        renderNewsList(stories);
+    } catch(e) {
+        list.innerHTML = '<div style="text-align:center; padding: 40px; color: #f00;">CONNECTION FAILED</div>';
     }
+};
+
+window.renderNewsList = function(stories) {
+    const list = document.getElementById('newsList');
+    list.innerHTML = '';
+    
+    stories.forEach((s, i) => {
+        const item = document.createElement('div');
+        item.style.cssText = "padding: 8px; border-bottom: 1px solid rgba(15,56,15,0.3); cursor: pointer; transition: background 0.2s;";
+        item.onmouseover = () => item.style.background = 'rgba(15,56,15,0.1)';
+        item.onmouseout = () => item.style.background = 'transparent';
+        item.onclick = () => window.openNewsDetail(i);
+        
+        item.innerHTML = `
+            <div style="font-weight: bold; font-size: 9px; line-height: 1.2;">${s.title}</div>
+            <div style="font-size: 7px; opacity: 0.7; margin-top: 2px;">
+                👍 ${s.score} | 💬 ${s.descendants || 0} | 👤 ${s.by}
+            </div>
+        `;
+        list.appendChild(item);
+    });
+};
+
+window.openNewsDetail = function(index) {
+    const item = window.newsItems[index];
+    if(!item) return;
+    
+    // Hide list
+    document.getElementById('newsList').style.display = 'none';
+    if(document.getElementById('newsCategoryBar')) document.getElementById('newsCategoryBar').style.display = 'none';
+    
+    let detail = document.getElementById('newsDetail');
+    if(!detail) {
+        detail = document.createElement('div');
+        detail.id = 'newsDetail';
+        detail.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:#9bbc0f; color:#0f380f; padding:15px; overflow-y:auto; z-index:100;";
+        document.getElementById('newsScreen').appendChild(detail);
+    }
+    
+    detail.style.display = 'block';
+    
+    // Convert timestamp
+    const date = new Date(item.time * 1000).toLocaleString();
+    
+    detail.innerHTML = `
+        <div style="font-size: 11px; font-weight: bold; border-bottom: 2px solid #0f380f; padding-bottom: 10px; margin-bottom: 10px;">
+            ${item.title}
+        </div>
+        <div style="font-size: 8px; margin-bottom: 15px;">
+            BY: ${item.by} • ${date}<br>
+            SCORE: ${item.score}
+        </div>
+        <div style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; font-size: 9px; word-break: break-all;">
+            <a href="${item.url}" target="_blank" style="color: #00f; text-decoration: underline;">OPEN LINK 🔗</a>
+            <br><br>
+            (External links open in browser)
+        </div>
+        <button onclick="closeNewsDetail()" style="width: 100%; margin-top: 20px; padding: 10px; border: 2px solid #0f380f; background: #0f380f; color: #9bbc0f; font-family: 'VT323';">BACK</button>
+    `;
 };
 window.initTranslate = function() { document.getElementById('transOutput').textContent = "READY..."; };
 async function translateText() {
@@ -413,9 +419,70 @@ function initBreathe() {
     const circle = document.getElementById('breatheCircle'); if (breatheInterval) clearInterval(breatheInterval);
     let state = 0; breatheInterval = setInterval(() => { state = (state + 1) % 2; circle.style.transform = state === 0 ? 'scale(1.3)' : 'scale(0.7)'; document.getElementById('breatheText').textContent = state === 0 ? 'BREATHE OUT' : 'BREATHE IN'; }, 4000);
 }
+// ========== MAPS ENHANCED ==========
 let mapX = 0, mapY = 0;
-function initMap() { mapX = 0; mapY = 0; document.getElementById('mapContent').style.transform = `translate(0,0)`; }
-function mapMove(dir) { const map = document.getElementById('mapContent'); if (dir === 'up') mapY += 25; if (dir === 'down') mapY -= 25; if (dir === 'left') mapX += 25; if (dir === 'right') mapX -= 25; map.style.transform = `translate(${mapX}px, ${mapY}px)`; }
+let mapMarkers = [];
+
+function initMap() { 
+    mapX = 0; mapY = 0; 
+    const map = document.getElementById('mapContent');
+    if(!map) return;
+    
+    map.style.transform = `translate(0,0)`; 
+    
+    // Add Click Listener if not present
+    if (!map.onclick) {
+        map.onclick = function(e) {
+            const rect = map.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            addMapMarker(x, y);
+        };
+    }
+    
+    renderMapMarkers();
+}
+
+function mapMove(dir) { 
+    const map = document.getElementById('mapContent'); 
+    if (dir === 'up') mapY += 50; 
+    if (dir === 'down') mapY -= 50; 
+    if (dir === 'left') mapX += 50; 
+    if (dir === 'right') mapX -= 50; 
+    // Clamp or allow infinite? Let's limit slightly
+    mapX = Math.min(0, Math.max(-300, mapX));
+    mapY = Math.min(0, Math.max(-300, mapY));
+    
+    map.style.transform = `translate(${mapX}px, ${mapY}px)`; 
+}
+
+function addMapMarker(x, y) {
+    const icon = prompt("MARKER ICON (e.g. 📍, ⛺, 🚩):") || "📍";
+    mapMarkers.push({ x, y, icon });
+    renderMapMarkers();
+    sounds.coin();
+}
+
+function renderMapMarkers() {
+    const map = document.getElementById('mapContent');
+    // Clear old markers (keeping static assets if any, assume dynamic only)
+    // Actually, simply appending is safer if we don't track static ones.
+    // Let's remove ONLY elements with class 'user-marker'
+    const old = map.querySelectorAll('.user-marker');
+    old.forEach(el => el.remove());
+    
+    mapMarkers.forEach(m => {
+        const el = document.createElement('div');
+        el.className = 'user-marker';
+        el.textContent = m.icon;
+        el.style.position = 'absolute';
+        el.style.left = (m.x - 5) + 'px';
+        el.style.top = (m.y - 10) + 'px'; // Center base
+        el.style.fontSize = '10px';
+        el.style.pointerEvents = 'none'; // Click through
+        map.appendChild(el);
+    });
+}
 let contacts = [{ name: 'PROF. OAK', phone: '555-001' }];
 function initContacts() { renderContacts(); }
 function renderContacts() { const list = document.getElementById('contactList'); list.innerHTML = ''; contacts.forEach(c => { const item = document.createElement('div'); item.style.cssText = `padding: 5px; border: 1px solid #333; margin-bottom: 2px;`; item.innerHTML = `<strong>${c.name}</strong><br>${c.phone}`; list.appendChild(item); }); }
@@ -1807,7 +1874,134 @@ window.getDog = async function() {
     }
 };
 
-window.initBook = function() {};
+// ========== BOOK READER (GUTENDEX) ==========
+window.initBook = function() {
+    const screen = document.getElementById('bookScreen');
+    if(!screen) return;
+    
+    screen.innerHTML = `
+        <div style="padding: 10px; height: 100%; display: flex; flex-direction: column; font-family: 'Courier New', monospace;">
+            <div style="font-size: 10px; text-align: center; border-bottom: 2px solid #0f380f; margin-bottom: 5px;">GUTENBERG READER</div>
+            
+            <!-- Search -->
+            <div id="bookSearchMode" style="display: block;">
+                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                    <input type="text" id="bookInput" placeholder="TITLE/AUTHOR..." style="flex: 1; font-size: 8px; border: 1px solid #0f380f; background: rgba(0,0,0,0.05); padding: 4px;">
+                    <button onclick="searchBooks()" style="font-size: 8px;">🔍</button>
+                </div>
+                <div id="bookList" style="flex: 1; overflow-y: auto; font-size: 8px;">
+                    <div style="text-align: center; opacity: 0.6; margin-top: 20px;">SEARCH PUBLIC DOMAIN BOOKS</div>
+                </div>
+            </div>
+
+            <!-- Reader -->
+            <div id="bookReaderMode" style="display: none; height: 100%; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px dashed #0f380f;">
+                    <button onclick="closeBook()" style="font-size: 8px;">🔙 BACK</button>
+                    <span id="bookTitle" style="font-weight: bold; font-size: 8px; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</span>
+                    <span id="bookPage" style="font-size: 8px;">0%</span>
+                </div>
+                <div id="bookContent" style="flex: 1; overflow-y: auto; background: #9bbc0f; color: #0f380f; font-size: 9px; line-height: 1.6; white-space: pre-wrap; padding: 5px;"></div>
+                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 5px;">
+                     <button onclick="scrollBook(-200)">⬆</button>
+                     <button onclick="scrollBook(200)">⬇</button>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+window.searchBooks = async function() {
+    const query = document.getElementById('bookInput').value;
+    const list = document.getElementById('bookList');
+    if(!query) return;
+    
+    list.innerHTML = 'SEARCHING SHELVES...';
+    try {
+        const res = await fetch(`https://gutendex.com/books?search=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        
+        list.innerHTML = '';
+        if(data.results.length === 0) {
+            list.innerHTML = 'NO BOOKS FOUND.';
+            return;
+        }
+
+        data.results.forEach(book => {
+            // Find text format
+            const textUrl = book.formats['text/plain; charset=utf-8'] || book.formats['text/plain'];
+            
+            if(textUrl) {
+                const item = document.createElement('div');
+                item.style.cssText = "padding: 8px; border-bottom: 1px solid rgba(15,56,15,0.3); cursor: pointer;";
+                item.innerHTML = `
+                    <div style="font-weight: bold;">${book.title.substring(0,40)}</div>
+                    <div style="font-size: 7px; opacity: 0.8;">${book.authors[0]?.name || 'Unknown'}</div>
+                `;
+                item.onclick = () => loadBook(book.title, textUrl);
+                list.appendChild(item);
+            }
+        });
+    } catch(e) {
+        list.innerHTML = 'LIBRARY CLOSED (API ERROR)';
+    }
+};
+
+window.loadBook = async function(title, url) {
+    document.getElementById('bookSearchMode').style.display = 'none';
+    document.getElementById('bookReaderMode').style.display = 'flex';
+    document.getElementById('bookTitle').textContent = title;
+    
+    const content = document.getElementById('bookContent');
+    content.innerHTML = 'FETCHING PARCHMENT...';
+    
+    try {
+        // Use AllOrigins proxy to bypass CORS
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl);
+        const text = await res.text();
+        
+        // Cleanup Gutenberg Headers
+        const startIdx = text.indexOf('*** START OF');
+        const endIdx = text.indexOf('*** END OF');
+        
+        let cleanText = text;
+        if(startIdx !== -1) cleanText = cleanText.substring(startIdx + 40);
+        if(endIdx !== -1) cleanText = cleanText.substring(0, endIdx);
+        
+        // Strip HTML tags if present (Fix for "html file" issue)
+        cleanText = cleanText.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                             .replace(/<br\s*\/?>/gi, '\n')
+                             .replace(/<[^>]+>/g, '');
+                             
+        // Decode HTML entities
+        const txt = document.createElement("textarea");
+        txt.innerHTML = cleanText;
+        cleanText = txt.value;
+        
+        content.textContent = cleanText;
+        content.scrollTop = 0;
+        
+        // Scroll listener
+        content.onscroll = () => {
+            const pct = Math.round((content.scrollTop / (content.scrollHeight - content.clientHeight)) * 100);
+            document.getElementById('bookPage').textContent = `${pct}%`;
+        };
+        
+    } catch(e) {
+        content.textContent = 'PAGES ARE STUCK TOGETHER (LOAD ERROR)';
+    }
+};
+
+window.closeBook = function() {
+    document.getElementById('bookReaderMode').style.display = 'none';
+    document.getElementById('bookSearchMode').style.display = 'block';
+};
+
+window.scrollBook = function(amt) {
+    const c = document.getElementById('bookContent');
+    if(c) c.scrollBy({top: amt, behavior: 'smooth'});
+};
 window.searchBook = async function() {
     const q = document.getElementById('bookSearch').value;
     const list = document.getElementById('bookList');

@@ -22,6 +22,7 @@ const apps = [
     { id: 'counter', name: 'COUNT', icon: '🔢' },
     { id: 'pomo', name: 'POMO', icon: '🍅' },
     { id: 'habit', name: 'HABIT', icon: '✅' },        // NEW
+    { id: 'speed', name: 'SPEED', icon: '⏩' },       // NEW
     { id: 'journal', name: 'JOURNAL', icon: '📔' },   // NEW
     { id: 'workout', name: 'WORKOUT', icon: '💪' },   // NEW
     { id: 'study', name: 'STUDY', icon: '🎓' },       // NEW
@@ -76,7 +77,7 @@ const apps = [
     { id: 'compass', name: 'COMPASS', icon: '🧭' },
     { id: 'contacts', name: 'PHONE', icon: '📔' },
     { id: 'qr', name: 'QR', icon: '📱' },
-    { id: 'barcode', name: 'SCAN', icon: '🔍' },
+    { id: 'scan', name: 'SCAN', icon: '🔍' },
     { id: 'alerts', name: 'ALARM', icon: '⏰' },
     { id: 'bmi', name: 'BMI', icon: '⚖️' },
     { id: 'bmr', name: 'BMR', icon: '🔥' },
@@ -89,7 +90,7 @@ const apps = [
     
     // ── WELLNESS ──────────────────────────────────────────────────────────
     { id: 'breathe', name: 'CALM', icon: '🌬️' },
-    { id: 'streak', name: 'STREAK', icon: '🔥' },
+
     { id: 'water', name: 'H2O', icon: '💧' },
     
     // ── ADVANCED/TECH ─────────────────────────────────────────────────────
@@ -307,10 +308,14 @@ function goBack() {
         
         // Legacy manual cleanup for safety
         if (typeof clockInterval !== 'undefined') clearInterval(clockInterval);
-        if (typeof snakeGame !== 'undefined' && snakeGame) snakeGame.stop();
-        if (typeof flappyGame !== 'undefined') cancelAnimationFrame(flappyGame);
-        if (typeof breakoutGame !== 'undefined') cancelAnimationFrame(breakoutGame);
-        if (typeof tetrisGame !== 'undefined') cancelAnimationFrame(tetrisGame);
+        
+        // Fix: Use correct variable names from games.js
+        if (typeof snakeGame !== 'undefined' && snakeGame) { clearInterval(snakeGame); snakeGame = null; }
+        if (typeof flappyRAF !== 'undefined' && flappyRAF) { cancelAnimationFrame(flappyRAF); flappyRAF = null; }
+        if (typeof breakoutRAF !== 'undefined' && breakoutRAF) { cancelAnimationFrame(breakoutRAF); breakoutRAF = null; }
+        if (typeof tetrisRAF !== 'undefined' && tetrisRAF) { cancelAnimationFrame(tetrisRAF); tetrisRAF = null; }
+        if (typeof tetrisDropInt !== 'undefined') clearInterval(tetrisDropInt);
+        
         if (typeof stopNightVision === 'function') stopNightVision();
         if (typeof remixInterval !== 'undefined') clearInterval(remixInterval);
         if (typeof spiritPingInterval !== 'undefined') clearInterval(spiritPingInterval);
@@ -470,3 +475,21 @@ bindHold('.dpad-up', 'ArrowUp');
 bindHold('.dpad-down', 'ArrowDown');
 bindHold('.dpad-left', 'ArrowLeft');
 bindHold('.dpad-right', 'ArrowRight');
+
+// ========== IFRAME INPUT FORWARDING (For Troll & Adventure) ==========
+document.addEventListener('keydown', (e) => forwardInputToFrames(e, true));
+document.addEventListener('keyup', (e) => forwardInputToFrames(e, false));
+
+function forwardInputToFrames(e, down) {
+    if (currentScreen === 'troll') {
+        const frame = document.getElementById('trollFrame');
+        if (frame && frame.contentWindow) {
+            frame.contentWindow.postMessage({ type: 'input', key: e.key, down }, '*');
+        }
+    } else if (currentScreen === 'adventure') {
+        const frame = document.getElementById('adventureFrame');
+        if (frame && frame.contentWindow) {
+            frame.contentWindow.postMessage({ type: 'input', key: e.key, down }, '*');
+        }
+    }
+}

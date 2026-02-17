@@ -224,14 +224,20 @@ function setupEnhancedControls() {
 }
 
 function updateGameLogic() {
-    if (!voidState.isAlive || voidState.meetingActive || voidState.activeTask) return;
+    if (!voidState.isAlive || voidState.meetingActive || voidState.activeTask) {
+        if (voidState.meetingActive) {
+            voidState.meetingTimer -= 0.1;
+            if (voidState.meetingTimer <= 0) finalizeMeeting();
+        }
+        return;
+    }
 
     // Movement
     let ax = 0, ay = 0;
-    if (voidState.keys['ArrowUp']) ay -= voidState.moveSpeed;
-    if (voidState.keys['ArrowDown']) ay += voidState.moveSpeed;
-    if (voidState.keys['ArrowLeft']) { ax -= voidState.moveSpeed; voidState.facing = 'left'; }
-    if (voidState.keys['ArrowRight']) { ax += voidState.moveSpeed; voidState.facing = 'right'; }
+    if (voidState.keys['ArrowUp'] || voidState.keys['w']) ay -= voidState.moveSpeed;
+    if (voidState.keys['ArrowDown'] || voidState.keys['s']) ay += voidState.moveSpeed;
+    if (voidState.keys['ArrowLeft'] || voidState.keys['a']) { ax -= voidState.moveSpeed; voidState.facing = 'left'; }
+    if (voidState.keys['ArrowRight'] || voidState.keys['d']) { ax += voidState.moveSpeed; voidState.facing = 'right'; }
 
     voidState.velocityX = ax;
     voidState.velocityY = ay;
@@ -255,15 +261,94 @@ function updateGameLogic() {
 
     // AI Logic (Moving units)
     if (P2PGameEngine.isSolo) {
-        voidState.players.forEach(p => {
-            if (p.isMe || !p.isAlive) return;
-            p.x += (Math.random() - 0.5) * 5;
-            p.y += (Math.random() - 0.5) * 5;
-            p.x = Math.max(40, Math.min(760, p.x));
-            p.y = Math.max(40, Math.min(560, p.y));
-        });
+        updateEnhancedAI();
     }
 }
+
+function updateEnhancedAI() {
+    voidState.players.forEach(p => {
+        if (p.isMe || !p.isAlive) return;
+        
+        // Simulating Movement towards random rooms
+        if (!p.targetX || Math.hypot(p.x - p.targetX, p.y - p.targetY) < 10) {
+            const room = VOID_MAP.rooms[Math.floor(Math.random() * VOID_MAP.rooms.length)];
+            p.targetX = room.x + room.w / 2;
+            p.targetY = room.y + room.h / 2;
+            p.room = room.name;
+        } else {
+            const dx = p.targetX - p.x;
+            const dy = p.targetY - p.y;
+            const dist = Math.hypot(dx, dy);
+            p.x += (dx / dist) * 2;
+            p.y += (dy / dist) * 2;
+            p.facing = dx > 0 ? 'right' : 'left';
+        }
+
+        // Glitch Logic: Aggressive Infection
+        if (p.role === 'GLITCH' && voidState.killCooldown <= 0) {
+            const target = voidState.players.find(other => other !== p && other.isAlive && other.room === p.room && Math.hypot(p.x - other.x, p.y - other.y) < 50);
+            if (target) {
+                target.isAlive = false;
+                voidState.deadBodies.push({ x: target.x, y: target.y, color: target.color, room: target.room });
+                if (target.isMe) voidState.isAlive = false;
+                logVoid(`${p.name} ELIMINATED ${target.name}.`);
+                voidState.killCooldown = 30; // Global cooldown for AI too
+            }
+        }
+        
+        // Decoder Logic: Task Simulation
+        if (p.role === 'DECODER' && Math.random() < 0.005) {
+            voidState.taskProgress.completed = Math.min(voidState.taskProgress.total, voidState.taskProgress.completed + 0.1);
+        }
+    });
+
+    if (voidState.taskProgress.completed >= voidState.taskProgress.total) {
+        logVoid("VICTORY: ALL SYSTEMS STABILIZED.");
+        endGame("DECODERS WIN");
+    }
+}
+
+function finalizeMeeting() {
+    voidState.meetingActive = false;
+    document.getElementById('voidDebate').style.display = 'none';
+    
+    // Consensus voting simulation
+    const alive = voidState.players.filter(p => p.isAlive);
+    const voteTarget = alive[Math.floor(Math.random() * alive.length)];
+    
+    if (Math.random() > 0.4) {
+        logVoid(`${voteTarget.name} WAS EJECTED.`);
+        voteTarget.isAlive = false;
+        if (voteTarget.isMe) voidState.isAlive = false;
+    } else {
+        logVoid("NO ONE WAS EJECTED (SKIPPED).");
+    }
+    
+    checkWinConditions();
+}
+
+function checkWinConditions() {
+    const alive = voidState.players.filter(p => p.isAlive);
+    const glitches = alive.filter(p => p.role === 'GLITCH').length;
+    const decoders = alive.filter(p => p.role === 'DECODER').length;
+
+    if (glitches === 0) endGame("DECODERS WIN");
+    else if (glitches >= decoders) endGame("GLITCH WINS");
+}
+
+function endGame(msg) {
+    logVoid(`GAME OVER: ${msg}`);
+    clearInterval(voidState.aiInterval);
+    setTimeout(() => initVoid(), 5000);
+}
+
+window.voidSabotage = function() {
+    if (voidState.myRole !== 'GLITCH' || !voidState.isAlive) return;
+    logVoid("LIGHTS SABOTAGED.");
+    voidState.sabotageActive = true;
+    setTimeout(() => { voidState.sabotageActive = false; logVoid("LIGHTS RESTORED."); }, 10000);
+    P2PGameEngine.send({ type: 'void-sabotage' });
+};
 
 function canMoveTo(x, y) {
     if (x < 20 || x > VOID_MAP.width - 20 || y < 20 || y > VOID_MAP.height - 20) return false;
@@ -343,11 +428,21 @@ function drawDeadBody(ctx, x, y, color) {
 }
 
 function drawHUD(ctx) {
-    if(voidState.myRole === 'DECODER') {
-        ctx.fillStyle = 'lime'; ctx.fillRect(10, 10, (voidState.taskProgress.completed / voidState.taskProgress.total) * 100, 10);
+    // Task Bar
+    ctx.fillStyle = '#111'; ctx.fillRect(10, 10, 200, 10);
+    ctx.fillStyle = 'lime'; ctx.fillRect(10, 10, (voidState.taskProgress.completed / Math.max(1, voidState.taskProgress.total)) * 200, 10);
+    ctx.strokeStyle = '#fff'; ctx.strokeRect(10, 10, 200, 10);
+    
+    if (voidState.sabotageActive) {
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(0,0,640,480);
+        ctx.fillStyle = '#f00'; ctx.font = '10px monospace';
+        ctx.fillText("CRITICAL SABOTAGE: LIGHTS OFFLINE", 320, 240);
     }
-    if(voidState.killCooldown > 0) {
-        ctx.fillStyle = 'white'; ctx.fillText(`KILL: ${Math.ceil(voidState.killCooldown)}s`, 550, 20);
+
+    if (voidState.killCooldown > 0 && voidState.myRole === 'GLITCH') {
+        ctx.fillStyle = 'white'; ctx.textAlign = 'right';
+        ctx.fillText(`INFECT CD: ${Math.ceil(voidState.killCooldown)}s`, 630, 20);
     }
 }
 
@@ -444,6 +539,7 @@ window.voidDoTask = function() {
 
 window.voidKill = attemptKill;
 window.voidReport = attemptReport;
+window.voidEmergency = attemptEmergency;
 
 window.voidSendDebate = function() {
     const input = document.getElementById('voidDebateInput');
@@ -485,18 +581,18 @@ function initSoloAI() {
     const totalPlayers = 4;
     const glitchIndex = Math.floor(Math.random() * totalPlayers);
     
-    if (glitchIndex === 0) voidState.myRole = 'GLITCH';
-    else voidState.myRole = 'DECODER';
+    voidState.myRole = (glitchIndex === 0) ? 'GLITCH' : 'DECODER';
 
     ['SIGMA', 'DELTA', 'OMEGA'].forEach((n, i) => {
         const isGlitch = (glitchIndex === i + 1);
         voidState.players.push({ 
             name: n, 
-            x: 200 + i*100, y: 150, 
+            x: 200 + i*150, y: 150, 
             color: VOID_COLORS[i+1], 
             isAlive: true, isMe: false, 
             role: isGlitch ? 'GLITCH' : 'DECODER', 
-            room: 'CAFETERIA' 
+            room: 'CAFETERIA',
+            targetX: 0, targetY: 0
         });
     });
 }

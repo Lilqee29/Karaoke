@@ -31,12 +31,13 @@ function handleLevel(e) {
     const x = e.beta;  // In degree in range [-180,180]
     const y = e.gamma; // In degree in range [-90,90]
     
+    if (x === null || y === null) return;
+
     document.getElementById('levelX').textContent = x.toFixed(1);
     document.getElementById('levelY').textContent = y.toFixed(1);
     
     const bubble = document.getElementById('levelBubble');
     if(bubble) {
-        // Map 45 degrees to 90px (radius)
         const bx = Math.max(-90, Math.min(90, y * 2));
         const by = Math.max(-90, Math.min(90, x * 2));
         bubble.style.transform = `translate(calc(-50% + ${bx}px), calc(-50% + ${by}px))`;
@@ -51,26 +52,25 @@ window.initSos = function() {
     screen.innerHTML = `
         <div style="padding: 20px; text-align: center; height: 100%; display: flex; flex-direction: column; background: #f00; color: #fff; font-family: 'VT323', monospace;">
             <div style="font-size: 24px; margin-bottom: 20px; text-shadow: 2px 2px #000;">SIGNAL SOS</div>
-            
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 15px;">
                 <button onclick="sosAction('911')" style="padding: 20px; font-size: 20px; background: #fff; color: #f00; border: none; border-radius: 8px; font-weight: bold;">🚨 CALL EMERGENCY</button>
                 <button onclick="sosAction('sms')" style="padding: 15px; font-size: 14px; background: #000; color: #fff; border: 2px solid #fff; border-radius: 8px;">📲 TEXT LOCATION</button>
                 <button onclick="sosAction('light')" style="padding: 15px; font-size: 14px; background: #f00; color: #fff; border: 2px solid #fff; border-radius: 8px;">🔆 MORSE FLASH</button>
             </div>
-            
             <div style="font-size: 8px; opacity: 0.8; margin-top: 20px;">CURRENT COORDINATES: <br> <span id="sosCoords">FETCHING GPS...</span></div>
         </div>
     `;
     
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
-            document.getElementById('sosCoords').textContent = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+            const el = document.getElementById('sosCoords');
+            if(el) el.textContent = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
         });
     }
 };
 
 window.sosAction = function(type) {
-    sounds.launch();
+    if(typeof sounds !== 'undefined') sounds.launch();
     if(type === '911') window.location.href = "tel:911";
     if(type === 'sms') {
         const coords = document.getElementById('sosCoords').textContent;
@@ -81,77 +81,183 @@ window.sosAction = function(type) {
         let i = 0;
         const flash = setInterval(() => {
             if(i >= morse.length) { clearInterval(flash); return; }
-            toggleFlashlight();
+            if(typeof toggleFlashlight === 'function') toggleFlashlight();
             i++;
         }, 300);
     }
 };
 
-// ========== UNIT CONVERTER ==========
-window.initUnit = function() {
-    const screen = document.getElementById('unitScreen');
-    if(!screen) return;
-    screen.innerHTML = `
-        <div style="padding: 15px; text-align: center; background: #9bbc0f; color: #0f380f; height: 100%; font-family: 'VT323', monospace;">
-            <div style="font-size: 14px; border-bottom: 2px solid #0f380f; margin-bottom: 15px;">UNIT CONVERTER</div>
-            <input type="number" id="unitVal" placeholder="VALUE" style="width: 100%; margin-bottom: 5px;">
-            <div style="display: flex; gap: 2px; margin-bottom: 10px;">
-                <select id="unitFrom" style="flex: 1; font-size: 8px;">
-                    <option value="km">KM</option><option value="mi">MI</option><option value="kg">KG</option><option value="lb">LB</option>
-                </select>
-                <div style="padding-top: 5px;">⮕</div>
-                <select id="unitTo" style="flex: 1; font-size: 8px;">
-                    <option value="mi">MI</option><option value="km">KM</option><option value="lb">LB</option><option value="kg">KG</option>
-                </select>
-            </div>
-            <button onclick="convertUnit()" style="width: 100%; padding: 10px; margin-bottom: 10px;">CONVERT</button>
-            <div id="unitRes" style="font-size: 20px; font-weight: bold;">0.00</div>
-        </div>
-    `;
-};
+// ========== TO-DO LIST (RESTORED) ==========
+let todos = [];
+try { todos = JSON.parse(localStorage.getItem('gbTodos') || '[]'); } catch(e) { todos = []; }
 
-window.convertUnit = function() {
-    const val = parseFloat(document.getElementById('unitVal').value);
-    const from = document.getElementById('unitFrom').value;
-    const to = document.getElementById('unitTo').value;
-    let res = 0;
+window.renderTodos = function() {
+    const list = document.getElementById('todoList');
+    if(!list) return;
+    list.innerHTML = '';
     
-    if(from === to) res = val;
-    else if(from === 'km' && to === 'mi') res = val * 0.621371;
-    else if(from === 'mi' && to === 'km') res = val / 0.621371;
-    else if(from === 'kg' && to === 'lb') res = val * 2.20462;
-    else if(from === 'lb' && to === 'kg') res = val / 2.20462;
+    if(todos.length === 0) {
+        list.innerHTML = '<div style="text-align:center; font-size:8px; opacity:0.5; margin-top:10px;">NO TASKS</div>';
+        return;
+    }
     
-    document.getElementById('unitRes').textContent = res.toFixed(2);
-    sounds.launch();
+    todos.forEach((todo, i) => {
+        const item = document.createElement('div');
+        item.style.cssText = `display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid rgba(0,0,0,0.1); font-size:10px; opacity:${todo.done?0.5:1}; text-decoration:${todo.done?'line-through':'none'};`;
+        item.innerHTML = `
+            <span onclick="toggleTodo(${i})" style="cursor:pointer; flex:1;">${todo.text}</span>
+            <button onclick="deleteTodo(${i})" style="border:none; background:none; color:#f00; cursor:pointer;">✖</button>
+        `;
+        list.appendChild(item);
+    });
 };
 
-// ========== TIP CALCULATOR ==========
-window.initTip = function() {
-    const screen = document.getElementById('tipScreen');
+window.addTodo = function() {
+    const input = document.getElementById('todoInput');
+    if(!input || !input.value.trim()) return;
+    todos.push({ text: input.value.trim(), done: false });
+    input.value = '';
+    saveTodos();
+    renderTodos();
+    if(typeof sounds !== 'undefined') sounds.coin();
+};
+
+window.toggleTodo = function(i) {
+    if(todos[i]) {
+        todos[i].done = !todos[i].done;
+        saveTodos();
+        renderTodos();
+        if(typeof sounds !== 'undefined') sounds.click();
+    }
+};
+
+window.deleteTodo = function(i) {
+    todos.splice(i, 1);
+    saveTodos();
+    renderTodos();
+};
+
+function saveTodos() { localStorage.setItem('gbTodos', JSON.stringify(todos)); }
+
+// ========== COMPASS (NEW) ==========
+window.initCompass = function() {
+    const screen = document.getElementById('compassScreen');
     if(!screen) return;
-    screen.innerHTML = `
-        <div style="padding: 15px; text-align: center; background: #9bbc0f; color: #0f380f; height: 100%; font-family: 'VT323', monospace;">
-            <div style="font-size: 14px; border-bottom: 2px solid #0f380f; margin-bottom: 15px;">TIP CALCULATOR</div>
-            <input type="number" id="tipBill" placeholder="BILL TOTAL ($)" style="width: 100%; margin-bottom: 8px;">
-            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                <button onclick="calcTip(15)" style="flex: 1;">15%</button>
-                <button onclick="calcTip(20)" style="flex: 1;">20%</button>
-                <button onclick="calcTip(25)" style="flex: 1;">25%</button>
-            </div>
-            <div id="tipOutput" style="text-align: left; font-size: 10px; background: rgba(0,0,0,0.05); padding: 10px;">
-                TIP: <span id="tipAmt">$0.00</span><br>
-                TOTAL: <span id="tipTotal">$0.00</span>
-            </div>
-        </div>
-    `;
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        screen.innerHTML += `<button onclick="requestCompassPerm()" style="position:absolute; bottom:10px; left:10px; z-index:100; font-size:8px;">CALIBRATE/PERM</button>`;
+    }
+    window.addEventListener('deviceorientation', handleCompass);
 };
 
-window.calcTip = function(pct) {
-    const bill = parseFloat(document.getElementById('tipBill').value) || 0;
-    const tip = bill * (pct / 100);
-    const total = bill + tip;
-    document.getElementById('tipAmt').textContent = '$' + tip.toFixed(2);
-    document.getElementById('tipTotal').textContent = '$' + total.toFixed(2);
-    sounds.launch();
+window.requestCompassPerm = function() {
+    DeviceOrientationEvent.requestPermission()
+        .then(response => {
+            if (response === 'granted') {
+                window.addEventListener('deviceorientation', handleCompass);
+                alert("COMPASS CALIBRATED");
+            }
+        })
+        .catch(console.error);
 };
+
+function handleCompass(e) {
+    if (currentScreen !== 'compass') return;
+    let heading = e.webkitCompassHeading || Math.abs(e.alpha - 360);
+    if (!heading) return;
+
+    const needle = document.getElementById('compassNeedle');
+    const degText = document.getElementById('compassDeg');
+    
+    if(needle) needle.style.transform = `translateX(-50%) rotate(${heading}deg)`;
+    if(degText) {
+        let dir = '';
+        if (heading >= 337.5 || heading < 22.5) dir = 'NORTH';
+        else if (heading >= 22.5 && heading < 67.5) dir = 'NE';
+        else if (heading >= 67.5 && heading < 112.5) dir = 'EAST';
+        else if (heading >= 112.5 && heading < 157.5) dir = 'SE';
+        else if (heading >= 157.5 && heading < 202.5) dir = 'SOUTH';
+        else if (heading >= 202.5 && heading < 247.5) dir = 'SW';
+        else if (heading >= 247.5 && heading < 292.5) dir = 'WEST';
+        else if (heading >= 292.5 && heading < 337.5) dir = 'NW';
+        degText.textContent = `${Math.round(heading)}° ${dir}`;
+    }
+}
+
+// ========== SCANNER (NEW) ==========
+let scanStream = null;
+window.initScan = function() {
+    if(scanStream) {
+        scanStream.getTracks().forEach(track => track.stop());
+        scanStream = null;
+    }
+    const res = document.getElementById('scanResult');
+    if(res) res.textContent = "READY TO SCAN";
+};
+
+window.startScanning = async function() {
+    const video = document.getElementById('scanVideo');
+    const result = document.getElementById('scanResult');
+    if(!video) return;
+    
+    try {
+        scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = scanStream;
+        video.play();
+        result.textContent = "SCANNING...";
+        
+        if ('BarcodeDetector' in window) {
+            const detector = new BarcodeDetector();
+            const scanInterval = setInterval(async () => {
+                if(currentScreen !== 'scan') { clearInterval(scanInterval); return; }
+                try {
+                    const codes = await detector.detect(video);
+                    if (codes.length > 0) {
+                        result.textContent = `FOUND: ${codes[0].rawValue}`;
+                        if(typeof sounds !== 'undefined') sounds.coin();
+                    }
+                } catch(e) {}
+            }, 500);
+        } else {
+             result.textContent = "CAMERA ACTIVE (Detection API Missing)";
+        }
+    } catch(err) {
+        result.textContent = "CAMERA ERROR: " + err.message;
+    }
+};
+
+const originalGoBack = window.goBack;
+window.goBack = function() {
+    if(scanStream) {
+        scanStream.getTracks().forEach(track => track.stop());
+        scanStream = null;
+    }
+    if(originalGoBack) originalGoBack();
+};
+
+// ========== QR GENERATOR (NEW) ==========
+window.initQr = function() {
+    const screen = document.getElementById('qrScreen');
+    if(!screen) return;
+};
+
+window.generateQR = function() {
+    const input = document.getElementById('qrInput').value;
+    const output = document.getElementById('qrPlaceholder');
+    if(!input || !output) return;
+    
+    output.innerHTML = '';
+    
+    if(typeof QRCode !== 'undefined') {
+        new QRCode(output, { text: input, width: 128, height: 128 });
+    } else {
+        const img = document.createElement('img');
+        img.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(input)}`;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        output.appendChild(img);
+    }
+    if(typeof sounds !== 'undefined') sounds.coin();
+};
+
+// Map 'barcode' app to scanner if app.js uses 'barcode' ID
+window.initBarcode = window.initScan;

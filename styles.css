@@ -684,10 +684,17 @@ select:focus {
 
     .controls-physical {
       flex: 1; /* Grow to fill bottom space */
-      padding: 10px 20px 40px;
+      padding: 10px 10px 40px;
       margin-top: 0;
       display: flex;
       align-items: center; /* Center controls vertically in their expanded space */
+      justify-content: space-between;
+      gap: 5px;
+    }
+
+    .system-controls {
+      margin-bottom: 10px; /* Reduced to avoid dpad-right overlap */
+      gap: 8px;
     }
 
     .dpad {

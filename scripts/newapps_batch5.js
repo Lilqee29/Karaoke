@@ -131,23 +131,71 @@ window.getKanyeQuote = async function() {
 };
 
 // ========== BORED API ==========
-window.initBored = function() {};
-window.getBoredActivity = async function() {
+// ========== BORED APP (LOCAL) ==========
+const boredActivities = [
+    { activity: "Learn how to use a french press", type: "recreational" },
+    { activity: "Learn the periodic table", type: "education" },
+    { activity: "Start a blog", type: "recreational" },
+    { activity: "Conquer your fear of something", type: "recreational" },
+    { activity: "Learn to juggle", type: "recreational" },
+    { activity: "Go to a concert with local groups", type: "social" },
+    { activity: "Learn to play a new instrument", type: "music" },
+    { activity: "Study a foreign language", type: "education" },
+    { activity: "Create a compost pile", type: "diy" },
+    { activity: "Go for a run", type: "recreational" },
+    { activity: "Pot some plants", type: "recreational" },
+    { activity: "Learn to paper mache", type: "diy" },
+    { activity: "Go to a local landmark", type: "recreational" },
+    { activity: "Start a collection", type: "recreational" },
+    { activity: "Go stargazing", type: "relaxation" },
+    { activity: "Write a short story", type: "creative" },
+    { activity: "Learn a magic trick", type: "recreational" },
+    { activity: "Bake a pie", type: "cooking" },
+    { activity: "Organize your room", type: "busywork" },
+    { activity: "Take a nap", type: "relaxation" },
+    { activity: "Read a random Wikipedia article", type: "education" }
+];
+
+window.initBored = function() {
+    let screen = document.getElementById('boredScreen');
+    if (!screen) {
+        screen = document.createElement('div');
+        screen.id = 'boredScreen';
+        screen.className = 'game-screen';
+        
+        // Fix: Use querySelector for class, or append to specialized container if exists
+        const container = document.querySelector('.screen-content');
+        if(container) container.appendChild(screen);
+        else console.error("Screen content container not found!");
+    }
+    
+    screen.innerHTML = `
+        <div style="padding: 20px; text-align: center; display: flex; flex-direction: column; height: 100%; justify-content: center;">
+            <div style="font-size: 14px; margin-bottom: 20px; font-weight: bold;">IDEAS GENERATOR</div>
+            <div id="boredActivity" style="font-size: 12px; margin-bottom: 10px; min-height: 40px; display: flex; align-items: center; justify-content: center;">PUSH BUTTON FOR IDEA</div>
+            <div id="boredType" style="font-size: 8px; opacity: 0.7; margin-bottom: 20px;"></div>
+            <button onclick="getBoredActivity()" style="padding: 15px; font-size: 16px; border: 2px solid #0f380f; background: #9bbc0f; color: #0f380f; font-family: 'VT323', monospace; cursor: pointer;">💡 GENERATE</button>
+        </div>
+    `;
+};
+
+window.getBoredActivity = function() {
     const activity = document.getElementById('boredActivity');
     const type = document.getElementById('boredType');
+    
+    if(!activity || !type) return;
+
     activity.textContent = 'THINKING...';
     type.textContent = '';
-    sounds.click();
-    try {
-        const res = await fetch('https://www.boredapi.com/api/activity');
-        const data = await res.json();
-        activity.textContent = data.activity.toUpperCase();
-        type.textContent = `TYPE: ${data.type.toUpperCase()} | PARTICIPANTS: ${data.participants}`;
-        sounds.coin();
-    } catch(e) { 
-        activity.textContent = 'TRY COUNTING TO INFINITY';
-        type.textContent = 'TYPE: IMPOSSIBLE';
-    }
+    
+    if(typeof sounds !== 'undefined') sounds.click();
+    
+    setTimeout(() => {
+        const item = boredActivities[Math.floor(Math.random() * boredActivities.length)];
+        activity.textContent = item.activity.toUpperCase();
+        type.textContent = `TYPE: ${item.type.toUpperCase()}`;
+        if(typeof sounds !== 'undefined') sounds.coin();
+    }, 300);
 };
 
 // ========== ZEN QUOTES ==========
