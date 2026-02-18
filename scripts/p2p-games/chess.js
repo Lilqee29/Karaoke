@@ -479,3 +479,14 @@ window.initChess = function(resume = false) {
 
 // ── Boot: show mode select with correct state ─────────────────────────────
 renderChessModeSelect();
+
+// ── startChessMode: called by HTML buttons ────────────────────────────────
+// e.g. startChessMode('ai','easy') / startChessMode('p2p','normal')
+window.startChessMode = function(mode, difficulty) {
+    if (typeof P2PGameEngine === 'undefined') return;
+    P2PGameEngine.isSolo     = (mode !== 'p2p');
+    P2PGameEngine.difficulty = difficulty || 'normal';
+    window._chessState.mode       = mode;
+    window._chessState.difficulty = difficulty || 'normal';
+    window.startChess();
+};

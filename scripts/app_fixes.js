@@ -170,10 +170,15 @@ function showNewsArticle() {
     const article = newsArticles[newsIndex];
     const display = document.getElementById('newsDisplay');
     
-    const summary = article.summary || article.title;
-    display.innerHTML = `<div style="font-weight: bold; margin-bottom: 5px;">${article.title.toUpperCase()}</div>` +
-                       `<div style="font-size: 6px; margin-bottom: 5px;">${summary.toUpperCase().substring(0, 200)}...</div>` +
-                       `<div style="font-size: 5px; color: var(--gb-text-light);">SOURCE: ${article.news_site ? article.news_site.toUpperCase() : 'UNKNOWN'}</div>`;
+    const summary = article.summary || article.title || '';
+    const date = article.published_at ? new Date(article.published_at).toLocaleDateString() : '';
+    const fullSummary = summary.length > 500 ? summary.substring(0, 500) + '...' : summary;
+    
+    display.innerHTML = 
+        `<div style="font-weight:bold; font-size:7px; margin-bottom:6px; border-bottom:1px solid rgba(15,56,15,0.3); padding-bottom:4px;">${article.title.toUpperCase()}</div>` +
+        (date ? `<div style="font-size:5px; opacity:0.6; margin-bottom:5px;">📅 ${date.toUpperCase()} · ${article.news_site ? article.news_site.toUpperCase() : ''}</div>` : '') +
+        `<div style="font-size:6px; line-height:1.5; margin-bottom:8px;">${fullSummary.toUpperCase()}</div>` +
+        (article.url ? `<div style="font-size:5px; margin-top:4px;"><a href="${article.url}" target="_blank" style="color:var(--gb-text); text-decoration:underline;">🔗 READ FULL ARTICLE</a></div>` : '');
     sounds.coin();
 }
 

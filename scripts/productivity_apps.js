@@ -283,7 +283,7 @@ function renderFlashcard() {
                 CARD ${currentCard + 1} / ${flashcards.length}
             </div>
             
-            <div onclick="flipCard()" style="
+            <div onclick="flipFlashcard()" style="
                 flex: 1;
                 display: flex;
                 align-items: center;
@@ -303,7 +303,7 @@ function renderFlashcard() {
             
             <div style="display: flex; gap: 5px; margin-bottom: 10px;">
                 <button onclick="prevCard()" style="flex: 1;">← PREV</button>
-                <button onclick="flipCard()" style="flex: 1;">🔄 FLIP</button>
+                <button onclick="flipFlashcard()" style="flex: 1;">🔄 FLIP</button>
                 <button onclick="nextCard()" style="flex: 1;">NEXT →</button>
             </div>
             
@@ -312,7 +312,7 @@ function renderFlashcard() {
     `;
 }
 
-window.flipCard = function() {
+window.flipFlashcard = function() {
     showFront = !showFront;
     sounds.click();
     renderFlashcard();

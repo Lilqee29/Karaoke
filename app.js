@@ -104,7 +104,6 @@ const apps = [
     { id: 'term', name: 'ZSH', icon: '💻' },
     { id: 'morse', name: 'MORSE', icon: '📡' },
     { id: 'sfx', name: 'SFX', icon: '🔊' },
-    { id: 'metro', name: 'BEAT', icon: '⏱️' },
     { id: 'emulator', name: 'RETRO', icon: '💾' },
     
     // ── SPECIAL/UNIQUE ────────────────────────────────────────────────────
@@ -264,10 +263,13 @@ function updateMenuSelection() {
 
 function launchApp(appId) {
     sounds.launch();
+
+    // FIX: show the screen FIRST, then init — so the DOM is visible when
+    // init functions query elements and attach click handlers
     document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById(appId + 'Screen');
     if(screen) screen.classList.add('active');
-    
+
     currentScreen = appId;
     if(window.trackQuest) trackQuest('any', 1);
     
@@ -326,6 +328,8 @@ function goBack() {
         if (typeof timerInt !== 'undefined') clearInterval(timerInt);
         if (typeof stopInt !== 'undefined') clearInterval(stopInt);
         if (typeof stopCamera === 'function') stopCamera();
+        // Stop speed reader if running
+        if (typeof _speedInterval !== 'undefined' && _speedInterval) { clearInterval(_speedInterval); _speedInterval = null; }
         
         document.querySelectorAll('.game-screen').forEach(s => s.classList.remove('active'));
         document.getElementById('homeScreen').classList.add('active');

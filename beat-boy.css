@@ -1,0 +1,274 @@
+/* ================================================================
+   BEAT BOY v4.0 — Stylesheet
+   Drop this into your main CSS or @import it
+   ================================================================ */
+
+/* ── Grid Container ──────────────────────────────────────────── */
+
+.beat-boy-grid {
+  background: #030303;
+  border: 2px solid var(--gb-text);
+  border-radius: 4px;
+  padding: 6px 5px;
+  max-height: 310px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #0f0 #111;
+}
+
+.beat-boy-grid::-webkit-scrollbar       { width: 3px; }
+.beat-boy-grid::-webkit-scrollbar-thumb { background: #0f0; border-radius: 2px; }
+
+/* ── Track Row ───────────────────────────────────────────────── */
+
+.beat-boy-track {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.beat-boy-track-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 5px;
+  padding: 0 2px;
+  min-height: 14px;
+}
+
+/* ── Per-Track Volume ────────────────────────────────────────── */
+
+.track-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.track-vol-label {
+  font-size: 5px;
+  color: #0f0;
+  min-width: 16px;
+  text-align: right;
+}
+
+.track-vol-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 44px;
+  height: 3px;
+  background: #2a2a2a;
+  border-radius: 2px;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer;
+  outline: none;
+}
+
+.track-vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  background: #0f0;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.5);
+  cursor: pointer;
+}
+
+/* ── Step Grid ───────────────────────────────────────────────── */
+
+.beat-boy-steps {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 2px;
+}
+
+.beat-boy-step {
+  height: 15px;
+  background: #181818;
+  border: 1px solid #2e2e2e;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.07s, box-shadow 0.07s, border-color 0.07s;
+}
+
+/* Visual gap between beat groups of 4 */
+.beat-boy-step.beat-group-start {
+  margin-left: 3px;
+}
+
+.beat-boy-step:hover {
+  background: #2c2c2c;
+  border-color: #555;
+}
+
+/* Active (note programmed) */
+.beat-boy-step.active {
+  background: #00e600;
+  border-color: rgba(255,255,255,0.6);
+  box-shadow: 0 0 6px rgba(0,230,0,0.7);
+}
+
+/* Playhead highlight */
+.beat-boy-step.highlight {
+  border-color: #fff !important;
+}
+
+.beat-boy-step.highlight:not(.active) {
+  background: #333;
+}
+
+/* Playhead + active = bright white flash */
+.beat-boy-step.highlight.active {
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255,255,255,0.95), 0 0 4px rgba(0,255,0,0.6);
+}
+
+/* ── Waveform Visualizer ─────────────────────────────────────── */
+
+#beatVizCanvas {
+  display: block;
+  width: 100%;
+  height: 28px;
+  background: #000;
+  border-radius: 3px;
+  border: 1px solid #1a1a1a;
+  margin-top: 7px;
+  image-rendering: pixelated;
+}
+
+/* ── Loading Status ──────────────────────────────────────────── */
+
+#bbLoadStatus {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 6px;
+  color: #0f0;
+  background: rgba(0,255,0,0.07);
+  border: 1px solid rgba(0,255,0,0.3);
+  border-radius: 3px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  animation: bbStatusPulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes bbStatusPulse {
+  from { opacity: 0.6; }
+  to   { opacity: 1;   }
+}
+
+/* ── Header / Transport ──────────────────────────────────────── */
+
+#remixBpmDisplay {
+  font-family: "VT323", monospace !important;
+  font-size: 13px !important;
+  background: #000;
+  color: #0f0;
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid #0f0;
+  letter-spacing: 1px;
+}
+
+#remixStepIndicator {
+  font-family: "VT323", monospace !important;
+  font-size: 11px !important;
+  background: #111;
+  color: #ff0;
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid #ff0;
+  min-width: 54px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* ── Preset Buttons ──────────────────────────────────────────── */
+
+.bb-preset-btn {
+  background: #0a0a0a !important;
+  color: #0f0 !important;
+  border: 1px solid #0a500a !important;
+  font-size: 5px !important;
+  padding: 4px 6px !important;
+  border-radius: 3px !important;
+  cursor: pointer;
+  transition: all 0.1s;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.bb-preset-btn:hover {
+  background: rgba(0,255,0,0.15) !important;
+  border-color: #0f0 !important;
+}
+
+.bb-preset-btn.active {
+  background: #0f0 !important;
+  color: #000 !important;
+  box-shadow: 0 0 8px rgba(0,255,0,0.6) !important;
+}
+
+/* ── Kit Buttons ─────────────────────────────────────────────── */
+
+.bb-kit-btn {
+  background: #0a0a0a !important;
+  color: #00ccff !important;
+  border: 1px solid #004466 !important;
+  font-size: 5px !important;
+  padding: 3px 5px !important;
+  border-radius: 3px !important;
+  cursor: pointer;
+  transition: all 0.1s;
+  white-space: nowrap;
+}
+
+.bb-kit-btn:hover {
+  background: rgba(0,200,255,0.12) !important;
+  border-color: #00ccff !important;
+}
+
+.bb-kit-btn.active {
+  background: #00ccff !important;
+  color: #000 !important;
+  box-shadow: 0 0 8px rgba(0,200,255,0.5) !important;
+}
+
+/* ── Master Volume ───────────────────────────────────────────── */
+
+#remixMasterVol {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #1e1e1e;
+  border-radius: 2px;
+  height: 4px !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer;
+}
+
+#remixMasterVol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  background: var(--gb-text);
+  border: 2px solid #0f0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ── Section Labels ──────────────────────────────────────────── */
+
+.bb-section-label {
+  font-size: 5px;
+  color: #555;
+  align-self: center;
+  flex-shrink: 0;
+}

@@ -17,7 +17,7 @@ window.initStopwatch = function() {
     if (!screen) return;
 
     // Clear any running interval from previous launch
-    if (_swInterval) { clearInterval(_swInterval); _swInterval = null; }
+    if (_swInterval) { intervalManager.clear(_swInterval); _swInterval = null; }
     _swTime = 0;
     _swLaps = [];
 
@@ -39,12 +39,12 @@ window.initStopwatch = function() {
 window.swToggle = function() {
     const btn = document.getElementById('swBtn');
     if (_swInterval) {
-        clearInterval(_swInterval);
+        intervalManager.clear(_swInterval);
         _swInterval = null;
         if (btn) btn.textContent = 'START';
     } else {
         const start = Date.now() - _swTime;
-        _swInterval = setInterval(() => {
+        _swInterval = intervalManager.set(() => {
             _swTime = Date.now() - start;
             _swUpdate();
         }, 10);
@@ -54,7 +54,7 @@ window.swToggle = function() {
 };
 
 window.swReset = function() {
-    if (_swInterval) { clearInterval(_swInterval); _swInterval = null; }
+    if (_swInterval) { intervalManager.clear(_swInterval); _swInterval = null; }
     _swTime = 0;
     _swLaps = [];
     _swUpdate();
@@ -128,14 +128,14 @@ window.initPomo = function() {
 window.togglePomo = function() {
     const btn = document.getElementById('pomoBtn');
     if (_pomoInt) {
-        clearInterval(_pomoInt);
+        intervalManager.clear(_pomoInt);
         _pomoInt = null;
         if (btn) btn.textContent = 'RESUME';
     } else {
-        _pomoInt = setInterval(() => {
+        _pomoInt = intervalManager.set(() => {
             _pomoTime--;
             if (_pomoTime <= 0) {
-                clearInterval(_pomoInt);
+                intervalManager.clear(_pomoInt);
                 _pomoInt = null;
                 _isBreak = !_isBreak;
                 _pomoTime = _isBreak ? 5 * 60 : 25 * 60;
@@ -298,30 +298,31 @@ window.initSpeed = function() {
     if (!screen) return;
 
     // Stop any existing reader
-    if (_speedInterval) { clearInterval(_speedInterval); _speedInterval = null; }
+    if (_speedInterval) { intervalManager.clear(_speedInterval); _speedInterval = null; }
 
-    screen.style.cssText = 'display: flex; flex-direction: column; height: 100%; padding: 10px; box-sizing: border-box;';
     screen.innerHTML = `
-        <div style="font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #333; text-align: center;">
-            SPEED READER
-        </div>
-        <textarea id="speedInput" placeholder="PASTE TEXT HERE..."
-            style="width: 100%; height: 60px; margin-bottom: 10px; font-size: 10px;
-                   padding: 5px; flex-shrink: 0;"></textarea>
-        <div id="speedDisplay"
-            style="flex: 1; background: #000; color: #fff; display: flex; align-items: center;
-                   justify-content: center; font-size: 24px; font-weight: bold;
-                   margin-bottom: 10px; border: 2px solid #333; min-height: 100px;">
-            READY
-        </div>
-        <div id="speedProgress" style="font-size: 10px; text-align: center; margin-bottom: 6px;"></div>
-        <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
-            <label style="font-size: 10px;">WPM:</label>
-            <input type="number" id="speedWpm" value="300"
-                style="width: 50px; font-size: 12px; padding: 2px; text-align: center;">
-            <button onclick="toggleSpeed()" id="speedBtn" style="padding: 5px 15px; font-size: 12px;">
-                START
-            </button>
+        <div style="display: flex; flex-direction: column; height: 100%; padding: 10px; box-sizing: border-box;">
+            <div style="font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #333; text-align: center;">
+                SPEED READER
+            </div>
+            <textarea id="speedInput" placeholder="PASTE TEXT HERE..."
+                style="width: 100%; height: 60px; margin-bottom: 10px; font-size: 10px;
+                       padding: 5px; flex-shrink: 0;"></textarea>
+            <div id="speedDisplay"
+                style="flex: 1; background: #000; color: #fff; display: flex; align-items: center;
+                       justify-content: center; font-size: 24px; font-weight: bold;
+                       margin-bottom: 10px; border: 2px solid #333; min-height: 100px;">
+                READY
+            </div>
+            <div id="speedProgress" style="font-size: 10px; text-align: center; margin-bottom: 6px;"></div>
+            <div style="display: flex; gap: 10px; justify-content: center; align-items: center;">
+                <label style="font-size: 10px;">WPM:</label>
+                <input type="number" id="speedWpm" value="300"
+                    style="width: 50px; font-size: 12px; padding: 2px; text-align: center;">
+                <button onclick="toggleSpeed()" id="speedBtn" style="padding: 5px 15px; font-size: 12px;">
+                    START
+                </button>
+            </div>
         </div>
     `;
 };
@@ -332,7 +333,7 @@ window.toggleSpeed = function() {
     const prog = document.getElementById('speedProgress');
 
     if (_speedInterval) {
-        clearInterval(_speedInterval);
+        intervalManager.clear(_speedInterval);
         _speedInterval = null;
         if (btn) btn.textContent = 'START';
         return;
@@ -349,9 +350,9 @@ window.toggleSpeed = function() {
     if (btn) btn.textContent = 'STOP';
     sounds.click();
 
-    _speedInterval = setInterval(() => {
+    _speedInterval = intervalManager.set(() => {
         if (_speedIdx >= _speedWords.length) {
-            clearInterval(_speedInterval);
+            intervalManager.clear(_speedInterval);
             _speedInterval = null;
             if (btn)  btn.textContent  = 'START';
             if (disp) disp.textContent = 'DONE';

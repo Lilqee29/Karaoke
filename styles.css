@@ -484,7 +484,7 @@ select:focus {
 
 .system-controls {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 10px;
   margin-bottom: 0;
@@ -847,7 +847,10 @@ select:focus {
 
     /* SELECT / START */
     .system-controls {
-      gap: 12px;
+      display: flex;
+      flex-direction: row;
+      margin-bottom: 90px;
+      gap: 10px;
     }
 
     .select-btn,

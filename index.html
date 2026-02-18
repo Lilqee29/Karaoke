@@ -14,6 +14,9 @@
     <meta name="apple-mobile-web-app-title" content="GameBoy OS">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="stylesheet" href="beat-boy.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
     
     <link rel="stylesheet" href="styles.css">
     <script src="scripts/system.js"></script> <!-- Ensure system specific vars load early -->
@@ -300,39 +303,83 @@
                         </div>
                     </div>
 
-                    <!-- BEAT BOY (Premium Sequencer) -->
+                 
                     <div id="remixScreen" class="game-screen">
-                        <div style="padding: 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <div style="font-size: 10px; color: var(--gb-text); font-weight: bold;">BEAT BOY™</div>
-                                <div style="display: flex; gap: 5px;">
-                                    <div id="remixBpmDisplay" style="font-size: 6px; background: #000; color: #0f0; padding: 2px 4px; border-radius: 2px;">120 BPM</div>
-                                    <div id="remixStepIndicator" style="font-size: 6px; background: #333; color: #fff; padding: 2px 4px; border-radius: 2px;">STEP: 1</div>
-                                </div>
-                            </div>
+                    <div style="padding: 8px 7px;">
 
-                            <!-- Global Toolbar -->
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 10px;">
-                                <button onclick="toggleRemixPlay()" id="remixPlayBtn" style="background: #0f0; color: #000;">▶ PLAY</button>
-                                <button onclick="clearRemix()" style="background: #f00;">✖ CLEAR</button>
-                                <div style="display: flex; background: rgba(0,0,0,0.2); border-radius: 3px; overflow: hidden;">
-                                    <button onclick="changeBPM(-10)" style="flex: 1; padding: 0;">-</button>
-                                    <button onclick="changeBPM(10)" style="flex: 1; padding: 0;">+</button>
-                                </div>
-                            </div>
-
-                            <div id="remixGrid" class="beat-boy-grid">
-                                <!-- Tracks will be injected here by JS: Track Name + 16 Step Grid -->
-                            </div>
-
-                            <div style="margin-top: 10px; padding: 5px; background: rgba(0,0,0,0.05); border-radius: 4px;">
-                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                                    <span style="font-size: 5px;">MASTER VOL:</span>
-                                    <span id="remixVolLabel" style="font-size: 5px;">80%</span>
-                                </div>
-                                <input type="range" id="remixMasterVol" min="0" max="100" value="80" oninput="updateRemixVol(this.value)" style="width: 100%; height: 4px;">
-                            </div>
+                        <!-- ── Header ─────────────────────────────────────────────── -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">
+                        <div style="font-size:9px; color:var(--gb-text); font-weight:bold; letter-spacing:1px;">
+                            🎛 BEAT BOY™
                         </div>
+                        <div style="display:flex; gap:4px; align-items:center;">
+                            <div id="remixBpmDisplay">120 BPM</div>
+                            <div id="remixStepIndicator">STEP 1</div>
+                        </div>
+                        </div>
+
+                        <!-- ── Loading Status ─────────────────────────────────────── -->
+                        <div id="bbLoadStatus" style="display:none;">⟳ Loading…</div>
+
+                        <!-- ── Transport ──────────────────────────────────────────── -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; margin-bottom:6px;">
+                        <button onclick="toggleRemixPlay()" id="remixPlayBtn"
+                            style="background:#0f0; color:#000; font-size:6px; padding:6px 4px;">
+                            ▶ PLAY
+                        </button>
+                        <button onclick="clearRemix()"
+                            style="background:#1a0000; color:#f55; border:1px solid #600; font-size:6px; padding:6px 4px;">
+                            ✖ CLEAR
+                        </button>
+                        <div style="display:flex; background:#0a0a0a; border:1px solid #222; border-radius:3px; overflow:hidden;">
+                            <button onclick="changeBPM(-5)"
+                            style="flex:1; padding:0; background:transparent; color:#ff0; font-size:11px; border:none; border-right:1px solid #222;">
+                            −
+                            </button>
+                            <button onclick="changeBPM(5)"
+                            style="flex:1; padding:0; background:transparent; color:#0f0; font-size:11px; border:none;">
+                            +
+                            </button>
+                        </div>
+                        </div>
+
+                        <!-- ── Preset Patterns ────────────────────────────────────── -->
+                        <div style="display:flex; align-items:center; gap:4px; margin-bottom:5px; flex-wrap:wrap;">
+                        <span class="bb-section-label">BEAT:</span>
+                        <button class="bb-preset-btn" data-preset="TRAP"     onclick="loadPreset('TRAP')">🔥 TRAP</button>
+                        <button class="bb-preset-btn" data-preset="HOUSE"    onclick="loadPreset('HOUSE')">🏠 HOUSE</button>
+                        <button class="bb-preset-btn" data-preset="BOOM BAP" onclick="loadPreset('BOOM BAP')">💥 BOOM BAP</button>
+                        <button class="bb-preset-btn" data-preset="TECHNO"   onclick="loadPreset('TECHNO')">⚡ TECHNO</button>
+                        </div>
+
+                        <!-- ── Drum Kit Selector ───────────────────────────────────── -->
+                        <div style="display:flex; align-items:center; gap:4px; margin-bottom:7px; flex-wrap:wrap;">
+                        <span class="bb-section-label">KIT:</span>
+                        <button class="bb-kit-btn active" data-kit="CR78"  onclick="switchKit('CR78')">CR-78</button>
+                        <button class="bb-kit-btn"        data-kit="LINN"  onclick="switchKit('LINN')">LINN</button>
+                        <button class="bb-kit-btn"        data-kit="R8"    onclick="switchKit('R8')">R-8</button>
+                        <button class="bb-kit-btn"        data-kit="Stark" onclick="switchKit('Stark')">STARK</button>
+                        </div>
+
+                        <!-- ── Step Sequencer Grid (injected by beat-boy.js) ─────── -->
+                        <div id="remixGrid" class="beat-boy-grid"></div>
+
+                        <!-- ── Waveform Visualizer ────────────────────────────────── -->
+                        <canvas id="beatVizCanvas" width="320" height="28"></canvas>
+
+                        <!-- ── Master Volume ──────────────────────────────────────── -->
+                        <div style="margin-top:8px; padding:5px 4px; background:rgba(0,0,0,0.15); border-radius:4px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                            <span style="font-size:5px; color:#555;">MASTER VOL</span>
+                            <span id="remixVolLabel" style="font-size:5px; color:#0f0;">80%</span>
+                        </div>
+                        <input type="range" id="remixMasterVol"
+                            min="0" max="100" value="80"
+                            oninput="updateRemixVol(this.value)"
+                            style="width:100%;">
+                        </div>
+
+                    </div>
                     </div>
 
                     <!-- QUESTS -->
@@ -583,8 +630,17 @@
                     <!-- NEWS -->
                     <div id="newsScreen" class="game-screen">
                         <div style="padding: 10px;">
-                            <div style="font-size: 8px; text-align: center; border-bottom: 2px solid var(--gb-text); padding-bottom: 5px; margin-bottom: 10px;">TECH NEWS WIRE</div>
-                            <div id="newsTicker" style="background: #000; color: #0f0; padding: 5px; font-family: monospace; font-size: 8px; overflow: hidden; white-space: nowrap; margin-bottom: 15px;">
+                            <div id="newsCategoryBar" style="display: flex; gap: 5px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; scrollbar-width: none;">
+                                <style>#newsCategoryBar::-webkit-scrollbar { display: none; }</style>
+                                <button onclick="setNewsCategory('general')" style="font-size: 5px; padding: 4px; white-space: nowrap;">ALL</button>
+                                <button onclick="setNewsCategory('technology')" style="font-size: 5px; padding: 4px; white-space: nowrap;">TECH</button>
+                                <button onclick="setNewsCategory('business')" style="font-size: 5px; padding: 4px; white-space: nowrap;">BIZ</button>
+                                <button onclick="setNewsCategory('entertainment')" style="font-size: 5px; padding: 4px; white-space: nowrap;">ENT</button>
+                                <button onclick="setNewsCategory('sports')" style="font-size: 5px; padding: 4px; white-space: nowrap;">SPORTS</button>
+                                <button onclick="setNewsCategory('science')" style="font-size: 5px; padding: 4px; white-space: nowrap;">SCI</button>
+                                <button onclick="setNewsCategory('health')" style="font-size: 5px; padding: 4px; white-space: nowrap;">HEALTH</button>
+                            </div>
+                            <div id="newsTicker" style="background: #000; color: #0f0; padding: 5px; font-family: monospace; font-size: 8px; overflow: hidden; white-space: nowrap; margin-bottom: 10px;">
                                 <div id="newsText" style="display: inline-block; animation: ticker 20s linear infinite;">LATEST: GAMEBOY OS v4.0 RELEASED... ALL APPS UPDATED... NEW PWA FEATURES ACTIVE...</div>
                             </div>
                             <div id="newsList" style="display: flex; flex-direction: column; gap: 10px; height: 180px; overflow-y: auto;">
@@ -1020,7 +1076,7 @@
                     </div>
 
                     <!-- MEMORY -->
-                    <div id="memoryScreen" class="game-screen">
+                   <div id="memoryScreen" class="game-screen">
                         <div style="padding: 10px; text-align: center;">
                             <div style="font-size: 10px; margin-bottom: 5px;">MEMORY</div>
                             <div style="font-size: 8px; margin-bottom: 5px;">PAIRS: <span id="memoryScore">0</span></div>
@@ -2085,6 +2141,7 @@ Type 'help' for commands.
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="scripts/games.js"></script>
+    <script src="beat-boy.js"></script>
     <script src="scripts/newapps.js"></script>
     <script src="scripts/newapps_batch5.js"></script>
     <script src="scripts/newapps_utility.js"></script>

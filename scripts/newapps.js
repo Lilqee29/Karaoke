@@ -16,8 +16,8 @@ let vinylInterval = null;
 function initMusic() {
     const audio = document.getElementById('musicAudio');
     if(audio) audio.onended = () => { if (isRepeat) audio.play(); else nextMusic(); };
-    startVinyl(); // Initialize the visual state
-    stopVinyl(); // But don't rotate yet
+    if(document.getElementById('vinylContainer')) startVinyl(); // Initialize the visual state
+    if(document.getElementById('vinylContainer')) stopVinyl();  // But don't rotate yet
     
     // Add file input listener if not exists
     const fileInput = document.getElementById('musicFileInput');
@@ -230,91 +230,43 @@ window.initFlashlight = function() {
     // Handled by the HTML button already, but good for launcher compatibility
 };
 
-window.openNewsDetail = function(index) {
-    const item = newsItems[index];
-    if(!item) return;
-    newsView = 'detail';
-    
-    // Hide list and category buttons
-    document.getElementById('newsList').style.display = 'none';
-    const catBar = document.getElementById('newsCategoryBar');
-    if(catBar) catBar.style.display = 'none';
-    
-    let detail = document.getElementById('newsDetail');
-    if(!detail) {
-        detail = document.createElement('div');
-        detail.id = 'newsDetail';
-        detail.style.cssText = "display:none; position:absolute; top:35px; left:0; width:100%; height:calc(100% - 35px); background:#9bbc0f; color:#0f380f; padding:10px; overflow-y:auto; font-family: 'Courier New', monospace; z-index:9999;";
-        document.getElementById('newsScreen').appendChild(detail);
-    }
-    
-    detail.style.display = 'block';
-    detail.innerHTML = `
-        <h2 style="font-size:10px; border-bottom:2px solid #0f380f; padding-bottom:5px; margin-bottom: 5px; line-height: 1.2;">${item.title.toUpperCase()}</h2>
-        <div style="font-size:7px; opacity:0.7; margin-bottom: 10px;">${new Date(item.published_at).toLocaleString().toUpperCase()}</div>
-        <p style="font-size:9px; line-height:1.4;">${item.summary ? item.summary.toUpperCase() : 'NO SUMMARY AVAILABLE'}</p>
-        <button onclick="closeNewsDetail()" style="width: 100%; margin-top: 15px; padding: 10px;">BACK</button>
-    `;
-};
-
-window.closeNewsDetail = function() {
-    newsView = 'list';
-    document.getElementById('newsList').style.display = 'block';
-    const catBar = document.getElementById('newsCategoryBar');
-    if(catBar) catBar.style.display = 'flex';
-    document.getElementById('newsDetail').style.display = 'none';
-    sounds.back();
-};
+// News App Logic moved and consolidated below.
 
 window.setNewsCategory = function(cat) {
     sounds.click();
     window.initNews(cat);
 };
 
-// ========== TECH NEWS (HACKER NEWS API) ==========
-window.initNews = async function(category = 'top') {
+// ========== GENERAL NEWS (SAURAV NEWS API) ==========
+window.initNews = async function(category = 'general') {
     const list = document.getElementById('newsList');
     const screen = document.getElementById('newsScreen');
     if(!list || !screen) return;
 
-    // Category Bar (Top, Best, New)
-    let catBar = document.getElementById('newsCategoryBar');
-    if(!catBar) {
-        catBar = document.createElement('div');
-        catBar.id = 'newsCategoryBar';
-        catBar.style.cssText = "display: flex; gap: 5px; padding: 5px; border-bottom: 2px solid #0f380f; justify-content: center; background: rgba(0,0,0,0.05);";
-        screen.prepend(catBar);
-    }
-
-    const categories = [
-        { id: 'top', name: '🔥 TOP' },
-        { id: 'best', name: '🏆 BEST' },
-        { id: 'new', name: '✨ NEW' }
-    ];
-
-    catBar.innerHTML = categories.map(c => `
-        <button onclick="initNews('${c.id}')" style="background: ${category === c.id ? '#0f380f' : 'transparent'}; color: ${category === c.id ? '#9bbc0f' : '#0f380f'}; padding: 4px 8px; border: 1px solid #0f380f; font-family: 'VT323', monospace;">
-            ${c.name}
-        </button>
-    `).join('');
-
-    list.innerHTML = '<div style="text-align:center; padding: 40px; font-family: monospace;">FETCHING HACKER NEWS...</div>';
+    list.innerHTML = `<div style="text-align:center; padding: 40px; font-family: monospace; font-size: 8px;">UPLINKING [${category.toUpperCase()}]...</div>`;
+    
+    // Ensure list is visible and detail is hidden
+    list.style.display = 'flex';
+    const detail = document.getElementById('newsDetail');
+    if(detail) detail.style.display = 'none';
+    const catBar = document.getElementById('newsCategoryBar');
+    if(catBar) catBar.style.display = 'flex';
 
     try {
-        const typeMap = { 'top': 'topstories', 'best': 'beststories', 'new': 'newstories' };
-        const res = await fetch(`https://hacker-news.firebaseio.com/v0/${typeMap[category]}.json`);
-        const ids = await res.json();
-        const top10 = ids.slice(0, 10);
-
-        const stories = await Promise.all(top10.map(async id => {
-            const r = await fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`);
-            return r.json();
-        }));
+        const res = await fetch(`https://saurav.tech/NewsAPI/top-headlines/category/${category}/us.json`);
+        const data = await res.json();
+        const stories = data.articles || [];
 
         window.newsItems = stories; // Cache for detail view
         renderNewsList(stories);
+
+        // Update ticker with top headlines
+        const ticker = document.getElementById('newsText');
+        if (ticker && stories.length > 0) {
+            ticker.textContent = 'LATEST: ' + stories.slice(0, 5).map(s => s.title.toUpperCase()).join(' ••• ');
+        }
     } catch(e) {
-        list.innerHTML = '<div style="text-align:center; padding: 40px; color: #f00;">CONNECTION FAILED</div>';
+        list.innerHTML = '<div style="text-align:center; padding: 40px; color: #8b0000; font-size: 8px;">UPLINK FAILED</div>';
     }
 };
 
@@ -324,15 +276,21 @@ window.renderNewsList = function(stories) {
     
     stories.forEach((s, i) => {
         const item = document.createElement('div');
-        item.style.cssText = "padding: 8px; border-bottom: 1px solid rgba(15,56,15,0.3); cursor: pointer; transition: background 0.2s;";
+        item.style.cssText = "padding: 8px; border-bottom: 1px solid rgba(15,56,15,0.3); cursor: pointer; transition: background 0.2s; position: relative;";
         item.onmouseover = () => item.style.background = 'rgba(15,56,15,0.1)';
         item.onmouseout = () => item.style.background = 'transparent';
         item.onclick = () => window.openNewsDetail(i);
         
+        const date = s.publishedAt ? new Date(s.publishedAt).toLocaleDateString() : '';
+        const sourceName = s.source?.name || 'UNKNOWN';
+        
         item.innerHTML = `
-            <div style="font-weight: bold; font-size: 9px; line-height: 1.2;">${s.title}</div>
-            <div style="font-size: 7px; opacity: 0.7; margin-top: 2px;">
-                👍 ${s.score} | 💬 ${s.descendants || 0} | 👤 ${s.by}
+            <div style="font-weight: bold; font-size: 7px; line-height: 1.2;">${s.title.toUpperCase()}</div>
+            <div style="font-size: 5px; opacity: 0.7; margin-top: 4px;">
+                📡 ${sourceName.toUpperCase()} | 📅 ${date}
+            </div>
+            <div style="font-size: 6px; margin-top: 5px; opacity: 0.6; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
+                ${(s.description || '').toUpperCase()}
             </div>
         `;
         list.appendChild(item);
@@ -343,39 +301,53 @@ window.openNewsDetail = function(index) {
     const item = window.newsItems[index];
     if(!item) return;
     
-    // Hide list
-    document.getElementById('newsList').style.display = 'none';
-    if(document.getElementById('newsCategoryBar')) document.getElementById('newsCategoryBar').style.display = 'none';
+    // Hide list and category bar
+    const list = document.getElementById('newsList');
+    list.style.display = 'none';
+    const catBar = document.getElementById('newsCategoryBar');
+    if(catBar) catBar.style.display = 'none';
     
     let detail = document.getElementById('newsDetail');
     if(!detail) {
         detail = document.createElement('div');
         detail.id = 'newsDetail';
-        detail.style.cssText = "position:absolute; top:0; left:0; width:100%; height:100%; background:#9bbc0f; color:#0f380f; padding:15px; overflow-y:auto; z-index:100;";
+        detail.style.cssText = "position:absolute; top:35px; left:0; width:100%; height:calc(100% - 35px); background:#9bbc0f; color:#0f380f; padding:10px; overflow-y:auto; z-index:100; border-top: 1px solid #0f380f;";
         document.getElementById('newsScreen').appendChild(detail);
     }
     
     detail.style.display = 'block';
-    
-    // Convert timestamp
-    const date = new Date(item.time * 1000).toLocaleString();
+    const date = new Date(item.publishedAt).toLocaleString();
+    const sourceName = item.source?.name || 'UNKNOWN';
     
     detail.innerHTML = `
-        <div style="font-size: 11px; font-weight: bold; border-bottom: 2px solid #0f380f; padding-bottom: 10px; margin-bottom: 10px;">
-            ${item.title}
+        <div style="font-size: 8px; font-weight: bold; border-bottom: 2px solid #0f380f; padding-bottom: 8px; margin-bottom: 8px; line-height: 1.3;">
+            ${item.title.toUpperCase()}
         </div>
-        <div style="font-size: 8px; margin-bottom: 15px;">
-            BY: ${item.by} • ${date}<br>
-            SCORE: ${item.score}
+        <div style="font-size: 5px; margin-bottom: 10px; opacity: 0.8;">
+            SOURCE: ${sourceName.toUpperCase()}<br>
+            DATE: ${date.toUpperCase()}
         </div>
-        <div style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; font-size: 9px; word-break: break-all;">
-            <a href="${item.url}" target="_blank" style="color: #00f; text-decoration: underline;">OPEN LINK 🔗</a>
-            <br><br>
-            (External links open in browser)
+        <div style="font-size: 7px; line-height: 1.5; margin-bottom: 15px; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 4px;">
+            ${(item.description || item.content || 'NO CONTENT AVAILABLE').toUpperCase()}
         </div>
-        <button onclick="closeNewsDetail()" style="width: 100%; margin-top: 20px; padding: 10px; border: 2px solid #0f380f; background: #0f380f; color: #9bbc0f; font-family: 'VT323';">BACK</button>
+        <div style="display: flex; gap: 5px;">
+            <button onclick="closeNewsDetail()" style="flex: 1; padding: 8px; background: #0f380f; color: #9bbc0f; font-family: 'Press Start 2P', monospace; font-size: 6px; cursor: pointer; border: none;">BACK</button>
+            <a href="${item.url}" target="_blank" style="flex: 1; padding: 8px; background: #0f380f; color: #9bbc0f; font-family: 'Press Start 2P', monospace; font-size: 6px; text-decoration: none; text-align: center; border: none;">FULL STORY</a>
+        </div>
     `;
+    sounds.click();
 };
+
+window.closeNewsDetail = function() {
+    const detail = document.getElementById('newsDetail');
+    if(detail) detail.style.display = 'none';
+    const list = document.getElementById('newsList');
+    if(list) list.style.display = 'flex';
+    const catBar = document.getElementById('newsCategoryBar');
+    if(catBar) catBar.style.display = 'flex';
+    sounds.back();
+};
+
 window.initTranslate = function() { document.getElementById('transOutput').textContent = "READY..."; };
 async function translateText() {
     const text = document.getElementById('transInput').value;
@@ -828,195 +800,7 @@ window.playMorse = function() {
     }
     // Auto resume logic if needed
 };
-
-// ========== BEAT BOY (Premium Sequencer v3.0) ==========
-let remixGrid = [];
-let remixInterval = null;
-let remixStep = 0;
-let isRemixPlaying = false;
-let remixBPM = 120;
-let remixMasterVol = 0.8;
-
-const INSTRUMENTS = [
-    { name: 'KICK', type: 'drum', gain: 1.0, color: '#f00' },
-    { name: 'SNARE', type: 'noise', gain: 0.6, color: '#ffb700' },
-    { name: 'HI-HAT', type: 'noise', gain: 0.4, color: '#00ccff' },
-    { name: 'BASS', type: 'square', gain: 0.5, color: '#0f0' },
-    { name: 'LEAD', type: 'sawtooth', gain: 0.4, color: '#ff00ff' }
-];
-
-window.initRemix = function() {
-    const gridEl = document.getElementById('remixGrid');
-    if(!gridEl) return;
-    gridEl.innerHTML = '';
-    remixGrid = [];
-    isRemixPlaying = false;
-    remixStep = 0;
-    if(remixInterval) clearInterval(remixInterval);
-    
-    // Update Indicators
-    const bpmDisplay = document.getElementById('remixBpmDisplay');
-    if(bpmDisplay) bpmDisplay.textContent = `${remixBPM} BPM`;
-
-    // Create Tracks
-    INSTRUMENTS.forEach((inst, r) => {
-        let rowData = new Array(16).fill(false);
-        
-        const trackDiv = document.createElement('div');
-        trackDiv.className = 'beat-boy-track';
-        
-        trackDiv.innerHTML = `
-            <div class="beat-boy-track-header">
-                <span style="color: ${inst.color}">${inst.name}</span>
-            </div>
-            <div class="beat-boy-steps" id="track-${r}"></div>
-        `;
-        
-        const stepsContainer = trackDiv.querySelector('.beat-boy-steps');
-        for(let c=0; c<16; c++) {
-            const step = document.createElement('div');
-            step.className = 'beat-boy-step';
-            step.dataset.r = r;
-            step.dataset.c = c;
-            step.onclick = function() {
-                rowData[c] = !rowData[c];
-                this.classList.toggle('active');
-                if(rowData[c]) playRemixSound(r, c);
-                sounds.click();
-            };
-            stepsContainer.appendChild(step);
-        }
-        
-        gridEl.appendChild(trackDiv);
-        remixGrid.push(rowData);
-    });
-};
-
-window.toggleRemixPlay = function() {
-    const btn = document.getElementById('remixPlayBtn');
-    if(isRemixPlaying) {
-        clearInterval(remixInterval);
-        if(btn) btn.textContent = "▶ PLAY";
-        // Clear highlights
-        document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('highlight'));
-    } else {
-        remixInterval = setInterval(playStep, (60000 / remixBPM) / 4); // 16th notes
-        if(btn) btn.textContent = "⏹ STOP";
-    }
-    isRemixPlaying = !isRemixPlaying;
-};
-
-window.changeBPM = function(delta) {
-    remixBPM = Math.min(240, Math.max(40, remixBPM + delta));
-    const bpmDisplay = document.getElementById('remixBpmDisplay');
-    if(bpmDisplay) bpmDisplay.textContent = `${remixBPM} BPM`;
-    if(isRemixPlaying) {
-        clearInterval(remixInterval);
-        remixInterval = setInterval(playStep, (60000 / remixBPM) / 4);
-    }
-    sounds.click();
-};
-
-window.updateRemixVol = function(val) {
-    remixMasterVol = val / 100;
-    document.getElementById('remixVolLabel').textContent = `${val}%`;
-};
-
-function playStep() {
-    const stepIndicator = document.getElementById('remixStepIndicator');
-    if(stepIndicator) stepIndicator.textContent = `STEP: ${remixStep + 1}`;
-
-    // Update visuals
-    document.querySelectorAll('.beat-boy-step').forEach(s => {
-        if(parseInt(s.dataset.c) === remixStep) {
-            s.classList.add('highlight');
-        } else {
-            s.classList.remove('highlight');
-        }
-    });
-    
-    for(let r=0; r<INSTRUMENTS.length; r++) {
-        if(remixGrid[r][remixStep]) {
-            playRemixSound(r, remixStep);
-        }
-    }
-    remixStep = (remixStep + 1) % 16;
-}
-
-function playRemixSound(r, step) {
-    const inst = INSTRUMENTS[r];
-    const time = audioCtx.currentTime;
-    const masterGain = audioCtx.createGain();
-    masterGain.gain.setValueAtTime(remixMasterVol, time);
-    masterGain.connect(audioCtx.destination);
-
-    if(inst.type === 'drum') {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.setValueAtTime(150, time);
-        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
-        gain.gain.setValueAtTime(inst.gain, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.5);
-        osc.connect(gain);
-        gain.connect(masterGain);
-        osc.start(time);
-        osc.stop(time + 0.5);
-    } else if (inst.name === 'HI-HAT') {
-        const bufferSize = audioCtx.sampleRate * 0.05;
-        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        const source = audioCtx.createBufferSource();
-        source.buffer = buffer;
-        const filter = audioCtx.createBiquadFilter();
-        filter.type = "highpass";
-        filter.frequency.setValueAtTime(7000, time);
-        const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(inst.gain, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
-        source.connect(filter);
-        filter.connect(gain);
-        gain.connect(masterGain);
-        source.start(time);
-    } else if (inst.name === 'SNARE') {
-        const osc = audioCtx.createOscillator();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(250, time);
-        const noise = audioCtx.createBufferSource();
-        const bufferSize = audioCtx.sampleRate * 0.1;
-        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        noise.buffer = buffer;
-        const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(inst.gain, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-        osc.connect(gain);
-        noise.connect(gain);
-        gain.connect(masterGain);
-        osc.start(time); noise.start(time);
-        osc.stop(time + 0.1);
-    } else {
-        const osc = audioCtx.createOscillator();
-        osc.type = inst.type;
-        const freq = inst.name === 'BASS' ? 55 : (220 + (step % 4 * 110));
-        osc.frequency.setValueAtTime(freq, time);
-        const gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(inst.gain, time);
-        gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-        osc.connect(gain);
-        gain.connect(masterGain);
-        osc.start(time);
-        osc.stop(time + 0.2);
-    }
-}
-
-window.clearRemix = function() {
-    document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('active'));
-    remixGrid.forEach(row => row.fill(false));
-    sounds.back();
-};
-
+// Beat Boy implementation moved to beat-boy.js
 window.initPixel = function() {
     const grid = document.getElementById('pixelGrid');
     if(!grid) return;
@@ -2187,18 +1971,32 @@ window.getTrivia = async function() {
 
 window.checkTrivia = function(ans) {
     const resEl = document.getElementById('triviaResult');
+    const decode = str => { const txt = document.createElement('textarea'); txt.innerHTML = str; return txt.value; };
+    const correctDecoded = decode(triviaCorrectAnswer);
+
     if(ans === triviaCorrectAnswer) {
-        resEl.textContent = "CORRECT! +5 GEMS";
-        resEl.style.color = "#006400"; // Dark green
+        resEl.textContent = "✅ CORRECT! +5 GEMS";
+        resEl.style.color = "#006400";
         sounds.launch();
         addGems(5);
     } else {
-        resEl.textContent = "WRONG!";
-        resEl.style.color = "#8b0000"; // Dark red
+        resEl.textContent = "❌ WRONG!";
+        resEl.style.color = "#8b0000";
         sounds.click();
     }
+
+    // Disable all buttons and highlight the correct answer green
     const btns = document.querySelectorAll('#triviaOptions button');
-    btns.forEach(b => b.disabled = true);
+    btns.forEach(b => {
+        b.disabled = true;
+        if(b.textContent === correctDecoded) {
+            b.style.background = '#006400';
+            b.style.color = '#fff';
+            b.style.border = '2px solid #00aa00';
+        } else if(b.textContent !== decode(ans) && ans !== triviaCorrectAnswer) {
+            b.style.opacity = '0.5';
+        }
+    });
 };
 
 // ========== ADVICE ==========

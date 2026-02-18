@@ -149,7 +149,7 @@ function initSnake() {
     addGameListener('snake', document, 'keydown', (e) => {
         if ((e.key===' '||e.key==='a'||e.key==='z'||e.key==='Enter') && !started) {
             started = true;
-            gameInterval = setInterval(draw, 100);
+            gameInterval = setInterval(draw, 180);
             snakeGame = gameInterval;
         }
         if (e.key==='ArrowLeft'  && d!=='RIGHT') d='LEFT';
@@ -392,27 +392,36 @@ function initBreakout() {
 // ============================================================
 // MEMORY MATCH
 // ============================================================
-let memoryGame = { cards:[], flipped:[], matched:[], canFlip:true };
+let memoryGame = { cards: [], flipped: [], matched: [], canFlip: true };
+let memoryFlipTimeout = null;
 
-function initMemory() {
+window.initMemory = function initMemory() {
+    if (memoryFlipTimeout !== null) {
+        clearTimeout(memoryFlipTimeout);
+        memoryFlipTimeout = null;
+    }
+
     const symbols = ['🎮','🎯','🎲','🎨','🎭','🎪','🎸','🎺'];
-    const deck    = [...symbols, ...symbols].sort(() => Math.random()-0.5);
-    memoryGame    = { cards:deck, flipped:[], matched:[], canFlip:true };
-    renderMemory();
+    const deck    = [...symbols, ...symbols].sort(() => Math.random() - 0.5);
+    memoryGame    = { cards: deck, flipped: [], matched: [], canFlip: true };
+
+    // FIX: only render if the grid element actually exists in the DOM yet
+    if (document.getElementById('memoryGrid')) renderMemory();
 }
 
 function renderMemory() {
     const grid = document.getElementById('memoryGrid');
+    if (!grid) return; // FIX: guard against missing element
     grid.innerHTML = '';
     memoryGame.cards.forEach((symbol, i) => {
-        const card = document.createElement('div');
-        const isFlipped = memoryGame.flipped.includes(i) || memoryGame.matched.includes(i);
         const isMatched = memoryGame.matched.includes(i);
+        const isFlipped = memoryGame.flipped.includes(i) || isMatched;
 
+        const card = document.createElement('div');
         card.style.cssText = `
             width:38px; height:38px;
             background:${isMatched ? '#2a6e2a' : isFlipped ? 'var(--gb-screen)' : 'var(--gb-text)'};
-            border-radius:5px; cursor:pointer;
+            border-radius:5px; cursor:${isMatched ? 'default' : 'pointer'};
             display:flex; align-items:center; justify-content:center;
             font-size:${isFlipped ? '20px' : '14px'};
             color:${isFlipped ? 'inherit' : 'var(--gb-screen)'};
@@ -421,13 +430,19 @@ function renderMemory() {
             user-select:none;
         `;
         card.textContent = isFlipped ? symbol : '?';
-        card.onclick = () => flipCard(i);
+
+        // FIX: reference via window so it works regardless of scope
+        if (!isMatched) {
+            card.onclick = () => window.flipCard(i);
+        }
+
         grid.appendChild(card);
     });
+
     document.getElementById('memoryScore').textContent = memoryGame.matched.length / 2;
 }
 
-function flipCard(i) {
+window.flipCard = function flipCard(i) {
     if (!memoryGame.canFlip || memoryGame.flipped.includes(i) ||
         memoryGame.matched.includes(i) || memoryGame.flipped.length >= 2) return;
 
@@ -444,15 +459,17 @@ function flipCard(i) {
             memoryGame.flipped  = [];
             memoryGame.canFlip  = true;
             addGems(3); sounds.select();
+            renderMemory();
 
             if (memoryGame.matched.length === memoryGame.cards.length) {
-                setTimeout(() => { addGems(20); sounds.launch();
+                setTimeout(() => {
+                    addGems(20); sounds.launch();
                     showGameOver('YOU WIN!\n+20 GEMS!', initMemory);
                 }, 300);
             }
-            renderMemory();
         } else {
-            setTimeout(() => {
+            memoryFlipTimeout = setTimeout(() => {
+                memoryFlipTimeout = null;
                 memoryGame.flipped = [];
                 memoryGame.canFlip = true;
                 renderMemory();
@@ -849,7 +866,6 @@ function init2048() {
         return c[v] || '#3c3a32';
     }
 
-    // ── Movement (no shadowing — renamed to rot2048) ──────────────────────
     function rot2048(times) {
         while (times--) {
             const n=[];
@@ -886,7 +902,6 @@ function init2048() {
             return;
         }
         if (!board.includes(0)) {
-            // Check merges possible
             for (let r=0;r<4;r++) for (let c=0;c<4;c++) {
                 const i=r*4+c;
                 if (c<3&&board[i]===board[i+1]) return;
@@ -904,8 +919,7 @@ function init2048() {
 window.initSnake    = initSnake;
 window.initFlappy   = initFlappy;
 window.initBreakout = initBreakout;
-window.initMemory   = initMemory;
-window.flipCard     = flipCard;
+// initMemory and flipCard already assigned to window at definition
 window.initTetris   = initTetris;
 window.initMines    = initMines;
 window.init2048     = init2048;
