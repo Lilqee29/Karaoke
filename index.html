@@ -94,13 +94,6 @@
                         </div>
                     </div>
 
-                    <!-- GEM MINER -->
-                    <div id="minerScreen" class="game-screen">
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px;"><div style="font-size: 10px; margin-bottom: 20px;">GEM MINER</div>
-                            <button onclick="mineGem()" style="width: 120px; height: 120px; border-radius: 50%; font-size: 50px;">💎</button>
-                            <div style="margin-top: 20px; font-size: 8px;">TAP TO MINE!</div>
-                        </div>
-                    </div>
 
 
                     <!-- DICE ROLLER -->
@@ -123,15 +116,6 @@
                         </div>
                     </div>
 
-                    <!-- FORTUNE COOKIE -->
-                    <div id="fortuneScreen" class="game-screen">
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; padding: 30px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 20px;">FORTUNE COOKIE</div>
-                            <div style="font-size: 50px; margin: 20px 0;">🥠</div>
-                            <div id="fortuneText" style="font-size: 7px; margin: 20px 0; min-height: 40px;">TAP TO CRACK</div>
-                            <button onclick="crackCookie()" id="cookieBtn" style="padding: 12px 24px;">CRACK IT!</button>
-                        </div>
-                    </div>
 
                     <!-- GUESS -->
                     <div id="guessScreen" class="game-screen">
@@ -202,48 +186,31 @@
                         </div>
                     </div>
 
-                    <!-- FLASHCARDS -->
-                    <div id="flashScreen" class="game-screen">
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; padding: 20px;">
-                            <div id="flashCard" style="width: 100%; height: 150px; background: #fff; border: 4px solid var(--gb-text); display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: 10px; color: #000;">TAP TO START</div>
-                            <button onclick="nextFlashcard()" style="margin-top: 20px; width: 100%; padding: 10px;">NEXT CARD</button>
-                        </div>
-                    </div>
-
-                    <!-- 8-BALL -->
-                    <div id="ballScreen" class="game-screen">
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px; padding: 20px;">
-                            <div style="width: 150px; height: 150px; background: #000; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 8px; border: 4px solid #333; cursor: pointer; padding: 20px;" onclick="shakeBall()">
-                                <div id="ballText">POSE TA QUESTION...</div>
-                            </div>
-                            <div style="margin-top: 20px; font-size: 6px;">TAP FOR ANSWERS</div>
-                        </div>
-                    </div>
 
 
 
                     <!-- CALCULATOR -->
-                    <div id="calcScreen" class="game-screen">
-                        <input type="text" id="calcDisplay" readonly value="0" style="width: 100%; padding: 8px; margin-bottom: 8px; text-align: right;">
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
-                            <button onclick="calcFunc('C')">C</button>
-                            <button onclick="calcFunc('/')">/</button>
-                            <button onclick="calcFunc('*')">*</button>
-                            <button onclick="calcFunc('BSP')">←</button>
-                            <button onclick="calcFunc('7')">7</button>
-                            <button onclick="calcFunc('8')">8</button>
-                            <button onclick="calcFunc('9')">9</button>
-                            <button onclick="calcFunc('-')">-</button>
-                            <button onclick="calcFunc('4')">4</button>
-                            <button onclick="calcFunc('5')">5</button>
-                            <button onclick="calcFunc('6')">6</button>
-                            <button onclick="calcFunc('+')">+</button>
-                            <button onclick="calcFunc('1')">1</button>
-                            <button onclick="calcFunc('2')">2</button>
-                            <button onclick="calcFunc('3')">3</button>
-                            <button onclick="calcFunc('=')" style="grid-row: span 2;">EQ</button>
-                            <button onclick="calcFunc('0')" style="grid-column: span 2;">0</button>
-                            <button onclick="calcFunc('.')">.</button>
+                    <div id="calcScreen" class="game-screen" style="display: flex; flex-direction: column; height: 100%; padding: 8px; box-sizing: border-box;">
+                        <input type="text" id="calcDisplay" readonly value="0" style="width: 100%; padding: 10px; margin-bottom: 8px; text-align: right; font-size: 16px; flex-shrink: 0; box-sizing: border-box;">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; flex: 1;">
+                            <button onclick="calcFunc('C')" style="height: 100%;">C</button>
+                            <button onclick="calcFunc('/')" style="height: 100%;">/</button>
+                            <button onclick="calcFunc('*')" style="height: 100%;">*</button>
+                            <button onclick="calcFunc('BSP')" style="height: 100%;">←</button>
+                            <button onclick="calcFunc('7')" style="height: 100%;">7</button>
+                            <button onclick="calcFunc('8')" style="height: 100%;">8</button>
+                            <button onclick="calcFunc('9')" style="height: 100%;">9</button>
+                            <button onclick="calcFunc('-')" style="height: 100%;">-</button>
+                            <button onclick="calcFunc('4')" style="height: 100%;">4</button>
+                            <button onclick="calcFunc('5')" style="height: 100%;">5</button>
+                            <button onclick="calcFunc('6')" style="height: 100%;">6</button>
+                            <button onclick="calcFunc('+')" style="height: 100%;">+</button>
+                            <button onclick="calcFunc('1')" style="height: 100%;">1</button>
+                            <button onclick="calcFunc('2')" style="height: 100%;">2</button>
+                            <button onclick="calcFunc('3')" style="height: 100%;">3</button>
+                            <button onclick="calcFunc('=')" style="grid-row: span 2; height: 100%;">EQ</button>
+                            <button onclick="calcFunc('0')" style="grid-column: span 2; height: 100%;">0</button>
+                            <button onclick="calcFunc('.')" style="height: 100%;">.</button>
                         </div>
                     </div>
 
@@ -258,13 +225,14 @@
                     </div>
 
                     <!-- PAINT -->
-                    <div id="paintScreen" class="game-screen">
-                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                            <button onclick="paintFunc('clear')">CLR</button>
-                            <input type="color" id="paintColor" value="#000000" style="width: 30px; height: 25px;">
+                    <div id="paintScreen" class="game-screen" style="padding: 6px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                        <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
+                            <button onclick="paintFunc('clear')" style="font-size: 7px; padding: 4px 6px;">CLR</button>
+                            <button onclick="paintFunc('undo')" style="font-size: 7px; padding: 4px 6px;">↩ UNDO</button>
+                            <input type="color" id="paintColor" value="#000000" style="width: 28px; height: 22px; padding: 0; border: none; cursor: pointer;">
                             <input type="range" id="brushSize" min="1" max="15" value="3" style="flex: 1;">
                         </div>
-                        <canvas id="paintCanvas" width="300" height="280" style="background: white; cursor: crosshair;"></canvas>
+                        <canvas id="paintCanvas" width="300" height="280" style="background: white; cursor: crosshair; flex: 1; width: 100%; height: auto; border: 2px solid var(--gb-text); border-radius: 4px;"></canvas>
                     </div>
 
 
@@ -278,30 +246,6 @@
                         <div style="text-align: center; margin-top: 5px; font-size: 5px;">ARROWS=MOVE | UP=ROTATE</div>
                     </div>
 
-                    <!-- WORLD (Camera + Filters) -->
-                    <div id="worldScreen" class="game-screen">
-                        <div style="position: relative; width: 300px; height: 320px; margin: 0 auto; background: #000; overflow: hidden; border: 2px solid var(--gb-text);">
-                            <video id="nvVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
-                            <canvas id="nvCaptureCanvas" style="display: none;"></canvas>
-                            <div id="nvEffectOverlay" class="nv-overlay"></div>
-                            <div class="nv-scanlines"></div>
-                            <div style="position: absolute; top: 10px; left: 10px; color: #0f0; font-size: 8px; z-index: 10;" id="nvStatus">REC ●</div>
-                            <div style="position: absolute; bottom: 10px; right: 10px; color: #0f0; font-size: 8px; z-index: 10;" id="nvTime">00:00:00</div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 8px; padding: 10px;">
-                            <div style="display: flex; gap: 5px;">
-                                <select id="nvFilterSelect" onchange="updateNVFilter(this.value)" style="flex: 1; font-size: 6px;">
-                                    <option value="night">NIGHT VISION</option>
-                                    <option value="thermal">THERMAL</option>
-                                    <option value="gb">GAMEBOY</option>
-                                    <option value="vhs">RETRO VHS</option>
-                                    <option value="noir">NOIR</option>
-                                </select>
-                                <button onclick="captureNVImage()" style="flex: 1; background: #f00; color: #fff;">CAPTURE</button>
-                            </div>
-                            <button onclick="stopNightVision()" style="width: 100%; background: #333;">SHUTDOWN</button>
-                        </div>
-                    </div>
 
                  
                     <div id="remixScreen" class="game-screen">
@@ -382,29 +326,6 @@
                     </div>
                     </div>
 
-                    <!-- QUESTS -->
-                    <div id="questsScreen" class="game-screen">
-                        <div style="font-size: 10px; text-align: center; margin-bottom: 15px;">DAILY QUESTS</div>
-                        <div id="questList" style="display: flex; flex-direction: column; gap: 8px; padding: 10px;">
-                            <!-- Quests injected by JS -->
-                        </div>
-                        <div style="text-align: center; font-size: 5px; margin-top: 10px;">RESETS EVERY 24H</div>
-                    </div>
-
-                    <!-- VAULT -->
-                    <div id="vaultScreen" class="game-screen">
-                        <div id="vaultLock" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 300px;">
-                            <div style="font-size: 40px; margin-bottom: 20px;">🔒</div>
-                            <div style="font-size: 8px; margin-bottom: 20px;">ENTER PIN</div>
-                            <div id="vaultPinDisplay" style="font-size: 15px; letter-spacing: 10px; margin-bottom: 20px;">____</div>
-                            <div style="font-size: 5px; color: var(--gb-text-light);">USE D-PAD (↑↓←→)</div>
-                        </div>
-                        <div id="vaultContent" style="display: none; padding: 10px;">
-                            <div style="font-size: 8px; margin-bottom: 10px;">SECRET VAULT 📂</div>
-                            <textarea id="vaultText" style="width: 100%; height: 260px; background: #000; color: #0f0; font-family: monospace; border: 2px solid #0f0;"></textarea>
-                            <button onclick="saveVaultContent()" style="width: 100%; margin-top: 5px;">UPDATE ENCRYPTION</button>
-                        </div>
-                    </div>
 
                     <!-- SPIRIT RADAR -->
                     <div id="spiritScreen" class="game-screen">
@@ -446,20 +367,6 @@
                         </div>
                     </div>
 
-                    <!-- QUESTS -->
-                    <div id="questsScreen" class="game-screen">
-                        <div style="padding: 10px;">
-                            <div style="font-size: 10px; margin-bottom: 20px; text-align: center; border-bottom: 2px solid var(--gb-text); padding-bottom: 5px;">DAILY QUESTS</div>
-                            <div id="questList" style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto;">
-                                <!-- Quests injected by JS -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- WORLD NAVIGATOR -->
-                    <div id="worldScreen" class="game-screen">
-                        <!-- Content injected by JS -->
-                    </div>
 
                     <!-- MAPS -->
                     <div id="mapScreen" class="game-screen">
@@ -930,16 +837,6 @@
                         </div>
                     </div>
 
-                    <!-- SPACE APP -->
-                    <div id="spaceScreen" class="game-screen">
-                        <div style="padding: 10px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 10px; color: #fff; background: #000; padding: 2px;">MISSION CONTROL</div>
-                            <div id="spaceInfo" style="text-align: left; font-size: 6px; padding: 5px; border: 1px solid var(--gb-text); background: rgba(0,0,0,0.05); min-height: 100px; white-space: pre-wrap;">
-                                WAITING FOR LINK...
-                            </div>
-                            <button onclick="getSpaceData()" style="width: 100%; margin-top: 10px;">FETCH LAUNCH DATA</button>
-                        </div>
-                    </div>
 
                     <!-- ORACLE APP -->
                     <div id="oracleScreen" class="game-screen">
@@ -1537,25 +1434,6 @@
                         </div>
                     </div>
 
-                    <!-- RETRO ROM LOADER -->
-                    <div id="emulatorScreen" class="game-screen">
-                        <div style="padding: 20px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 10px; margin-bottom: 20px;">RETRO CONSOLE</div>
-                            
-                            <div id="romDropZone" onclick="document.getElementById('romInput').click()" style="border: 2px dashed var(--gb-text); padding: 30px; margin-bottom: 10px; cursor: pointer; opacity: 0.6;">
-                                <div style="font-size: 20px; margin-bottom: 10px;">💾</div>
-                                <div style="font-size: 8px;">TAP TO LOAD ROM</div>
-                                <div style="font-size: 6px; margin-top: 5px;">(.GB / .GBC FILES)</div>
-                            </div>
-                            <input type="file" id="romInput" accept=".gb,.gbc,.nes" style="display: none;" onchange="loadRomFile(this)">
-                            
-                            <div id="emulatorStatus" style="font-size: 8px; color: var(--gb-text-light); margin-top: 10px;">NO CARTRIDGE INSERTED</div>
-                            
-                            <div style="font-size: 6px; margin-top: 30px; color: #555;">
-                                * ROTATE PHONE FOR LANDSCAPE MODE *
-                            </div>
-                        </div>
-                    </div>
 
                     <!-- MINESWEEPER -->
                     <div id="minesScreen" class="game-screen">
@@ -1580,15 +1458,15 @@
 
                     <!-- 2048 -->
                     <div id="2048Screen" class="game-screen">
-                        <div style="padding: 10px; text-align: center;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <div id="2048Score" style="font-size: 10px;">SCORE: 0</div>
-                                <button onclick="init2048()" style="padding: 2px 5px; font-size: 8px;">RESET</button>
+                        <div style="padding: 6px; text-align: center; height: 100%; display: flex; flex-direction: column; box-sizing: border-box;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 6px; flex-shrink: 0;">
+                                <div id="2048Score" style="font-size: 9px;">SCORE: 0</div>
+                                <button onclick="init2048()" style="padding: 2px 5px; font-size: 7px;">RESET</button>
                             </div>
-                            <div id="2048Grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: #0f380f; padding: 4px; border: 2px solid var(--gb-text); width: 100%; aspect-ratio: 1;">
+                            <div id="2048Grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; background: #0f380f; padding: 3px; border: 2px solid var(--gb-text); width: 100%; max-width: min(100%, calc(100vh - 220px)); aspect-ratio: 1; flex-shrink: 0; margin: 0 auto;">
                                 <!-- Grid injected by JS -->
                             </div>
-                            <div style="font-size: 8px; margin-top: 10px; color: #555;">USE ARROWS / SWIPE</div>
+                            <div style="font-size: 7px; margin-top: 6px; color: #555; flex-shrink: 0;">USE ARROWS / SWIPE</div>
                         </div>
                     </div>
 
@@ -1630,14 +1508,6 @@ Type 'help' for commands.
                         </div>
                     </div>
 
-                    <div id="levelScreen" class="game-screen">
-                        <div style="position: relative; width: 200px; height: 200px; border: 2px solid var(--gb-text); border-radius: 50%; margin: 20px auto; background: rgba(15, 56, 15, 0.1);">
-                            <div id="bubble" style="position: absolute; width: 20px; height: 20px; background: var(--gb-text); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: all 0.1s;"></div>
-                            <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(0,0,0,0.2);"></div>
-                            <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(0,0,0,0.2);"></div>
-                        </div>
-                        <div id="levelText" style="text-align: center;">X: 0 | Y: 0</div>
-                    </div>
 
                     <div id="hexScreen" class="game-screen">
                         <div style="padding: 10px;">
@@ -1679,16 +1549,6 @@ Type 'help' for commands.
                         </div>
                     </div>
 
-                    <div id="sfxScreen" class="game-screen">
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px;">
-                            <button onclick="playSfx('horn')">📢 AIRHORN</button>
-                            <button onclick="playSfx('vine')">💥 BOOM</button>
-                            <button onclick="playSfx('bruh')">😐 BRUH</button>
-                            <button onclick="playSfx('cricket')">🦗 CRICKET</button>
-                            <button onclick="playSfx('drum')">🥁 DRUM</button>
-                            <button onclick="playSfx('wow')">✨ WOW</button>
-                        </div>
-                    </div>
 
                     <div id="regexScreen" class="game-screen">
                         <div style="padding: 10px;">
@@ -1743,12 +1603,6 @@ Type 'help' for commands.
                                 </div>
 
                                 <div id="chatManualZone" style="display: none; width: 100%; text-align: center;">
-                                    <input id="chatTargetId" placeholder="FREQUENCY" style="width: 100%; background: #000; color: #0f0; border: 2px solid #0f0; padding: 10px; font-size: 16px; text-align: center; margin-bottom: 10px;">
-                                    <div style="display: flex; gap: 5px;">
-                                        <button onclick="chatManualConnect()" style="flex: 1; padding: 12px; background: #0f0; color: #000; border: none; font-family: 'VT323'; font-weight: bold;">LINK</button>
-                                        <button onclick="chatJoin()" style="flex: 1; padding: 12px; background: transparent; color: #0f0; border: 2px solid #0f0; font-family: 'VT323';">SCAN</button>
-                                    </div>
-                                    <button onclick="cancelChatLink()" style="margin-top: 20px; color: #aaa; background: none; border: none; font-size: 10px;">[ CANCEL ]</button>
                                 </div>
 
                                 <div id="chatQrZone" style="display: none; text-align: center;">
@@ -1952,30 +1806,39 @@ Type 'help' for commands.
 
                     <!-- Settings -->
                     <div id="settingsScreen" class="game-screen">
-                        <div style="font-size: 10px; margin-bottom: 15px;">SETTINGS</div>
-                        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 320px; overflow-y: auto;">
-                            <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(15, 56, 15, 0.05); border-radius: 4px;">
-                                <span style="font-size: 6px;">SOUND:</span>
-                                <button onclick="toggleSound()" id="soundToggle">ON</button>
+                        <div style="padding: 10px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                            <div style="font-size: 10px; font-weight: bold; text-align: center; border-bottom: 2px solid var(--gb-text); padding-bottom: 4px; margin-bottom: 8px;">SYSTEM CONFIG & DATA</div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px; background: rgba(15, 56, 15, 0.08); border-radius: 4px; border: 1px solid var(--gb-text);">
+                                    <span style="font-size: 7px;">SOUND:</span>
+                                    <button onclick="toggleSound()" id="soundToggle" style="font-size: 6px; padding: 2px 6px;">ON</button>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px; background: rgba(15, 56, 15, 0.08); border-radius: 4px; border: 1px solid var(--gb-text);">
+                                    <span style="font-size: 7px;">VOLUME:</span>
+                                    <input type="range" min="0" max="100" value="50" oninput="setVolume(this.value)" style="width: 80px;">
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px; background: rgba(15, 56, 15, 0.08); border-radius: 4px; border: 1px solid var(--gb-text);">
+                                    <span style="font-size: 7px;">THEME:</span>
+                                    <select onchange="setTheme(this.value)" id="themeSelect" style="font-size: 6px; padding: 2px 4px;">
+                                        <option value="classic">CLASSIC</option>
+                                        <option value="pink">SAKURA</option>
+                                        <option value="purple">GRAPE</option>
+                                        <option value="ocean">OCEAN</option>
+                                        <option value="sunset">SUNSET</option>
+                                        <option value="forest">FOREST</option>
+                                        <option value="cyber">CYBER</option>
+                                        <option value="noir">NOIR</option>
+                                    </select>
+                                </div>
+                                
+                                <!-- DATA BACKUP & RESTORE -->
+                                <div style="display: flex; gap: 4px; margin-top: 6px;">
+                                    <button onclick="exportData()" style="flex: 1; padding: 6px; font-size: 6px;">💾 EXPORT DATA</button>
+                                    <button onclick="importData()" style="flex: 1; padding: 6px; font-size: 6px;">📥 IMPORT DATA</button>
+                                </div>
+                                <button onclick="resetData()" style="padding: 6px; background: #a00; color: #fff; border: none; cursor:pointer; border-radius: 4px; font-size: 6px; margin-top: 4px;">🗑️ WIPE ALL DATA</button>
                             </div>
-                            <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(15, 56, 15, 0.05); border-radius: 4px;">
-                                <span style="font-size: 6px;">VOLUME:</span>
-                                <input type="range" min="0" max="100" value="50" oninput="setVolume(this.value)" style="width: 70px;">
-                            </div>
-                            <div style="display: flex; justify-content: space-between; padding: 8px; background: rgba(15, 56, 15, 0.05); border-radius: 4px;">
-                                <span style="font-size: 6px;">THEME:</span>
-                                <select onchange="setTheme(this.value)" id="themeSelect" style="font-size: 6px; padding: 4px;">
-                                    <option value="classic">CLASSIC</option>
-                                    <option value="pink">SAKURA</option>
-                                    <option value="purple">GRAPE</option>
-                                    <option value="ocean">OCEAN</option>
-                                    <option value="sunset">SUNSET</option>
-                                    <option value="forest">FOREST</option>
-                                    <option value="cyber">CYBER</option>
-                                    <option value="noir">NOIR</option>
-                                </select>
-                            </div>
-                            <button onclick="resetData()" style="padding: 10px; background: #f00; color: #fff; margin-top: 10px; border: none; cursor:pointer; border-radius: 4px;">🗑️ WIPE DATA</button>
                         </div>
                     </div>
 
@@ -2071,6 +1934,103 @@ Type 'help' for commands.
                             </div>
                         </div>
                     </div>
+
+                    <!-- HELP SCREEN -->
+                    <div id="helpScreen" class="game-screen">
+                        <div style="padding: 10px;">
+                            <div style="font-size: 10px; font-weight: bold; text-align: center; margin-bottom: 10px; border-bottom: 2px solid var(--gb-text); padding-bottom: 5px;">SYSTEM GUIDE</div>
+                            <div id="helpContent" style="font-size: 7px; font-family: 'Courier New', monospace; line-height: 1.4;"></div>
+                        </div>
+                    </div>
+
+                    <!-- DAILY HUB -->
+                    <div id="dailyScreen" class="game-screen">
+                        <!-- Injected by initDaily() -->
+                    </div>
+
+                    <!-- VIBES HUB -->
+                    <div id="vibesScreen" class="game-screen">
+                        <div style="padding: 10px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                            <div style="display: flex; gap: 4px; overflow-x: auto; margin-bottom: 8px; flex-shrink: 0;">
+                                <button onclick="fetchVibes('quote')" style="font-size: 6px; padding: 4px 6px;">❝ QUOTE</button>
+                                <button onclick="fetchVibes('joke')" style="font-size: 6px; padding: 4px 6px;">😂 JOKE</button>
+                                <button onclick="fetchVibes('fact')" style="font-size: 6px; padding: 4px 6px;">💡 FACT</button>
+                            </div>
+                            <div style="flex: 1; background: rgba(15,56,15,0.08); border: 2px solid var(--gb-text); border-radius: 4px; padding: 10px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div id="vibesTypeLabel" style="font-size: 6px; opacity: 0.6; font-weight: bold; margin-bottom: 6px;">DAILY VIBE</div>
+                                <div id="vibesText" style="font-size: 9px; line-height: 1.4; flex: 1; white-space: pre-wrap;">SELECT A CATEGORY ABOVE!</div>
+                                <div style="display: flex; gap: 6px; margin-top: 10px;">
+                                    <button onclick="copyVibes()" style="flex: 1; padding: 6px;">📋 COPY</button>
+                                    <button onclick="fetchVibes('quote')" style="flex: 1; padding: 6px;">🎲 NEXT</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- HEALTH CALC HUB -->
+                    <div id="healthScreen" class="game-screen">
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; height: 100%; box-sizing: border-box;">
+                            <div style="font-size: 9px; font-weight: bold; text-align: center; border-bottom: 2px solid var(--gb-text); padding-bottom: 4px;">HEALTH & UTILITY</div>
+                            
+                            <!-- BMI SECTION -->
+                            <div style="background: rgba(15,56,15,0.1); padding: 8px; border-radius: 4px; border: 1px solid var(--gb-text);">
+                                <div style="font-size: 7px; font-weight: bold; margin-bottom: 4px;">⚖️ BMI CALCULATOR</div>
+                                <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                                    <input id="hcWeight" type="number" placeholder="KG" style="flex: 1; font-size: 7px;">
+                                    <input id="hcHeight" type="number" placeholder="CM" style="flex: 1; font-size: 7px;">
+                                    <button onclick="calcBmiHub()" style="padding: 4px 8px;">CALC</button>
+                                </div>
+                                <div id="hcBmiResult" style="font-size: 7px; font-weight: bold; min-height: 14px;"></div>
+                            </div>
+
+                            <!-- TIP SECTION -->
+                            <div style="background: rgba(15,56,15,0.1); padding: 8px; border-radius: 4px; border: 1px solid var(--gb-text);">
+                                <div style="font-size: 7px; font-weight: bold; margin-bottom: 4px;">💸 TIP CALCULATOR</div>
+                                <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                                    <input id="hcBill" type="number" placeholder="BILL $" style="flex: 1; font-size: 7px;">
+                                    <input id="hcTipPct" type="number" placeholder="TIP %" value="15" style="width: 50px; font-size: 7px;">
+                                    <button onclick="calcTipHub()" style="padding: 4px 8px;">CALC</button>
+                                </div>
+                                <div id="hcTipResult" style="font-size: 7px; font-weight: bold; min-height: 14px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NAVIGATOR HUB -->
+                    <div id="navigatorScreen" class="game-screen">
+                        <div style="padding: 10px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; text-align: center;">
+                            <div style="font-size: 9px; font-weight: bold; margin-bottom: 6px;">🗺️ NAVIGATOR MAP</div>
+                            <div onclick="onNavMapClick(event)" style="flex: 1; background: #0f380f; border: 2px solid var(--gb-text); border-radius: 4px; cursor: crosshair; position: relative; display: flex; align-items: center; justify-content: center; color: #9bbc0f; font-size: 10px;">
+                                [ SVG MAP VIEWPORT ]<br><span style="font-size: 6px; opacity: 0.7;">TAP TWO LOCATIONS</span>
+                            </div>
+                            <div id="navDistResult" style="font-size: 7px; font-weight: bold; margin-top: 6px; min-height: 16px;">TAP TWO POINTS ON MAP TO MEASURE DISTANCE</div>
+                        </div>
+                    </div>
+
+                    <!-- PASS GENERATOR -->
+                    <div id="passScreen" class="game-screen">
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; height: 100%; box-sizing: border-box;">
+                            <div style="font-size: 9px; font-weight: bold; text-align: center; border-bottom: 2px solid var(--gb-text); padding-bottom: 4px;">🔐 PASSWORD VAULT</div>
+                            <input id="passOutput" readonly style="width: 100%; padding: 8px; font-family: monospace; font-size: 9px; text-align: center; background: rgba(15,56,15,0.15); border: 2px solid var(--gb-text); border-radius: 4px;">
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 7px;">
+                                <span>LENGTH: <b id="passLenVal">16</b></span>
+                                <input id="passLength" type="range" min="8" max="32" value="16" oninput="document.getElementById('passLenVal').textContent=this.value" style="width: 100px;">
+                            </div>
+
+                            <div style="display: flex; gap: 10px; font-size: 7px;">
+                                <label><input id="passNums" type="checkbox" checked> 0-9</label>
+                                <label><input id="passSyms" type="checkbox" checked> #$%&</label>
+                            </div>
+
+                            <input id="passSeed" placeholder="CUSTOM SEED/PATTERN..." style="width: 100%; font-size: 7px; padding: 6px;">
+
+                            <div style="display: flex; gap: 6px; margin-top: auto;">
+                                <button onclick="generatePassHub()" style="flex: 1; padding: 8px;">🎲 GENERATE</button>
+                                <button onclick="copyPassHub()" style="flex: 1; padding: 8px;">📋 COPY</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2137,6 +2097,10 @@ Type 'help' for commands.
         }
     </style>
 
+    <!-- GSAP & Lenis Smooth Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://unpkg.com/lenis@1.1.2/dist/lenis.min.js"></script>
+
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -2159,6 +2123,33 @@ Type 'help' for commands.
     <script src="scripts/batch7.js"></script>
     <script src="scripts/utils_expanded.js"></script>
     <script src="app.js"></script>
+
+    <!-- PERSISTENT BITCHAT FLOATING WIDGET -->
+    <div id="bitchatFloatingCircle" onclick="toggleQuickChat()" style="position: fixed; bottom: 20px; right: 20px; width: 44px; height: 44px; background: #000; border: 2px solid #0f0; border-radius: 50%; color: #0f0; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; z-index: 99999; box-shadow: 0 0 12px rgba(0,255,0,0.6); user-select: none;">
+        💬
+    </div>
+
+    <!-- BITCHAT QUICK POPUP BOX -->
+    <div id="bitchatQuickBox" style="position: fixed; bottom: 74px; right: 20px; width: 240px; height: 260px; background: #000; border: 2px solid #0f0; border-radius: 8px; z-index: 99999; display: none; flex-direction: column; padding: 8px; box-shadow: 0 0 20px rgba(0,255,0,0.4); font-family: 'VT323', monospace;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #0f0; padding-bottom: 4px; color: #0f0; font-size: 10px; font-weight: bold;">
+            <span>📡 BITCHAT QUICK MESSENGER</span>
+            <span onclick="toggleQuickChat()" style="cursor: pointer;">[X]</span>
+        </div>
+        <div id="bitchatQuickLog" style="flex: 1; overflow-y: auto; font-size: 7px; color: #0f0; margin: 6px 0; background: rgba(0,20,0,0.9); padding: 6px; border: 1px solid #0f03;">
+            <div style="opacity: 0.6;">SYSTEM READY. SEND EMOJIS OR MSGS!</div>
+        </div>
+        <div style="display: flex; gap: 6px; justify-content: center; margin-bottom: 6px;">
+            <span onclick="sendQuickEmoji('🚀')" style="cursor:pointer; font-size: 12px;">🚀</span>
+            <span onclick="sendQuickEmoji('⚡')" style="cursor:pointer; font-size: 12px;">⚡</span>
+            <span onclick="sendQuickEmoji('🔥')" style="cursor:pointer; font-size: 12px;">🔥</span>
+            <span onclick="sendQuickEmoji('✅')" style="cursor:pointer; font-size: 12px;">✅</span>
+            <span onclick="sendQuickEmoji('🕵️')" style="cursor:pointer; font-size: 12px;">🕵️</span>
+        </div>
+        <div style="display: flex; gap: 4px;">
+            <input id="bitchatQuickInput" placeholder="TYPE MSG..." onkeypress="if(event.key==='Enter') sendQuickMsg()" style="flex: 1; background: #000; color: #0f0; border: 1px solid #0f0; padding: 4px; font-size: 9px; font-family: 'VT323'; min-width: 0;">
+            <button onclick="sendQuickMsg()" style="padding: 4px 8px; background: #0f0; color: #000; border: none; font-weight: bold; cursor: pointer; font-family: 'VT323';">SEND</button>
+        </div>
+    </div>
     
     <!-- Service Worker Registration -->
     <script>

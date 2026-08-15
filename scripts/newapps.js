@@ -3524,7 +3524,13 @@ function updateSignalBars(count) {
 window.showManualJoin = function() {
     document.getElementById('chatLanding').style.display = 'none';
     document.getElementById('chatManualZone').style.display = 'block';
-    sounds.click();
+    if(window.sounds && window.sounds.click) window.sounds.click();
+};
+
+window.tunePresetFreq = function(freq) {
+    const input = document.getElementById('chatTargetId');
+    if(input) input.value = freq;
+    window.chatManualConnect();
 };
 
 window.chatManualConnect = function() {
@@ -4089,5 +4095,89 @@ window.trollJumpToLevel = function() {
     if(frame.contentWindow && frame.contentWindow.loadTrollLevel) {
         frame.contentWindow.loadTrollLevel(lvl);
         sounds.launch();
+    }
+};
+
+// ========== HELP SYSTEM ==========
+window.initHelp = function() {
+    const container = document.getElementById('helpContent');
+    if(!container) return;
+    container.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 8px; color: var(--gb-text);">🕹️ HARDWARE CONTROLS</div>
+        <div style="line-height: 1.4; margin-bottom: 12px; opacity: 0.9;">
+            <b>D-PAD / ARROWS:</b> Navigate grid, move in games.<br>
+            <b>A BUTTON / ENTER / SPACE:</b> Launch app, select, action.<br>
+            <b>B BUTTON / ESC:</b> Back to Home screen.<br>
+            <b>SELECT / START:</b> System menu & shortcuts.
+        </div>
+        <div style="font-weight: bold; margin-bottom: 8px; color: var(--gb-text);">💡 CORE FEATURES</div>
+        <div style="line-height: 1.4; opacity: 0.9;">
+            🎤 <b>KARAOKE:</b> Live lyrics search & synchronized auto-scroller with pitch shift.<br>
+            🎹 <b>BEATS:</b> 8-track Tone.js drum & synth step sequencer with presets.<br>
+            ⚔️ <b>QUEST:</b> 10-level tile-based RPG adventure.<br>
+            📡 <b>BITCHAT:</b> P2P link-cable chat & games over WebRTC.
+        </div>
+// ========== LENIS & GSAP SMOOTH ANIMATIONS ==========
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        if(typeof Lenis !== 'undefined') {
+            const lenis = new Lenis({ duration: 1.2, easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+            function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+            requestAnimationFrame(raf);
+        }
+    } catch(e) {}
+});
+
+// ========== PERSISTENT FLOATING BITCHAT WIDGET ==========
+let isQuickChatOpen = false;
+
+window.toggleQuickChat = function() {
+    const box = document.getElementById('bitchatQuickBox');
+    if(!box) return;
+    isQuickChatOpen = !isQuickChatOpen;
+
+    if(isQuickChatOpen) {
+        box.style.display = 'flex';
+        if(typeof gsap !== 'undefined') {
+            gsap.fromTo(box, { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.25, ease: 'back.out(1.7)' });
+        }
+    } else {
+        if(typeof gsap !== 'undefined') {
+            gsap.to(box, { scale: 0.7, opacity: 0, duration: 0.15, onComplete: () => { box.style.display = 'none'; } });
+        } else {
+            box.style.display = 'none';
+        }
+    }
+};
+
+window.sendQuickMsg = function() {
+    const input = document.getElementById('bitchatQuickInput');
+    const log = document.getElementById('bitchatQuickLog');
+    if(!input || !log) return;
+    const msg = input.value.trim();
+    if(!msg) return;
+
+    const myNick = document.getElementById('chatNick')?.value || 'ME';
+    const entry = document.createElement('div');
+    entry.style.cssText = 'margin-bottom: 4px; padding: 2px 4px; background: rgba(0,255,0,0.1); border-radius: 3px;';
+    entry.innerHTML = `<b>${myNick}:</b> ${msg}`;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+    input.value = '';
+
+    // Broadcast over P2P if connected
+    if(window.gbConns && window.gbConns.length > 0) {
+        window.gbConns.forEach(c => {
+            if(c.open) c.send({ type: 'msg', content: msg, nick: myNick });
+        });
+    }
+    if(window.sounds && window.sounds.click) window.sounds.click();
+};
+
+window.sendQuickEmoji = function(emoji) {
+    const input = document.getElementById('bitchatQuickInput');
+    if(input) {
+        input.value += emoji;
+        window.sendQuickMsg();
     }
 };

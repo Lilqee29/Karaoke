@@ -130,10 +130,10 @@ window.startBrawl = function() {
         if(currentScreen !== 'brawl') return;
         if(e.key === 'ArrowLeft') player.x = Math.max(20, player.x - 10);
         if(e.key === 'ArrowRight') player.x = Math.min(300, player.x + 10);
-        if(e.key === 'z' || e.key === ' ') {
+        if(e.target.tagName !== 'INPUT' && (e.key === 'z' || e.key === 'x' || e.key === ' ' || e.key === 'Enter')) {
             if(player.state === 'idle') {
                 player.state = 'punch';
-                sounds.click();
+                if(window.sounds && window.sounds.click) window.sounds.click();
                 if(Math.abs(player.x - opponent.x) < 45) {
                     opponent.hp -= 5;
                     if(navigator.vibrate) navigator.vibrate(50);

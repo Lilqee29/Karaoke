@@ -451,3 +451,338 @@ window.clearBudget = function() {
         renderBudget();
     }
 };
+
+// ========== MERGED APP HUBS (v3.0) ==========
+
+// ── DAILY HUB (Time + Calendar + Zodiac) ───────────────────────────────────
+window.initDaily = function() {
+    const screen = document.getElementById('dailyScreen');
+    if(!screen) return;
+    const now = new Date();
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const month = months[now.getMonth()];
+    const date = now.getDate();
+    const year = now.getFullYear();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const mins = now.getMinutes().toString().padStart(2, '0');
+
+    // Calculate Zodiac
+    const day = now.getDate();
+    const m = now.getMonth() + 1;
+    let sign = "CAPRICORN ♑";
+    if ((m == 1 && day >= 20) || (m == 2 && day <= 18)) sign = "AQUARIUS ♒";
+    else if ((m == 2 && day >= 19) || (m == 3 && day <= 20)) sign = "PISCES ♓";
+    else if ((m == 3 && day >= 21) || (m == 4 && day <= 19)) sign = "ARIES ♈";
+    else if ((m == 4 && day >= 20) || (m == 5 && day <= 20)) sign = "TAURUS ♉";
+    else if ((m == 5 && day >= 21) || (m == 6 && day <= 20)) sign = "GEMINI ♊";
+    else if ((m == 6 && day >= 21) || (m == 7 && day <= 22)) sign = "CANCER ♋";
+    else if ((m == 7 && day >= 23) || (m == 8 && day <= 22)) sign = "LEO ♌";
+    else if ((m == 8 && day >= 23) || (m == 9 && day <= 22)) sign = "VIRGO ♍";
+    else if ((m == 9 && day >= 23) || (m == 10 && day <= 22)) sign = "LIBRA ♎";
+    else if ((m == 10 && day >= 23) || (m == 11 && day <= 21)) sign = "SCORPIO ♏";
+    else if ((m == 11 && day >= 22) || (m == 12 && day <= 21)) sign = "SAGITTARIUS ♐";
+
+    screen.innerHTML = `
+        <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; height: 100%; box-sizing: border-box;">
+            <!-- CLOCK CARD -->
+            <div style="background: rgba(15,56,15,0.15); border: 2px solid var(--gb-text); padding: 10px; text-align: center; border-radius: 4px;">
+                <div style="font-size: 24px; font-weight: bold; font-family: monospace;">${hours}:${mins}</div>
+                <div style="font-size: 8px; margin-top: 4px; opacity: 0.8;">${month} ${date}, ${year}</div>
+            </div>
+            <!-- ZODIAC CARD -->
+            <div style="background: rgba(15,56,15,0.1); border: 2px solid var(--gb-text); padding: 8px; text-align: center; border-radius: 4px;">
+                <div style="font-size: 7px; opacity: 0.7;">TODAY'S ZODIAC</div>
+                <div style="font-size: 10px; font-weight: bold; margin-top: 2px;">${sign}</div>
+                <div style="font-size: 6px; margin-top: 4px; opacity: 0.8;">LUCKY NO: ${(date * 7) % 99 + 1}</div>
+            </div>
+        </div>
+    `;
+};
+
+// ── VIBES HUB (Quotes, Jokes, Facts, Riddles with Copy) ───────────────────
+window.initVibes = function(type = 'quote') {
+    window.fetchVibes(type);
+};
+
+window.fetchVibes = async function(type) {
+    const display = document.getElementById('vibesText');
+    const typeLabel = document.getElementById('vibesTypeLabel');
+    if(!display) return;
+    display.textContent = 'FETCHING VIBES... 🌀';
+    if(typeLabel) typeLabel.textContent = type.toUpperCase();
+
+    try {
+        let text = '';
+        if(type === 'quote') {
+            const res = await fetch('https://api.quotable.io/random');
+            const data = await res.json();
+            text = `"${data.content}"\n\n— ${data.author}`;
+        } else if(type === 'joke') {
+            const res = await fetch('https://official-joke-api.appspot.com/random_joke');
+            const data = await res.json();
+            text = `${data.setup}\n\n😂 ${data.punchline}`;
+        } else if(type === 'fact' || type === 'cat') {
+            const res = await fetch('https://catfact.ninja/fact');
+            const data = await res.json();
+            text = `💡 ${data.fact}`;
+        } else {
+            text = "Stay curious, work hard, and make cool projects!";
+        }
+        display.textContent = text;
+    } catch(e) {
+        display.textContent = "Offline quote: 'Keep building and never stop learning.' — GameBoy OS";
+    }
+};
+
+window.copyVibes = function() {
+    const display = document.getElementById('vibesText');
+    if(!display || !display.textContent) return;
+    navigator.clipboard.writeText(display.textContent);
+    if(window.sounds && window.sounds.coin) window.sounds.coin();
+    alert('COPIED TO CLIPBOARD! 📋');
+};
+
+// ── HEALTH CALC HUB (BMI + BMR + Tip + Unit Converter) ──────────────────────
+window.calcBmiHub = function() {
+    const w = parseFloat(document.getElementById('hcWeight')?.value);
+    const h = parseFloat(document.getElementById('hcHeight')?.value) / 100;
+    const res = document.getElementById('hcBmiResult');
+    if(!w || !h || !res) return;
+    const bmi = (w / (h * h)).toFixed(1);
+    let category = "NORMAL";
+    if(bmi < 18.5) category = "UNDERWEIGHT";
+    else if(bmi >= 25 && bmi < 30) category = "OVERWEIGHT";
+    else if(bmi >= 30) category = "OBESE";
+    res.textContent = `BMI: ${bmi} (${category})`;
+};
+
+window.calcTipHub = function() {
+    const bill = parseFloat(document.getElementById('hcBill')?.value);
+    const pct = parseFloat(document.getElementById('hcTipPct')?.value) || 15;
+    const res = document.getElementById('hcTipResult');
+    if(!bill || !res) return;
+    const tip = (bill * (pct / 100)).toFixed(2);
+    const total = (bill + parseFloat(tip)).toFixed(2);
+    res.textContent = `TIP: $${tip} | TOTAL: $${total}`;
+};
+
+// ── NAVIGATOR HUB (Maps + Distance + Compass) ──────────────────────────────
+let navPins = [];
+window.initNavigator = function() {
+    navPins = [];
+    const res = document.getElementById('navDistResult');
+    if(res) res.textContent = "TAP TWO POINTS ON MAP TO MEASURE DISTANCE";
+};
+
+window.onNavMapClick = function(e) {
+    const rect = e.target.getBoundingClientRect();
+    const x = Math.round(e.clientX - rect.left);
+    const y = Math.round(e.clientY - rect.top);
+    navPins.push({ x, y });
+    
+    const res = document.getElementById('navDistResult');
+    if(navPins.length === 1 && res) {
+        res.textContent = `PIN 1 SET (${x}, ${y}). TAP SECOND PIN!`;
+    } else if(navPins.length >= 2 && res) {
+        const p1 = navPins[navPins.length - 2];
+        const p2 = navPins[navPins.length - 1];
+        const dist = Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y) * 12.5); // Approx km ratio
+        res.textContent = `DISTANCE: ~${dist} KM`;
+        if(window.sounds && window.sounds.coin) window.sounds.coin();
+    }
+};
+
+// ── UPGRADED PASSWORD GENERATOR (v3.0) ─────────────────────────────────────
+window.generatePassHub = function() {
+    const len = parseInt(document.getElementById('passLength')?.value) || 16;
+    const num = document.getElementById('passNums')?.checked;
+    const sym = document.getElementById('passSyms')?.checked;
+    const seed = document.getElementById('passSeed')?.value.trim() || '';
+
+    let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if(num) chars += "0123456789";
+    if(sym) chars += "!@#$%^&*()_+-=[]{}";
+
+    let password = "";
+    if(seed) {
+        // Deterministic or seeded prefix
+        password = seed.substring(0, Math.floor(len / 2));
+    }
+    for(let i = password.length; i < len; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    const out = document.getElementById('passOutput');
+    if(out) out.value = password;
+    if(window.sounds && window.sounds.coin) window.sounds.coin();
+};
+
+window.copyPassHub = function() {
+    const out = document.getElementById('passOutput');
+    if(!out || !out.value) return;
+    navigator.clipboard.writeText(out.value);
+    if(window.sounds && window.sounds.coin) window.sounds.coin();
+    alert('PASSWORD COPIED! 🔐');
+};
+
+// ── UPGRADED WEATHER (City Name + 5-Day Forecast) ─────────────────────────
+window.initWeather = function() {
+    window.fetchWeatherHub('Paris');
+};
+
+window.fetchWeatherHub = async function(city = 'Paris') {
+    const screen = document.getElementById('weatherScreen');
+    if(!screen) return;
+    screen.innerHTML = '<div style="text-align:center; padding: 20px; font-size: 8px;">CONNECTING TO WEATHER SATELLITE... ☀️</div>';
+
+    try {
+        // Geocode city name to lat/lon via Open-Meteo geocoding API
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+        const geoData = await geoRes.json();
+        
+        let lat = 48.8566, lon = 2.3522, cityName = "PARIS, FR";
+        if(geoData.results && geoData.results.length > 0) {
+            lat = geoData.results[0].latitude;
+            lon = geoData.results[0].longitude;
+            cityName = `${geoData.results[0].name.toUpperCase()}, ${geoData.results[0].country_code.toUpperCase()}`;
+        }
+
+        // Fetch forecast from Open-Meteo API
+        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
+        const weatherData = await weatherRes.json();
+        const current = weatherData.current_weather;
+
+        screen.innerHTML = `
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; height: 100%; box-sizing: border-box;">
+                <!-- SEARCH -->
+                <div style="display: flex; gap: 4px;">
+                    <input id="weatherCityInput" placeholder="CITY NAME..." value="${city}" style="flex: 1; font-size: 7px; padding: 4px;">
+                    <button onclick="fetchWeatherHub(document.getElementById('weatherCityInput').value)" style="padding: 4px 8px; font-size: 7px;">SEARCH</button>
+                </div>
+
+                <!-- MAIN DISPLAY -->
+                <div style="background: rgba(15,56,15,0.15); border: 2px solid var(--gb-text); padding: 10px; text-align: center; border-radius: 4px;">
+                    <div style="font-size: 8px; font-weight: bold; opacity: 0.8;">${cityName}</div>
+                    <div style="font-size: 28px; font-weight: bold; margin: 4px 0;">${Math.round(current.temperature)}°C</div>
+                    <div style="font-size: 7px;">WIND: ${current.windspeed} KM/H</div>
+                </div>
+
+                <!-- FORECAST -->
+                <div style="font-size: 7px; font-weight: bold; text-align: center; opacity: 0.8;">5-DAY FORECAST</div>
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; text-align: center; font-size: 6px;">
+                    ${weatherData.daily.temperature_2m_max.slice(0, 5).map((max, i) => `
+                        <div style="background: rgba(15,56,15,0.08); border: 1px solid var(--gb-text); padding: 4px; border-radius: 2px;">
+                            <div>DAY ${i+1}</div>
+                            <div style="font-weight: bold; margin-top: 2px;">${Math.round(max)}°</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    } catch(e) {
+        screen.innerHTML = '<div style="text-align:center; padding: 20px; font-size: 8px;">WEATHER SATELLITE OFFLINE 🌧️</div>';
+    }
+};
+
+// ── PAINT APP UNDO & CLEAR LOGIC ──────────────────────────────────────────
+let paintHistory = [];
+window.initPaint = function() {
+    const canvas = document.getElementById('paintCanvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    paintHistory = [];
+    
+    // Save initial state
+    paintHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+
+    let drawing = false;
+    canvas.onmousedown = canvas.ontouchstart = () => { drawing = true; };
+    canvas.onmouseup = canvas.ontouchend = () => {
+        if(drawing) {
+            drawing = false;
+            if(paintHistory.length >= 10) paintHistory.shift();
+            paintHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+        }
+    };
+
+    canvas.onmousemove = canvas.ontouchmove = (e) => {
+        if(!drawing) return;
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const x = (clientX - rect.left) * (canvas.width / rect.width);
+        const y = (clientY - rect.top) * (canvas.height / rect.height);
+        
+        ctx.fillStyle = document.getElementById('paintColor')?.value || '#000';
+        const size = parseInt(document.getElementById('brushSize')?.value) || 3;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+    };
+};
+
+window.paintFunc = function(action) {
+    const canvas = document.getElementById('paintCanvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    if(action === 'clear') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        paintHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+        if(window.sounds && window.sounds.click) window.sounds.click();
+    } else if(action === 'undo') {
+        if(paintHistory.length > 1) {
+            paintHistory.pop(); // Remove current state
+            const previous = paintHistory[paintHistory.length - 1];
+            ctx.putImageData(previous, 0, 0);
+            if(window.sounds && window.sounds.click) window.sounds.click();
+        }
+    }
+};
+
+// ── SYSTEM DATA BACKUP & RESTORE ───────────────────────────────────────────
+window.exportData = function() {
+    try {
+        const backup = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            backup[key] = localStorage.getItem(key);
+        }
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `GameBoy_OS_Backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        if(window.sounds && window.sounds.coin) window.sounds.coin();
+        alert('DATA BACKUP EXPORTED SUCCESSFULLY! 💾');
+    } catch(e) {
+        alert('EXPORT FAILED: ' + e.message);
+    }
+};
+
+window.importData = function() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const data = JSON.parse(evt.target.result);
+                Object.keys(data).forEach(key => localStorage.setItem(key, data[key]));
+                if(window.sounds && window.sounds.coin) window.sounds.coin();
+                alert('DATA RESTORED! RELOADING SYSTEM...');
+                location.reload();
+            } catch(err) {
+                alert('INVALID BACKUP FILE');
+            }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+};

@@ -1,203 +1,218 @@
-// ========== BIT-VOID: ENHANCED EDITION (v5.0 FULL AMONG US MECHANICS) ==========
-// Complete social deduction with smooth movement, tasks, vents, sabotage, and advanced AI. Refactored for Physical Console Keys.
+// ========== SIGNAL ZERO: A MURDER IN THE DEAD CHANNELS (v6.5 EXPANDED) ==========
+// Full Detective Case Files: Suspects, Forensics, P2P Co-Op Clue Sync & Accusations!
 
-const VOID_COLORS = [
-    { name: 'RED', primary: '#C51111', shadow: '#7A0838', dark: '#3F0E15' },
-    { name: 'BLUE', primary: '#132ED1', shadow: '#09158E', dark: '#0A0E2B' },
-    { name: 'GREEN', primary: '#117F2D', shadow: '#0A4D2E', dark: '#0B2818' },
-    { name: 'PINK', primary: '#ED54BA', shadow: '#A8166E', dark: '#42092B' },
-    { name: 'ORANGE', primary: '#F07D0D', shadow: '#B33E15', dark: '#3D1F0F' },
-    { name: 'YELLOW', primary: '#F5F557', shadow: '#C38823', dark: '#423919' },
-    { name: 'PURPLE', primary: '#6B2FBB', shadow: '#3B177C', dark: '#1E0B3D' },
-    { name: 'CYAN', primary: '#38FEDC', shadow: '#24A8BE', dark: '#13424A' }
+const MYSTERY_SUSPECTS = {
+    aris: {
+        name: "DR. ARIS",
+        role: "HEAD QUANTUM PHYSICIST",
+        motive: "Stole Tachyon Buffer blueprints to patent time-messaging.",
+        location: "Mess Hall (02:30 AM)",
+        alibi: "Claims he was talking to Vance in Mess Hall at 02:30 AM.",
+        status: "SUSPECT ⚠️"
+    },
+    carter: {
+        name: "ENGINEER CARTER",
+        role: "REACTOR & LIFE SUPPORT LEAD",
+        motive: "Tampered with reactor voltage grid at 00:50 AM.",
+        location: "Reactor Lower Level (01:00 AM)",
+        alibi: "Claims he was fixing oxygen scrubbers.",
+        status: "SUSPECT ⚠️"
+    },
+    rex: {
+        name: "COMMANDER REX",
+        role: "SECURITY CHIEF",
+        motive: "Covering up classified Tachyon test failures.",
+        location: "Control Deck (01:00 AM)",
+        alibi: "Claims he was monitoring array communications.",
+        status: "SUSPECT ⚠️"
+    },
+    vance: {
+        name: "DR. EVELYN VANCE",
+        role: "VICTIM / CHIEF RESEARCHER",
+        motive: "Attempted to destroy Tachyon Buffer to stop time loop.",
+        location: "Reactor Core (Found 04:12 AM)",
+        alibi: "Autopsy confirms death at 01:00 AM.",
+        status: "DECEASED 💀"
+    }
+};
+
+const MYSTERY_EVIDENCE = [
+    { id: "e1", title: "AUTOPSY REPORT", detail: "Death by high-voltage pulse at 01:00 AM. Wristwatch melted at 01:00:14 AM." },
+    { id: "e2", title: "KEYCARD CHIP #4092", detail: "Timestamped 03:45 AM (Future Time). Contains encrypted message from your key." },
+    { id: "e3", title: "CCTV LOG (MESS HALL)", detail: "Footage at 02:30 AM shows Aris talking to a shimmering holographic projection." },
+    { id: "e4", title: "TACHYON BUFFER LOG", detail: "Outgoing 12-second transmission sent to 4 hours in the past by Chief Investigator." }
 ];
 
-const VOID_MAP = {
-    width: 800,
-    height: 600,
-    rooms: [
-        { 
-            name: 'CAFETERIA', x: 250, y: 200, w: 180, h: 140, 
-            color: '#3d4d1a', tasks: ['TRASH', 'WIRES'], 
-            doors: [{x: 340, y: 200, w: 20, h: 5, to: 'UPPER_HALL'}],
-            emergency: { x: 340, y: 270 }
-        },
-        { 
-            name: 'WEAPONS', x: 560, y: 200, w: 120, h: 100, 
-            color: '#4d1a3d', tasks: ['ASTEROIDS'],
-            doors: [{x: 560, y: 250, w: 5, h: 20, to: 'UPPER_HALL'}],
-            vent: { x: 600, y: 250 }
-        },
-        { 
-            name: 'O2', x: 560, y: 350, w: 120, h: 100, 
-            color: '#1a4d4d', tasks: ['FILTER'],
-            doors: [{x: 560, y: 400, w: 5, h: 20, to: 'LOWER_HALL'}],
-            vent: { x: 600, y: 400 }
-        },
-        { 
-            name: 'NAV', x: 560, y: 80, w: 120, h: 80, 
-            color: '#1a4d2e', tasks: ['CHART', 'STEER'],
-            doors: [{x: 560, y: 120, w: 5, h: 20, to: 'UPPER_HALL'}]
-        },
-        { 
-            name: 'SHIELDS', x: 560, y: 490, w: 120, h: 90, 
-            color: '#1a1a4d', tasks: ['PRIME'],
-            doors: [{x: 560, y: 530, w: 5, h: 20, to: 'LOWER_HALL'}],
-            vent: { x: 600, y: 530 }
-        },
-        { 
-            name: 'COMMS', x: 80, y: 350, w: 120, h: 100, 
-            color: '#1a4d2e', tasks: ['DOWNLOAD'],
-            doors: [{x: 200, y: 400, w: 5, h: 20, to: 'LOWER_HALL'}]
-        },
-        { 
-            name: 'STORAGE', x: 80, y: 490, w: 120, h: 90, 
-            color: '#1a3d4d', tasks: ['FUEL'],
-            doors: [{x: 200, y: 530, w: 5, h: 20, to: 'LOWER_HALL'}]
-        },
-        { 
-            name: 'REACTOR', x: 80, y: 200, w: 120, h: 100, 
-            color: '#4d1a1a', tasks: ['MANIFOLD', 'UNLOCK'],
-            doors: [{x: 200, y: 250, w: 5, h: 20, to: 'UPPER_HALL'}],
-            vent: { x: 120, y: 250 }
-        },
-        { 
-            name: 'MEDBAY', x: 80, y: 80, w: 120, h: 80, 
-            color: '#1a4d2e', tasks: ['SCAN', 'SAMPLE'],
-            doors: [{x: 200, y: 120, w: 5, h: 20, to: 'UPPER_HALL'}]
-        }
-    ],
-    corridors: [
-        { name: 'UPPER_HALL', points: [200, 80, 560, 80, 560, 340, 430, 340, 430, 200, 200, 200] },
-        { name: 'LOWER_HALL', points: [200, 340, 560, 340, 560, 580, 200, 580] }
-    ],
-    ventNetwork: [
-        ['REACTOR', 'WEAPONS'],
-        ['WEAPONS', 'O2'],
-        ['O2', 'SHIELDS'],
-        ['SHIELDS', 'REACTOR']
-    ]
-};
-
-const VOID_TASKS = {
-    TRASH: { type: 'hold', duration: 3000, icon: '🗑️' },
-    WIRES: { type: 'sequence', codes: ['RED', 'BLUE', 'YELLOW'], duration: 4000, icon: '🔌' },
-    ASTEROIDS: { type: 'skill', targets: 10, duration: 8000, icon: '🎯' },
-    FILTER: { type: 'hold', duration: 4000, icon: '💨' },
-    CHART: { type: 'instant', duration: 1500, icon: '🗺️' },
-    STEER: { type: 'hold', duration: 2500, icon: '🎮' },
-    PRIME: { type: 'sequence', codes: [1,2,3], duration: 3000, icon: '🛡️' },
-    DOWNLOAD: { type: 'progress', duration: 7000, icon: '📥' },
-    FUEL: { type: 'hold', duration: 3500, icon: '⛽' },
-    MANIFOLD: { type: 'sequence', codes: [1,2,3,4], duration: 4000, icon: '⚙️' },
-    UNLOCK: { type: 'hold', duration: 5000, icon: '🔓' },
-    SCAN: { type: 'progress', duration: 8000, icon: '🔬' },
-    SAMPLE: { type: 'instant', duration: 2000, icon: '🧪' }
-};
-
-let voidState = {
-    x: 340, y: 270,
-    velocityX: 0, velocityY: 0,
-    facing: 'right',
-    currentRoom: 'CAFETERIA',
-    isAlive: true,
-    myRole: 'DECODER',
-    myColor: null,
-    killCooldown: 0,
-    players: [],
-    deadBodies: [],
-    taskProgress: { completed: 0, total: 0 },
-    myTasks: [],
-    activeTask: null,
-    meetingActive: false,
-    meetingTimer: 0,
-    votes: {},
-    hasVoted: false,
-    inVent: false,
-    ventLocation: null,
-    animFrame: 0,
-    cameraX: 0, cameraY: 0,
-    visiblePlayers: new Set(),
-    aiInterval: null,
-    moveSpeed: 3,
-    friction: 0.85,
-    keys: {}
-};
+let unlockedClues = new Set(["e1"]);
+let activeTab = "STORY";
+let currentMysteryNode = "start";
 
 window.initVoid = function() {
-    P2PGameEngine.launch('void', 'BIT-VOID');
+    window.startMystery();
 };
 
-window.startVoid = function() {
-    document.getElementById('voidIntro').style.display = 'flex';
-};
+window.startMystery = function() {
+    activeTab = "STORY";
+    currentMysteryNode = "start";
 
-window.hideVoidIntro = function() {
-    document.getElementById('voidIntro').style.display = 'none';
-    initVoidGame();
-};
+    // Asymmetric Clue Assignment for Co-Op mode!
+    const isCoOp = window.gbConns && window.gbConns.length > 0;
+    const isPeer = P2PGameEngine && P2PGameEngine.isPeer;
 
-function initVoidGame() {
-    const canvas = document.getElementById('voidCanvas');
-    if (!canvas) return;
-
-    voidState.x = 340; voidState.y = 270;
-    voidState.isAlive = true;
-    voidState.meetingActive = false;
-    voidState.inVent = false;
-    voidState.deadBodies = [];
-    voidState.killCooldown = 0;
-
-    const myNick = document.getElementById('chatNick')?.value || 'PLAYER';
-    voidState.myColor = VOID_COLORS[Math.floor(Math.random() * VOID_COLORS.length)];
-    
-    voidState.players = [{
-        name: myNick, x: 340, y: 270, color: voidState.myColor,
-        isAlive: true, isMe: true, role: 'DECODER', facing: 'right', currentRoom: 'CAFETERIA'
-    }];
-
-    assignPlayerTasks();
-
-    if (P2PGameEngine.isSolo) {
-        initSoloAI();
+    if(isCoOp) {
+        if(isPeer) {
+            // Player 2 gets Even Clues (Keycard & Tachyon Buffer)
+            unlockedClues = new Set(["e2", "e4"]);
+        } else {
+            // Player 1 (Host) gets Odd Clues (Autopsy & CCTV Log)
+            unlockedClues = new Set(["e1", "e3"]);
+        }
     } else {
-        setupP2PSync();
+        // Solo Mode: Starts with Autopsy Report, unlocks the rest as story progresses
+        unlockedClues = new Set(["e1"]);
     }
 
-    setupEnhancedControls();
+    renderMysteryUI();
+};
 
-    if (voidState.aiInterval) clearInterval(voidState.aiInterval);
-    voidState.aiInterval = setInterval(updateGameLogic, 100);
+function renderMysteryUI() {
+    const screen = document.getElementById('voidScreen');
+    if(!screen) return;
 
-    requestAnimationFrame(enhancedGameLoop);
-    updateVoidUI();
-    logVoid("MISSION START: SYSTEM ONLINE.");
+    let tabContent = "";
+    if(activeTab === "STORY") tabContent = getStoryHTML();
+    else if(activeTab === "SUSPECTS") tabContent = getSuspectsHTML();
+    else if(activeTab === "FORENSICS") tabContent = getForensicsHTML();
+    else if(activeTab === "ACCUSE") tabContent = getAccuseHTML();
+
+    screen.innerHTML = `
+        <div style="padding: 8px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; background: #000; color: #0f0; font-family: 'VT323', monospace;">
+            <!-- DOSSIER TABS -->
+            <div style="display: flex; gap: 2px; margin-bottom: 6px; flex-shrink: 0;">
+                <button onclick="switchMysteryTab('STORY')" style="flex: 1; font-size: 6px; padding: 4px; background: ${activeTab==='STORY'?'#0f0':'#111'}; color: ${activeTab==='STORY'?'#000':'#0f0'}; border: 1px solid #0f0;">📜 STORY</button>
+                <button onclick="switchMysteryTab('SUSPECTS')" style="flex: 1; font-size: 6px; padding: 4px; background: ${activeTab==='SUSPECTS'?'#0f0':'#111'}; color: ${activeTab==='SUSPECTS'?'#000':'#0f0'}; border: 1px solid #0f0;">🕵️ SUSPECTS</button>
+                <button onclick="switchMysteryTab('FORENSICS')" style="flex: 1; font-size: 6px; padding: 4px; background: ${activeTab==='FORENSICS'?'#0f0':'#111'}; color: ${activeTab==='FORENSICS'?'#000':'#0f0'}; border: 1px solid #0f0;">🔬 CLUES (${unlockedClues.size})</button>
+                <button onclick="switchMysteryTab('ACCUSE')" style="flex: 1; font-size: 6px; padding: 4px; background: ${activeTab==='ACCUSE'?'#f00':'#200'}; color: #fff; border: 1px solid #f00;">⚖️ ACCUSE</button>
+            </div>
+
+            <div style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+                ${tabContent}
+            </div>
+
+            <!-- BITCHAT P2P SHARE FOOTER -->
+            <div style="margin-top: 6px; padding-top: 4px; border-top: 1px dashed #0f04; display: flex; justify-content: space-between; align-align: center; font-size: 6px;">
+                <span>P2P LINK: ${window.gbConns && window.gbConns.length > 0 ? 'CONNECTED 🟢' : 'SOLO MODE 🟡'}</span>
+                <button onclick="shareCluesP2P()" style="font-size: 5px; padding: 2px 6px; background: transparent; color: #0f0; border: 1px solid #0f0;">📡 SHARE CLUES VIA BITCHAT</button>
+            </div>
+        </div>
+    `;
 }
 
-function assignPlayerTasks() {
-    const available = [];
-    VOID_MAP.rooms.forEach(room => {
-        if (room.tasks) room.tasks.forEach(t => available.push({ name: t, room: room.name, completed: false }));
-    });
-    voidState.myTasks = available.sort(() => Math.random() - 0.5).slice(0, 5);
-    voidState.taskProgress.total = voidState.myTasks.length;
-    voidState.taskProgress.completed = 0;
+function getStoryHTML() {
+    const node = MYSTERY_NODES[currentMysteryNode] || MYSTERY_NODES.start;
+    let choicesHtml = node.choices.map((c) => `
+        <button onclick="selectMysteryChoice('${c.next}')" style="width: 100%; text-align: left; padding: 6px; font-family: 'VT323', monospace; font-size: 8px; background: rgba(0,255,0,0.1); color: #0f0; border: 1px solid #0f0; margin-bottom: 4px; cursor: pointer;">
+            ${c.label}
+        </button>
+    `).join('');
+
+    return `
+        <div style="font-size: 10px; font-weight: bold; border-bottom: 1px solid #0f0; padding-bottom: 2px; margin-bottom: 4px;">${node.title}</div>
+        <div style="font-size: 6px; opacity: 0.7; margin-bottom: 4px; color: #ffa;">[LOG: ${node.speaker}]</div>
+        <div style="font-size: 8px; line-height: 1.3; flex: 1; overflow-y: auto; white-space: pre-wrap; margin-bottom: 6px; background: rgba(0,20,0,0.8); padding: 6px; border: 1px solid #0f03;">
+            ${node.text}
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+            ${choicesHtml}
+        </div>
+    `;
 }
 
-function setupEnhancedControls() {
-    document.addEventListener('keydown', (e) => {
-        voidState.keys[e.key] = true;
-        
-        // Physical Buttons Mapping
-        // A -> 'z', B -> 'x' (from app.js dispatch)
-        if (e.key === 'z') { // A Button: Task / Kill / Vent Use / Vote
-            if (voidState.meetingActive) {
-                // Voting handled in render loop click or key selection
-                // For simplicity, we keep click for voting or use D-pad to select
-            } else {
-                const task = checkNearbyTask();
-                if (task) startTask(task);
-                else if (voidState.myRole === 'GLITCH') {
+function getSuspectsHTML() {
+    return Object.values(MYSTERY_SUSPECTS).map(s => `
+        <div style="background: rgba(0,30,0,0.8); border: 1px solid #0f0; padding: 6px; margin-bottom: 6px; border-radius: 3px; font-size: 7px;">
+            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 8px; color: #0f0;">
+                <span>${s.name}</span>
+                <span style="color: #ffa;">${s.status}</span>
+            </div>
+            <div style="opacity: 0.8; margin-top: 2px;">ROLE: ${s.role}</div>
+            <div style="opacity: 0.8;">ALIBI: ${s.alibi}</div>
+            <div style="color: #f88; margin-top: 2px;">MOTIVE: ${s.motive}</div>
+        </div>
+    `).join('');
+}
+
+function getForensicsHTML() {
+    const isCoOp = window.gbConns && window.gbConns.length > 0;
+    const coOpBanner = isCoOp ? `
+        <div style="background: rgba(0,255,0,0.15); border: 1px solid #0f0; padding: 4px; margin-bottom: 6px; font-size: 6px; color: #ffa; text-align: center;">
+            📡 <b>ASYMMETRIC CO-OP ACTIVE:</b> You hold 2 clues; your partner holds the other 2! Use the floating 💬 button to compare findings!
+        </div>
+    ` : '';
+
+    const cluesList = MYSTERY_EVIDENCE.map(e => {
+        const isUnlocked = unlockedClues.has(e.id);
+        return `
+            <div style="background: ${isUnlocked ? 'rgba(0,40,0,0.8)' : 'rgba(20,20,20,0.8)'}; border: 1px solid ${isUnlocked ? '#0f0' : '#444'}; padding: 6px; margin-bottom: 6px; border-radius: 3px; font-size: 7px;">
+                <div style="font-weight: bold; font-size: 8px; color: ${isUnlocked ? '#0f0' : '#666'};">
+                    ${isUnlocked ? '🔓 ' + e.title : '🔒 LOCKED CLUE'}
+                </div>
+                <div style="opacity: 0.9; margin-top: 3px; line-height: 1.3;">
+                    ${isUnlocked ? e.detail : 'Investigate scene or request clue from Co-Op partner.'}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return coOpBanner + cluesList;
+}
+
+function getAccuseHTML() {
+    return `
+        <div style="padding: 6px; text-align: center; font-size: 8px;">
+            <div style="font-size: 10px; font-weight: bold; color: #f00; margin-bottom: 6px;">⚖️ FINAL DEDUCTION TERMINAL</div>
+            <div style="margin-bottom: 10px; opacity: 0.8;">SELECT THE CULPRIT RESPONSIBLE FOR THE PARADOX:</div>
+            
+            <button onclick="accuseCulprit('aris')" style="width: 100%; padding: 8px; margin-bottom: 6px; background: #200; color: #fff; border: 1px solid #f00; font-family: 'VT323';">ACCUSE DR. ARIS (STOLE TACHYON DATA)</button>
+            <button onclick="accuseCulprit('carter')" style="width: 100%; padding: 8px; margin-bottom: 6px; background: #200; color: #fff; border: 1px solid #f00; font-family: 'VT323';">ACCUSE ENGINEER CARTER (REACTOR VOLTAGE)</button>
+            <button onclick="accuseCulprit('paradox')" style="width: 100%; padding: 8px; background: #040; color: #0f0; border: 1px solid #0f0; font-family: 'VT323';">EXPOSE THE TEMPORAL LOOP (FUTURE SELF)</button>
+        </div>
+    `;
+}
+
+window.switchMysteryTab = function(tab) {
+    activeTab = tab;
+    renderMysteryUI();
+};
+
+window.selectMysteryChoice = function(nextNodeKey) {
+    currentMysteryNode = nextNodeKey;
+    if(nextNodeKey === "body") unlockedClues.add("e1");
+    if(nextNodeKey === "keycard") unlockedClues.add("e2");
+    if(nextNodeKey === "cctv") unlockedClues.add("e3");
+    if(nextNodeKey === "terminal" || nextNodeKey === "paradox") unlockedClues.add("e4");
+    renderMysteryUI();
+};
+
+window.accuseCulprit = function(culprit) {
+    if(culprit === 'paradox') {
+        alert("CORRECT DEDUCTION! 🏆\n\nYou proved Evelyn Vance was killed by a temporal voltage feedback loop caused by your future self's transmission!\n\nCASE RESOLVED: TIME LOOP CLOSED!");
+    } else {
+        alert("INCORRECT ACCUSATION! ❌\n\nYour accusation caused a paradox cascade! The temporal loop resets...");
+        window.startMystery();
+    }
+};
+
+window.shareCluesP2P = function() {
+    if(window.gbConns && window.gbConns.length > 0) {
+        window.gbConns.forEach(c => {
+            if(c.open) c.send({ type: 'msg', content: `[MYSTERY CLUE SHARE] Unlocked ${unlockedClues.size}/4 clues in Signal Zero!`, nick: 'INVESTIGATOR' });
+        });
+        alert("CLUES SHARED WITH BITCHAT PEERS! 📡");
+    } else {
+        alert("NO ACTIVE BITCHAT CONNECTION. LINK DEVICES VIA BITCHAT TO CO-OP!");
+    }
+};
                     if (voidState.inVent) toggleVent();
                     else {
                         const nearVent = checkNearVent();

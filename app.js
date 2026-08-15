@@ -1,7 +1,7 @@
 // ========== MAIN APP LOADER (v3.0 - STREAMLINED) ==========
 
 const apps = [
-    // ── CORE GAMES (Keep - High Engagement) ──────────────────────────────
+    // ── CORE GAMES ────────────────────────────────────────────────────────
     { id: 'karaoke', name: 'KARAOKE', icon: '🎤' },
     { id: 'snake', name: 'SNAKE', icon: '🐍' },
     { id: 'flappy', name: 'FLAPPY', icon: '🐦' },
@@ -12,22 +12,20 @@ const apps = [
     { id: 'rps', name: 'R-P-S', icon: '✂️' },
     { id: 'mines', name: 'MINES', icon: '💣' },
     { id: '2048', name: '2048', icon: '🔢' },
-    
-    // ── PRODUCTIVITY (Enhanced) ───────────────────────────────────────────
+
+    // ── PRODUCTIVITY ──────────────────────────────────────────────────────
     { id: 'todo', name: 'TO-DO', icon: '📝' },
     { id: 'notes', name: 'NOTES', icon: '📒' },
     { id: 'calc', name: 'CALC', icon: '🔢' },
     { id: 'timer', name: 'TIMER', icon: '⏲️' },
     { id: 'stopwatch', name: 'CHRONO', icon: '⏱️' },
-    { id: 'counter', name: 'COUNT', icon: '🔢' },
     { id: 'pomo', name: 'POMO', icon: '🍅' },
-    { id: 'habit', name: 'HABIT', icon: '✅' },        // NEW
-    { id: 'speed', name: 'SPEED', icon: '⏩' },       // NEW
-    { id: 'journal', name: 'JOURNAL', icon: '📔' },   // NEW
-    { id: 'workout', name: 'WORKOUT', icon: '💪' },   // NEW
-    { id: 'study', name: 'STUDY', icon: '🎓' },       // NEW
-    { id: 'budget', name: 'BUDGET', icon: '💰' },     // NEW
-    
+    { id: 'habit', name: 'HABIT', icon: '✅' },
+    { id: 'speed', name: 'SPEED', icon: '⏩' },
+    { id: 'workout', name: 'WORKOUT', icon: '💪' },
+    { id: 'study', name: 'STUDY', icon: '🎓' },
+    { id: 'budget', name: 'BUDGET', icon: '💰' },
+
     // ── CREATIVE ──────────────────────────────────────────────────────────
     { id: 'paint', name: 'PAINT', icon: '🎨' },
     { id: 'pixel', name: 'PIXEL', icon: '🖌️' },
@@ -35,7 +33,7 @@ const apps = [
     { id: 'groove', name: 'GROOVE', icon: '🥁' },
     { id: 'music', name: 'MUSIC', icon: '🎵' },
     { id: 'radio', name: 'RADIO', icon: '📻' },
-    
+
     // ── INFORMATION & LEARNING ────────────────────────────────────────────
     { id: 'news', name: 'NEWS', icon: '📰' },
     { id: 'weather', name: 'WEATH', icon: '☀️' },
@@ -45,89 +43,62 @@ const apps = [
     { id: 'book', name: 'BOOKS', icon: '📚' },
     { id: 'trivia', name: 'TRIVIA', icon: '❓' },
     { id: 'pokedex', name: 'DEX', icon: '🔴' },
-    { id: 'space', name: 'SPACE', icon: '🚀' },
     { id: 'nasa', name: 'COSMOS', icon: '🌌' },
     { id: 'elem', name: 'CHEM', icon: '⚛️' },
-    
+
     // ── FUN & ENTERTAINMENT ───────────────────────────────────────────────
-    { id: 'joke', name: 'JOKES', icon: '😂' },
-    { id: 'fact', name: 'FACTS', icon: '💡' },
-    { id: 'meme', name: 'MEME', icon: '😹' },
-    { id: 'catfact', name: 'CATS', icon: '🐱' },
-    { id: 'quote', name: 'QUOTE', icon: '❝' },
-    { id: 'advice', name: 'SAGE', icon: '🧙' },
-    { id: 'fortune', name: 'FORTUNE', icon: '🥠' },
-    { id: 'riddle', name: 'RIDDLE', icon: '❓' },
-    { id: 'zodiac', name: 'ZODIAC', icon: '♈' },
+    { id: 'vibes', name: 'VIBES', icon: '✨' },
     { id: 'cocktail', name: 'DRINK', icon: '🍸' },
-    
+
     // ── MINI GAMES ────────────────────────────────────────────────────────
     { id: 'guess', name: 'GUESS', icon: '🔢' },
     { id: 'reaction', name: 'FAST', icon: '⚡' },
     { id: 'coin', name: 'FLIP', icon: '🪙' },
     { id: 'dice', name: 'DICE', icon: '🎲' },
-    { id: 'ball', name: '8-BALL', icon: '🎱' },
-    { id: 'miner', name: 'MINER', icon: '💎' },
-    { id: 'pet', name: 'PET', icon: '🐱' },
-    { id: 'flash', name: 'CARDS', icon: '🎴' },
-    
+
     // ── UTILITY TOOLS ─────────────────────────────────────────────────────
-    { id: 'clock', name: 'TIME', icon: '🕒' },
-    { id: 'calendar', name: 'CAL', icon: '📅' },
-    { id: 'compass', name: 'COMPASS', icon: '🧭' },
-    { id: 'contacts', name: 'PHONE', icon: '📔' },
+    { id: 'daily', name: 'DAILY', icon: '📅' },
+    { id: 'health', name: 'HEALTH', icon: '⚖️' },
+    { id: 'navigator', name: 'NAV', icon: '🗺️' },
     { id: 'qr', name: 'QR', icon: '📱' },
-    { id: 'scan', name: 'SCAN', icon: '🔍' },
     { id: 'alerts', name: 'ALARM', icon: '⏰' },
-    { id: 'bmi', name: 'BMI', icon: '⚖️' },
-    { id: 'bmr', name: 'BMR', icon: '🔥' },
-    { id: 'unit', name: 'UNITS', icon: '📏' },
-    { id: 'tip', name: 'TIP', icon: '💸' },
-    { id: 'bin', name: 'BIN', icon: '01' },
     { id: 'pass', name: 'PASS', icon: '🔑' },
     { id: 'regex', name: 'REGEX', icon: '🔠' },
     { id: 'ascii', name: 'ART', icon: '🖼️' },
-    
+
     // ── WELLNESS ──────────────────────────────────────────────────────────
     { id: 'breathe', name: 'CALM', icon: '🌬️' },
-
     { id: 'water', name: 'H2O', icon: '💧' },
-    
-    // ── ADVANCED/TECH ─────────────────────────────────────────────────────
+
+    // ── ADVANCED / TECH ───────────────────────────────────────────────────
     { id: 'stock', name: 'STOCK', icon: '📈' },
     { id: 'ip', name: 'NET', icon: '🌐' },
     { id: 'camera', name: 'CAM', icon: '📷' },
     { id: 'currency', name: 'EXCH', icon: '💱' },
-    { id: 'flashlight', name: 'BEAM', icon: '🔦' },
-    { id: 'level', name: 'LEVEL', icon: '📏' },
     { id: 'sos', name: 'S.O.S', icon: '🆘' },
-    { id: 'term', name: 'ZSH', icon: '💻' },
+    { id: 'term', name: 'TERM', icon: '💻' },
     { id: 'morse', name: 'MORSE', icon: '📡' },
-    { id: 'sfx', name: 'SFX', icon: '🔊' },
-    { id: 'emulator', name: 'RETRO', icon: '💾' },
-    
-    // ── SPECIAL/UNIQUE ────────────────────────────────────────────────────
-    { id: 'vault', name: 'VAULT', icon: '🔐' },
-    { id: 'world', name: 'WORLD', icon: '🌍' },
+
+    // ── SPECIAL / UNIQUE ──────────────────────────────────────────────────
     { id: 'map', name: 'MAPS', icon: '🗺️' },
-    { id: 'quests', name: 'QUESTS', icon: '⚔️' },
-    { id: 'bored', name: 'IDEAS', icon: '💡' },
+    { id: 'bored', name: 'BORED', icon: '💡' },
     { id: 'idle', name: 'IDLE', icon: '⛏️' },
     { id: 'chat', name: 'BITCHAT', icon: '📡' },
-    
+
     // ── P2P MULTIPLAYER GAMES ─────────────────────────────────────────────
     { id: 'chess', name: 'TACTIC', icon: '♟️' },
     { id: 'brawl', name: 'BRAWL', icon: '🥋' },
     { id: 'racer', name: 'RACER', icon: '🏁' },
     { id: 'duel', name: 'DUEL', icon: '🚀' },
     { id: 'sync', name: 'PULSE', icon: '⚡' },
-    { id: 'void', name: 'VOID', icon: '👽' },
+    { id: 'void', name: 'MYSTERY', icon: '🔍' },
     { id: 'troll', name: 'TROLL', icon: '👺' },
-    
-    // ── ADVENTURE (Enhanced) ──────────────────────────────────────────────
-    { id: 'adventure', name: 'QUEST', icon: '🗺️' },
-    
+
+    // ── ADVENTURE ─────────────────────────────────────────────────────────
+    { id: 'adventure', name: 'QUEST', icon: '⚔️' },
+
     // ── SYSTEM ────────────────────────────────────────────────────────────
+    { id: 'help', name: 'HELP', icon: '❓' },
     { id: 'credits', name: 'INFO', icon: 'ℹ️' },
     { id: 'settings', name: 'SETUP', icon: '⚙️' }
 ];

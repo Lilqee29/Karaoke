@@ -197,7 +197,7 @@ window.startDuel = function() {
             ship.x += Math.cos(ship.rot * Math.PI/180) * 5;
             ship.y += Math.sin(ship.rot * Math.PI/180) * 5;
         }
-        if(e.target.tagName !== 'INPUT' && (e.key === 'z' || e.key === ' ')) {
+        if(e.target.tagName !== 'INPUT' && (e.key === 'z' || e.key === 'x' || e.key === ' ' || e.key === 'Enter')) {
             spawnBullet(ship.x, ship.y, ship.rot, true);
             if(!P2PGameEngine.isSolo) {
                 P2PGameEngine.send({ x: ship.x, y: ship.y, rot: ship.rot, hp: ship.hp, fire: true });

@@ -135,9 +135,9 @@ window.startRacer = function() {
 
     const handleInput = (e) => {
         if(currentScreen !== 'racer') return;
-        if(e.target.tagName !== 'INPUT' && (e.key === 'z' || e.key === ' ')) {
+        if(e.target.tagName !== 'INPUT' && (e.key === 'z' || e.key === 'x' || e.key === 'ArrowUp' || e.key === ' ' || e.key === 'Enter')) {
             me.speed = Math.min(25, me.speed + 1.2);
-            sounds.click();
+            if(window.sounds && window.sounds.click) window.sounds.click();
             if(navigator.vibrate) navigator.vibrate(20);
         }
     };
