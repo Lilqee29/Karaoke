@@ -4653,3 +4653,25 @@ window.sendQuickEmoji = function(emoji) {
         window.sendQuickMsg();
     }
 };
+
+// ========== FIGLET ASCII ART ==========
+window.genAscii = function(text) {
+    if(!text) return;
+    const art = figlet.textSync(text, { font: 'Standard', horizontalLayout: 'default' });
+    const artDiv = document.getElementById('asciiArt');
+    if(artDiv) artDiv.textContent = art.replace(/\n/g, '<br>');
+};
+
+window.genRandomAscii = function() {
+    const arts = [
+        `(o_o)\n (v)\n/| |\\`,
+        `/\\_/\\\n( o.o )\n > ^ <`,
+        ` __      _\n o'')}____//\n \`_/      )\n (_(_/-(_/`,
+        `   |\\__/,|   (\`\\\n _.|o o  |_   ) )\n-(((---(((--------`,
+        `      /\\\n     /  \\\n    /____\\\n   (      )\n   |______|`
+    ];
+    const art = arts[Math.floor(Math.random() * arts.length)];
+    const artDiv = document.getElementById('asciiArt');
+    if(artDiv) artDiv.innerHTML = art.replace(/\n/g, '<br>');
+};
+'
