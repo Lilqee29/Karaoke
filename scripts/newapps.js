@@ -515,7 +515,172 @@ function renderTransHistory() {
 }
 function initStock() {
     const c = document.getElementById('stockCanvas'); if(!c) return; const ctx = c.getContext('2d');
-    ctx.strokeStyle = '#0f0'; ctx.beginPath(); ctx.moveTo(0, 100); for(let i=1; i<20; i++) ctx.lineTo(i * 15, Math.random() * 100); ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#0f380f';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ENTER TICKER ABOVE', c.width/2, c.height/2);
+}
+
+window.fetchStock = async function(ticker = 'AAPL') {
+    const currEl = document.getElementById('stockCurrent');
+    const companyEl = document.getElementById('stockCompany');
+    const canvas = document.getElementById('stockCanvas');
+    if(!currEl || !companyEl || !canvas) return;
+    
+    currEl.textContent = "LOADING...";
+    companyEl.textContent = "";
+    currEl.style.display = 'block';
+    companyEl.style.display = 'block';
+    
+    try {
+        const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=7d`);
+        const data = await res.json();
+        const chart = data.chart?.result?.[0] || {};
+        const quotes = chart?.indicators?.quote?.[0] || [];
+        const closes = chart?.indicators?.close?.[0] || [];
+        
+        if(quotes.length > 0) {
+            const lastClose = quotes[quotes.length - 1].close;
+            const lastIdx = quotes.length - 1;
+            
+            currEl.textContent = lastClose !== undefined && lastClose !== null ? `$${lastClose.toFixed(2)}` : "N/A";
+            
+            // Get company name from summary detail if available
+            const meta = chart?.result?.[0]?.meta || {};
+            companyEl.textContent = meta?.shortName || meta?.longName || ticker;
+            
+            drawSparkline(ctx, closes, c.width, c.height);
+        } else {
+            currEl.textContent = "NO DATA";
+        }
+    } catch(e) {
+        currEl.textContent = "ERROR";
+        companyEl.textContent = "";
+    }
+};
+
+function drawSparkline(ctx, closes, width, height) {
+    if(!closes || closes.length === 0) {
+        ctx.fillStyle = '#0f0';
+        ctx.font = '8px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('NO DATA', width/2, height/2);
+        return;
+    }
+    
+    const padding = 10;
+    const chartWidth = width - padding * 2;
+    const chartHeight = height - padding * 2;
+    
+    // Find min/max for scaling
+    const minClose = Math.min(...closes);
+    const maxClose = Math.max(...closes);
+    const range = maxClose - minClose || 1;
+    
+    ctx.strokeStyle = '#0f380f';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    
+    closes.forEach((price, i) => {
+        const x = (i / (closes.length - 1)) * chartWidth + padding;
+        const y = padding + chartHeight - ((price - minClose) / range) * chartHeight;
+        
+        if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    
+    ctx.stroke();
+    
+    // Draw axis markers
+    ctx.fillStyle = '#0f380f';
+    ctx.font = '6px monospace';
+    ctx.textAlign = 'center';
+    
+    // Draw labels at intervals
+    const step = Math.max(1, Math.floor(closes.length / 5));
+    closes.forEach((price, i) => {
+        if(i % step === 0) {
+            const x = (i / (closes.length - 1)) * chartWidth + padding;
+            const y = padding + chartHeight - ((price - minClose) / range) * chartHeight;
+            ctx.fillText(price.toFixed(2), x, y + 12);
+        }
+    });
+}
+
+window.fetchStockPrice = async function() {
+    const ticker = document.getElementById('stockTicker').value.trim() || 'AAPL';
+    const priceEl = document.getElementById('currentPrice');
+    const companyEl = document.getElementById('companyName');
+    const canvas = document.getElementById('stockCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    priceEl.textContent = 'LOADING...';
+    companyEl.textContent = 'COMPANY NAME';
+    companyEl.style.display = 'block';
+    
+    try {
+        const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=7d`);
+        const data = await res.json();
+        const chart = data.chart.result[0];
+        const closes = chart.meta.close || [];
+        const timestamps = chart.timestamp || [];
+        
+        if (closes.length === 0) {
+            priceEl.textContent = 'NO DATA';
+            return;
+        }
+        
+        // Get current price (last close)
+        const currentPrice = closes[closes.length - 1];
+        priceEl.textContent = `$${currentPrice.toFixed(2)}`;
+        
+        // Get company name from summary detail
+        const name = chart.meta.summary ? chart.meta.summary : ticker;
+        companyEl.textContent = name;
+        
+        // Draw sparkline
+        drawSparkline(ctx, closes, canvas.width, canvas.height);
+        
+    } catch(e) {
+        priceEl.textContent = 'ERROR';
+        console.error(e);
+    }
+};
+
+function drawSparkline(ctx, closes, width, height) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, width, height);
+    
+    if (closes.length < 2) return;
+    
+    const minT = Math.min(...closes);
+    const maxT = Math.max(...closes);
+    const range = maxT - minT || 1;
+    
+    ctx.strokeStyle = '#0f380f';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    const stepX = width / (closes.length - 1);
+    
+    for (let i = 0; i < closes.length; i++) {
+        const x = i * stepX;
+        const y = height - ((closes[i] - minT) / range) * height;
+        
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    
+    ctx.stroke();
+    
+    // Draw dots at data points
+    ctx.fillStyle = '#0f380f';
+    ctx.font = '6px monospace';
+    closes.forEach((price, i) => {
+        const x = i * stepX;
+        const y = height - ((price - minT) / range) * height;
+        ctx.fillText(`${price.toFixed(2)}`, x - 20, y + 4);
+    });
 }
 async function initCrypto() { refreshCrypto(); }
 async function refreshCrypto() {
@@ -1547,60 +1712,108 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 // ========== CURRENCY CONVERTER ==========
 window.initCurrency = async function() {
-    const screen = document.getElementById('calcScreen'); // Reuse calc screen or use its own
-    // Better add it as a new screen or update an existing one
-    const appId = 'currency';
-    let screenEl = document.getElementById('currencyScreen');
-    if(!screenEl) {
-        // Fallback to updating calc if not in HTML
-        screenEl = document.getElementById('calcScreen'); 
-    }
+    const screenEl = document.getElementById('currencyScreen');
+    if(!screenEl) return;
     
     screenEl.innerHTML = `
-        <div style="padding: 10px; background: #9bbc0f; color: #0f380f; font-family: 'VT323', monospace; height: 100%;">
-            <div style="font-size: 14px; text-align: center; border-bottom: 2px solid #0f380f; margin-bottom: 10px;">CURRENCY EXCH</div>
-            
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div>
-                    <div style="font-size: 8px;">FROM: USD</div>
-                    <input type="number" id="currInput" value="1" oninput="updateCurrency()" style="width: 100%; font-size: 20px; background: rgba(0,0,0,0.05); border: 1px solid #0f380f;">
-                </div>
-                
-                <div style="text-align: center; font-size: 20px;">⬇</div>
-                
-                <div style="background: #0f380f; color: #9bbc0f; padding: 10px; border-radius: 4px;">
-                    <div style="font-size: 8px;">TO EUR:</div>
-                    <div id="currEUR" style="font-size: 18px; font-weight: bold;">---</div>
-                </div>
-                
-                <div style="background: #0f380f; color: #9bbc0f; padding: 10px; border-radius: 4px;">
-                    <div style="font-size: 8px;">TO GBP:</div>
-                    <div id="currGBP" style="font-size: 18px; font-weight: bold;">---</div>
-                </div>
-                
-                <div style="background: #0f380f; color: #9bbc0f; padding: 10px; border-radius: 4px;">
-                    <div style="font-size: 8px;">TO JPY:</div>
-                    <div id="currJPY" style="font-size: 18px; font-weight: bold;">---</div>
-                </div>
+        <div style="padding: 10px; display: flex; flex-direction: column; height: 100%;">
+            <div style="font-size: 8px; margin-bottom: 6px; text-align: center;">CURRENCY EXCH</div>
+            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                <select id="fromCurrency" style="flex: 1; font-size: 7px; padding: 4px;">
+                    <option value="USD">🇺🇸 USD</option>
+                    <option value="EUR">🇪🇺 EUR</option>
+                    <option value="GBP">🇬🇧 GBP</option>
+                    <option value="JPY">🇯🇵 JPY</option>
+                    <option value="CNY">🇨🇳 CNY</option>
+                    <option value="INR">🇮🇳 INR</option>
+                    <option value="BRL">🇧🇷 BRL</option>
+                    <option value="CAD">🇨🇦 CAD</option>
+                    <option value="AUD">🇦🇺 AUD</option>
+                    <option value="CHF">🇨🇭 CHF</option>
+                </select>
+                <select id="toCurrency" style="flex: 1; font-size: 7px; padding: 4px;">
+                    <option value="USD">🇺🇸 USD</option>
+                    <option value="EUR">🇪🇺 EUR</option>
+                    <option value="GBP">🇬🇧 GBP</option>
+                    <option value="JPY">🇯🇵 JPY</option>
+                    <option value="CNY">🇨🇳 CNY</option>
+                    <option value="INR">🇮🇳 INR</option>
+                    <option value="BRL">🇧🇷 BRL</option>
+                    <option value="CAD">🇨🇦 CAD</option>
+                    <option value="AUD">🇦🇺 AUD</option>
+                    <option value="CHF">🇨🇭 CHF</option>
+                </select>
             </div>
-            
-            <div style="font-size: 6px; text-align: center; margin-top: 10px; opacity: 0.5;">REAL-TIME BANK RATES</div>
+            <div style="font-size: 6px; margin-bottom: 4px; opacity: 0.7;">AMOUNT:</div>
+            <input type="number" id="currencyAmount" value="1" style="width: 100%; padding: 8px; margin-bottom: 6px; font-size: 16px; box-sizing: border-box;">
+            <div style="font-size: 6px; margin-bottom: 4px; opacity: 0.7;">RESULT:</div>
+            <div id="currencyResult" style="background: rgba(0,0,0,0.1); padding: 6px; min-height: 50px; font-size: 7px; word-break: break-all; border: 1px solid var(--gb-text); border-radius: 4px; margin-bottom: 6px; font-family: monospace;">1.00 USD = ---</div>
+            <button onclick="swapCurrencies()" style="width: 100%; margin-bottom: 6px; padding: 8px;">SWAP CURRENCIES</button>
         </div>
     `;
-    updateCurrency();
+    await loadCurrencyRates();
 };
 
-window.updateCurrency = async function() {
-    const amount = document.getElementById('currInput').value || 1;
+let fromRate = 1;
+let toRate = 1;
+let rates = {};
+window.loadCurrencyRates = async function() {
     try {
-        const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
         const data = await res.json();
-        document.getElementById('currEUR').textContent = (amount * data.rates.EUR).toFixed(2) + ' EUR';
-        document.getElementById('currGBP').textContent = (amount * data.rates.GBP).toFixed(2) + ' GBP';
-        document.getElementById('currJPY').textContent = (amount * data.rates.JPY).toFixed(0) + ' JPY';
+        if(data.rates) {
+            rates = data.rates;
+            populateCurrencyFlags(data.rates);
+            fromRate = data.rates.USD || 1;
+            toRate = data.rates.USD || 1;
+            updateCurrencyDisplay();
+        }
     } catch(e) {
         console.error("Currency API Error", e);
     }
+};
+
+function populateCurrencyFlags(rates) {
+    const fromSel = document.getElementById('fromCurrency');
+    const toSel = document.getElementById('toCurrency');
+    if(!fromSel || !toSel) return;
+    
+    const currencies = {USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', CNY: '🇨🇳', INR: '🇮🇳', BRL: '🇧🇷', CAD: '🇨🇦', AUD: '🇦🇺', CHF: '🇨🇭'};
+    
+    for(const [code, flag] of Object.entries(currencies)) {
+        if(fromSel.querySelector(`option[value="${code}"]`)) {
+            fromSel.querySelector(`option[value="${code}"]`).textContent = `${flag} ${code}`;
+        }
+        if(toSel.querySelector(`option[value="${code}"]`)) {
+            toSel.querySelector(`option[value="${code}"]`).textContent = `${flag} ${code}`;
+        }
+    }
+}
+
+window.updateCurrency = async function() {
+    const amount = parseFloat(document.getElementById('currencyAmount').value) || 1;
+    const fromCode = document.getElementById('fromCurrency').value;
+    const toCode = document.getElementById('toCurrency').value;
+    
+    if(!rates[fromCode] || !rates[toCode]) {
+        document.getElementById('currencyResult').textContent = "Loading rates...";
+        return;
+    }
+    
+    const result = amount * (rates[toCode] / rates[fromCode]);
+    document.getElementById('currencyResult').textContent = `${amount} ${fromCode} = ${result.toFixed(2)} ${toCode}`;
+};
+
+window.swapCurrencies = function() {
+    const fromSel = document.getElementById('fromCurrency');
+    const toSel = document.getElementById('toCurrency');
+    if(!fromSel || !toSel) return;
+    
+    const temp = fromSel.value;
+    fromSel.value = toSel.value;
+    toSel.value = temp;
+    
+    updateCurrency();
 };
 
 // ========== FLASHLIGHT ==========
@@ -2047,21 +2260,64 @@ window.closeBookDetail = function() {
 document.getElementById('bookSearch')?.addEventListener('keydown', (e) => {
     if(e.key === 'Enter') searchBook();
 });
-
 window.initIp = function() {};
+
 window.getIpInfo = async function() {
-    const ip = document.getElementById('ipAddr');
-    if(ip) {
-        document.getElementById('ipAddr').textContent = "...";
-        sounds.click();
-        try {
-            const res = await fetch('https://ipapi.co/json/');
-            const data = await res.json();
-            document.getElementById('ipAddr').textContent = data.ip;
-            document.getElementById('ipCity').textContent = data.city;
-            document.getElementById('ipIsp').textContent = data.org;
-            sounds.coin();
-        } catch(e) { document.getElementById('ipAddr').textContent = "ERROR"; }
+    const ipAddr = document.getElementById('ipAddr');
+    const ipCity = document.getElementById('ipCity');
+    const ipCountry = document.getElementById('ipCountry');
+    const ipTz = document.getElementById('ipTz');
+    const ipIsp = document.getElementById('ipIsp');
+    const ipInfo = document.getElementById('ipInfo');
+    const ipSpeed = document.getElementById('ipSpeed');
+    const speedResult = document.getElementById('speedResult');
+    if(!ipAddr) return;
+    
+    ipAddr.textContent = "...";
+    ipCity.textContent = "...";
+    ipCountry.textContent = "...";
+    ipTz.textContent = "...";
+    ipIsp.textContent = "...";
+    if(ipInfo) ipInfo.style.display = 'none';
+    if(ipSpeed) ipSpeed.style.display = 'none';
+    if(speedResult) speedResult.style.display = 'none';
+    sounds.click();
+    
+    try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        ipAddr.textContent = data.ip;
+        ipCity.textContent = data.city;
+        ipCountry.textContent = data.country_name;
+        ipTz.textContent = data.timezone;
+        ipIsp.textContent = data.org;
+        if(ipInfo) ipInfo.style.display = 'block';
+        sounds.coin();
+    } catch(e) {
+        ipAddr.textContent = "ERROR";
+    }
+};
+
+window.runSpeedTest = async function() {
+    const ipInfo = document.getElementById('ipInfo');
+    const speedResult = document.getElementById('speedResult');
+    const speedMbps = document.getElementById('speedMbps');
+    if(!speedMbps) return;
+    
+    speedMbps.textContent = "TESTING...";
+    if(ipInfo) ipInfo.style.display = 'none';
+    if(speedResult) speedResult.style.display = 'block';
+    
+    const start = Date.now();
+    try {
+        const res = await fetch('https://speed.cloudflare.com/__down?bytes=10000000');
+        const end = Date.now();
+        const timeMs = end - start;
+        // bytes * 8 / (time * 1000000) = Mbps
+        const mbps = Math.round((10000000 * 8) / (timeMs * 1000000) * 10) / 10;
+        speedMbps.textContent = `${mbps} Mbps`;
+    } catch(e) {
+        speedMbps.textContent = "FAILED";
     }
 };
 
@@ -3529,15 +3785,45 @@ function applyFilterToCanvas(ctx, w, h, filterName) {
 }
 
 // ---- ACTIVE FILTER STATE ----
-let activeCameraFilter = 'classic'; // default
+let activeCameraFilter = 'none'; // default
+let activeMirror = false;
+let freezeFrame = null;
+
+function applySimpleFilterToVideo(video, filterName) {
+    switch (filterName) {
+        case 'sepia':
+            video.style.filter = 'sepia(1)';
+            break;
+        case 'grayscale':
+            video.style.filter = 'grayscale(1)';
+            break;
+        case 'invert':
+            video.style.filter = 'invert(1)';
+            break;
+        case 'none':
+            video.style.filter = 'none';
+            break;
+        case 'mirror':
+            activeMirror = !activeMirror;
+            video.style.transform = activeMirror ? 'scaleX(-1)' : 'scaleX(1)';
+            break;
+    }
+}
+
+function applyMirrorFilter(video) {
+    video.style.transform = activeMirror ? 'scaleX(-1)' : 'scaleX(1)';
+}
 
 function startCameraLoop() {
     const video  = document.getElementById('cameraVideo');
     const canvas = document.getElementById('cameraCanvas');
+    const smallCanvas = document.getElementById('cameraSmallCanvas');
     if (!video || !canvas) return;
 
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    // ^ willReadFrequently: true is critical for performance when using getImageData every frame
+
+    // Pixelate: draw to small canvas then scale up
+    const ctxSmall = smallCanvas.getContext('2d');
 
     function loop() {
         if (!cameraStream) return;
@@ -3557,12 +3843,17 @@ function startCameraLoop() {
         if (canvas.width !== w)  canvas.width  = w;
         if (canvas.height !== h) canvas.height = h;
 
-        // 1. Draw raw video frame
-        ctx.filter = 'none';
-        ctx.drawImage(video, 0, 0, w, h);
+        // 1. Draw raw video frame to small canvas for pixelate
+        ctxSmall.drawImage(video, 0, 0, 32, 24);
+        // Scale up with pixelated filtering
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(smallCanvas, 0, 0, w, h);
 
-        // 2. Apply pixel-level filter (bakes into canvas pixels)
-        applyFilterToCanvas(ctx, w, h, activeCameraFilter);
+        // 2. Apply CSS filter (sepia/grayscale/invert)
+        applySimpleFilterToVideo(video, activeCameraFilter);
+
+        // 3. Apply mirror if active
+        applyMirrorFilter(video);
 
         canvasLoopReq = requestAnimationFrame(loop);
     }
@@ -3590,12 +3881,11 @@ window.stopCamera = function() {
     overlays.forEach(o => o.style.display = 'none');
 };
 
-// ---- NEW setCameraFilter ----
-// Remove CSS filter from video — we handle everything in canvas now.
+// ---- Filter pills ----
 window.setCameraFilter = function (filter) {
     activeCameraFilter = filter;
 
-    // Clear CSS filters — canvas handles it all
+    // Clear CSS filters from video
     const video = document.getElementById('cameraVideo');
     const preview = document.getElementById('selfiePreview');
     if (video)   video.style.filter   = 'none';
@@ -3604,7 +3894,86 @@ window.setCameraFilter = function (filter) {
     // Hide all overlays (matrix/crt/ntsc are now baked into canvas)
     document.querySelectorAll('.camera-overlay').forEach(o => o.style.display = 'none');
 
+    // Apply the new simple filter
+    applySimpleFilterToVideo(video, filter);
+
     sounds.click();
+};
+
+window.setMirror = function() {
+    activeMirror = !activeMirror;
+    const video = document.getElementById('cameraVideo');
+    if (video) applyMirrorFilter(video);
+    const pillMirror = document.querySelector('.filter-pill[onclick*="mirror"]');
+    if (pillMirror) {
+        pillMirror.classList.toggle('active', activeMirror);
+    }
+    sounds.click();
+};
+
+window.freezeFrame = function() {
+    const video = document.getElementById('cameraVideo');
+    const canvas = document.getElementById('cameraCanvas');
+    if (!video || !canvas) return;
+
+    // Pause video
+    video.pause();
+
+    // Draw current frame to canvas
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+    
+    // Show the frozen canvas, hide video
+    video.style.display = 'none';
+    canvas.style.display = 'block';
+    
+    // Update button states
+    const captureBtn = document.getElementById('captureBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const saveSelfieBtn = document.getElementById('saveSelfieBtn');
+    const retakeBtn = document.getElementById('retakeBtn');
+    const videoStatus = document.getElementById('videoStatus');
+    
+    if (captureBtn) captureBtn.style.display = 'none';
+    if (recordBtn) recordBtn.style.display = 'none';
+    if (saveSelfieBtn) saveSelfieBtn.style.display = 'block';
+    if (retakeBtn) retakeBtn.style.display = 'block';
+    if (videoStatus) videoStatus.style.display = 'none';
+    
+    freezeFrame = canvas;
+};
+
+window.retakeSelfie = function() {
+    document.getElementById('selfiePreview').style.display = 'none';
+    document.getElementById('cameraVideo').style.display = 'block';
+    document.getElementById('cameraCanvas').style.display = 'none';
+    document.getElementById('captureBtn').style.display = 'block';
+    if(document.getElementById('recordBtn')) document.getElementById('recordBtn').style.display = 'block';
+    document.getElementById('saveSelfieBtn').style.display = 'none';
+    document.getElementById('retakeBtn').style.display = 'none';
+    sounds.back();
+};
+
+window.saveScreenshot = function() {
+    const canvas = document.getElementById('cameraCanvas');
+    const preview = document.getElementById('selfiePreview');
+    if (!canvas || canvas.style.display === 'none') {
+        alert("NO FRAME TO SAVE - capture or freeze first");
+        return;
+    }
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `gb-cam-${Date.now()}.png`;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    sounds.coin();
 };
 
 function initMatrixRain() {
@@ -4675,3 +5044,9 @@ window.genRandomAscii = function() {
     if(artDiv) artDiv.innerHTML = art.replace(/\n/g, '<br>');
 };
 '
+
+
+// Initialize currency converter on page load
+window.initCurrency().catch(() => {
+    /* API may be offline, UI still works */
+});

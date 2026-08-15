@@ -140,6 +140,11 @@ const RetroQuest = {
                 this.keys['Shift'] = isDown; // Can use for sprint/attack later
             }
             
+            if (key === 'z' && isDown) {
+                // Attack when A button pressed
+                RetroQuest.attack();
+            }
+            
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'z', 'x', 'a', 'b'].includes(key)) {
                 if (isDown && e.preventDefault) e.preventDefault();
             }
@@ -374,4 +379,5 @@ const RetroQuest = {
 // Initialize when adventure screen opens
 window.initAdventure = function() {
     RetroQuest.init('advCanvas');
+    QuestUpgrade.init();
 };

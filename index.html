@@ -339,7 +339,42 @@
                     </div>
 
                     <!-- NEW UTILITIES -->
-                    <div id="currencyScreen" class="game-screen"></div>
+                    <div id="currencyScreen" class="game-screen">
+                        <div style="padding: 10px; display: flex; flex-direction: column; height: 100%;">
+                            <div style="font-size: 8px; margin-bottom: 6px; text-align: center;">CURRENCY EXCH</div>
+                            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                <select id="fromCurrency" style="flex: 1; font-size: 7px; padding: 4px;">
+                                    <option value="USD">🇺🇸 USD</option>
+                                    <option value="EUR">🇪🇺 EUR</option>
+                                    <option value="GBP">🇬🇧 GBP</option>
+                                    <option value="JPY">🇯🇵 JPY</option>
+                                    <option value="CNY">🇨🇳 CNY</option>
+                                    <option value="INR">🇮🇳 INR</option>
+                                    <option value="BRL">🇧🇷 BRL</option>
+                                    <option value="CAD">🇨🇦 CAD</option>
+                                    <option value="AUD">🇦🇺 AUD</option>
+                                    <option value="CHF">🇨🇭 CHF</option>
+                                </select>
+                                <select id="toCurrency" style="flex: 1; font-size: 7px; padding: 4px;">
+                                    <option value="USD">🇺🇸 USD</option>
+                                    <option value="EUR">🇪🇺 EUR</option>
+                                    <option value="GBP">🇬🇧 GBP</option>
+                                    <option value="JPY">🇯🇵 JPY</option>
+                                    <option value="CNY">🇨🇳 CNY</option>
+                                    <option value="INR">🇮🇳 INR</option>
+                                    <option value="BRL">🇧🇷 BRL</option>
+                                    <option value="CAD">🇨🇦 CAD</option>
+                                    <option value="AUD">🇦🇺 AUD</option>
+                                    <option value="CHF">🇨🇭 CHF</option>
+                                </select>
+                            </div>
+                            <div style="font-size: 6px; margin-bottom: 4px; opacity: 0.7;">AMOUNT:</div>
+                            <input type="number" id="currencyAmount" value="1" style="width: 100%; padding: 8px; margin-bottom: 6px; font-size: 16px; box-sizing: border-box;" oninput="updateCurrency()">
+                            <div style="font-size: 6px; margin-bottom: 4px; opacity: 0.7;">RESULT:</div>
+                            <div id="currencyResult" style="background: rgba(0,0,0,0.1); padding: 6px; min-height: 50px; font-size: 7px; word-break: break-all; border: 1px solid var(--gb-text); border-radius: 4px; margin-bottom: 6px; font-family: monospace;">1.00 USD = ---</div>
+                            <button onclick="swapCurrencies()" style="width: 100%; margin-bottom: 6px; padding: 8px;">SWAP CURRENCIES</button>
+                        </div>
+                    </div>
                     <div id="sosScreen" class="game-screen"></div>
 
                     <!-- MORSE CONVERTER -->
@@ -451,15 +486,23 @@
                     <div id="stockScreen" class="game-screen">
                         <div style="padding: 10px; text-align: center;">
                             <div style="font-size: 8px; margin-bottom: 15px;">MARKET WATCH</div>
-                            <div id="stockChart" style="height: 120px; border: 1px solid var(--gb-text); margin-bottom: 15px; position: relative;">
-                                <canvas id="stockCanvas" width="300" height="120" style="width:100%; height:100%"></canvas>
+                            <div style="display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 8px; scrollbar-width: none;">
+                                <style>
+                                    .stock-ticker {
+                                        flex: 0 0 180px; min-width: 180px;
+                                        background: rgba(0,0,0,0.3); border: 1px solid var(--gb-text);
+                                        border-radius: 4px; padding: 6px; text-align: center;
+                                        color: var(--gb-text); font-size: 12px; white-space: nowrap;
+                                    }
+                                </style>
+                                <div class="stock-ticker">
+                                    <input type="text" id="stockTicker" value="AAPL" style="width: 100%; padding: 6px; font-size: 12px; border: 2px solid var(--gb-text); background: var(--gb-bg); color: var(--gb-text); border-radius: 4;">
+                                </div>
+                                <button onclick="fetchStock()" style="padding: 6px 12px; font-size: 10px;">GO</button>
                             </div>
-                            <div id="stockInfo" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 6px; text-align: left;">
-                                <div style="background: rgba(0,0,0,0.05); padding: 5px;">AAPL: $182.31 <span style="color:#0f0">▲</span></div>
-                                <div style="background: rgba(0,0,0,0.05); padding: 5px;">GOOG: $142.12 <span style="color:#f00">▼</span></div>
-                                <div style="background: rgba(0,0,0,0.05); padding: 5px;">MSFT: $402.56 <span style="color:#0f0">▲</span></div>
-                                <div style="background: rgba(0,0,0,0.05); padding: 5px;">TSLA: $190.04 <span style="color:#f00">▼</span></div>
-                            </div>
+                            <div id="currentPrice" style="font-size: 18px; font-weight: bold; margin: 10px 0;">Loading...</div>
+                            <div id="companyName" style="font-size: 10px; margin-bottom: 10px;">COMPANY NAME</div>
+                            <canvas id="stockCanvas" width="300" height="120" style="width:100%; height:100%; border: 1px solid var(--gb-text); margin: 0 auto 15px; display: block;"></canvas>
                         </div>
                     </div>
 
@@ -604,21 +647,24 @@
                         </div>
                     </div>
 
-                    <!-- IP INFO APP -->
+<!-- IP INFO APP -->
                     <div id="ipScreen" class="game-screen">
                         <div style="padding: 20px; text-align: center;">
                             <div style="font-size: 10px; margin-bottom: 20px;">NET TOOLS</div>
                             <div style="background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 8px; text-align: left; margin-bottom: 20px;">
                                 > IP: <span id="ipAddr">...</span><br>
                                 > CITY: <span id="ipCity">...</span><br>
-                                > ISP: <span id="ipIsp">...</span>
+                                > ISP: <span id="ipIsp">...</span><br>
+                                > COUNTRY: <span id="ipCountry">...</span><br>
+                                > TIMEZONE: <span id="ipTz">...</span>
                             </div>
-                            <button onclick="getIpInfo()" style="width: 100%;">SCAN NETWORK</button>
+                            <button onclick="getIpInfo()" style="width: 100%; margin-bottom: 10px;">SCAN NETWORK</button>
+                            <button onclick="runSpeedTest()" style="width: 100%; margin-top: 10px; background: #1a0f38; color: #5da5ff;">SPEED TEST</button>
+<div id="speedResult" style="margin-top: 10px; font-size: 8px; color: #5da5ff; display: none;">DL: <span id="speedMbps">0</span> Mbps</div>
                         </div>
                     </div>
 
                     <!-- POKEDEX APP -->
-                    <div id="pokedexScreen" class="game-screen">
                         <div id="pokedexWrapper" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
                             <div id="pokedexMain" style="padding: 8px; text-align: center; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
                                 <div style="font-size: 8px; margin-bottom: 6px; color: #8b0000; font-weight: bold;">POKEDEX v2.0</div>
@@ -949,10 +995,11 @@
                     <!-- CAMERA APP -->
                     <div id="cameraScreen" class="game-screen">
                         <div style="padding: 10px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 10px;">GB CAMERA v1.0</div>
+                            <div style="font-size: 10px; margin-bottom: 10px;">GB CAMERA v2.0</div>
                             <div id="cameraContainer" style="width: 220px; height: 180px; margin: 0 auto 10px; border: 4px solid var(--gb-text); background: #000; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                                <video id="cameraVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover; filter: brightness(1.2) contrast(1.5) grayscale(1);"></video>
+                                <video id="cameraVideo" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
                                 <canvas id="cameraCanvas" style="display: none;"></canvas>
+                                <canvas id="cameraSmallCanvas" style="position: absolute; top: 0; left: 0; width: 32px; height: 24px; display: none;"></canvas>
                                 <img id="selfiePreview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
                                 
                                 <!-- Overlays -->
@@ -965,6 +1012,25 @@
                             <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                                 <button onclick="switchCamera()" style="flex: 1; font-size: 5px; background: #555; color: #fff;">🔄 FLIP CAM</button>
                                 <div id="camModeDisplay" style="font-size: 5px; padding: 5px;">FRONT</div>
+                            </div>
+
+                            <!-- Filter pills row -->
+                            <div style="display: flex; gap: 4px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 4px; scrollbar-width: none;">
+                                <style>
+                                    .filter-pill {
+                                        flex: 0 0 56px; min-width: 56px;
+                                        background: rgba(0,0,0,0.3); border: 1px solid var(--gb-text);
+                                        border-radius: 4px; padding: 6px; text-align: center; color: var(--gb-text);
+                                        font-size: 8px; cursor: pointer; white-space: nowrap;
+                                    }
+                                    .filter-pill.active { background: var(--gb-text); color: var(--gb-bg); }
+                                </style>
+                                <button class="filter-pill active" onclick="setCameraFilter('none')">NONE</button>
+                                <button class="filter-pill" onclick="setCameraFilter('sepia')">SEPIA</button>
+                                <button class="filter-pill" onclick="setCameraFilter('grayscale')">GRAYSCALE</button>
+                                <button class="filter-pill" onclick="setCameraFilter('invert')">INVERT</button>
+                                <button class="filter-pill" onclick="setCameraFilter('mirror')">MIRROR</button>
+                                <button class="filter-pill" onclick="setCameraFilter('pixel')">PIXEL</button>
                             </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 10px;">
@@ -988,6 +1054,12 @@
                                 <button id="retakeBtn" onclick="retakeSelfie()" style="flex: 1; display: none;">RETAKE</button>
                             </div>
                             <div id="videoStatus" style="font-size: 5px; margin-top: 5px; display: none; color: #f00;">● RECORDING...</div>
+                            
+                            <!-- Freeze/Save buttons -->
+                            <div style="margin-top: 10px; display: flex; justify-content: center; gap: 8px;">
+                                <button onclick="freezeFrame()" style="padding: 6px 12px; font-size: 8px;">FREEZE</button>
+                                <button onclick="saveScreenshot()" style="padding: 6px 12px; font-size: 8px;">SAVE</button>
+                            </div>
                         </div>
                     </div>
 
@@ -1009,12 +1081,25 @@
                     <div id="waterScreen" class="game-screen">
                         <div style="padding: 20px; text-align: center;">
                             <div style="font-size: 10px; margin-bottom: 15px;">HYDRATION TKR</div>
-                            <div style="font-size: 50px; margin-bottom: 15px;">💧</div>
-                            <div id="waterCount" style="font-size: 20px; font-weight: bold; margin-bottom: 20px;">0 GLASSES</div>
-                            <div style="display: flex; gap: 5px;">
-                                <button onclick="addWater()" style="flex: 2; height: 50px;">ADD GLASS</button>
-                                <button onclick="resetWater()" style="flex: 1; background: #ea5656;">CLR</button>
+                            <div style="display: flex; gap: 8px; margin-bottom: 10px; justify-content: center; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 100px; background: rgba(0,0,0,0.3); border: 1px solid var(--gb-text); border-radius: 4px; padding: 8px; text-align: center;">
+                                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px;">GOAL</div>
+                                    <div style="font-size: 24px;">8</div>
+                                    <button onclick="setGoal(8)" style="margin-top: 4px; padding: 4px; font-size: 6px;">8</button>
+                                </div>
+                                <div style="flex: 1; min-width: 100px; background: rgba(0,0,0,0.3); border: 1px solid var(--gb-text); border-radius: 4px; padding: 8px; text-align: center;">
+                                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 4px;">CURRENT</div>
+                                    <div id="waterCurrent" style="font-size: 24px; font-weight: bold;">0</div>
+                                    <div style="font-size: 10px;">GLASSES</div>
+                                    <button onclick="addWater()" style="width: 100%; margin-top: 4px; padding: 4px; font-size: 6px;">+1</button>
+                                    <button onclick="minusWater()" style="width: 100%; margin-top: 4px; padding: 4px; font-size: 6px; background: #ea5656;">-1</button>
+                                </div>
                             </div>
+                            <div style="height: 80px; background: rgba(0,0,0,0.3); border: 2px solid var(--gb-text); border-radius: 4px; margin: 15px auto; overflow: hidden; position: relative; width: 150px;">
+                                <div id="waterFill" style="height: 0%; width: 100%; background: #0f380f; transition: height 0.3s ease;"></div>
+                            </div>
+                            <div style="font-size: 10px; margin-bottom: 8px;">STREAK: <span id="waterStreak">0</span> days</div>
+                            <button onclick="resetWater()" style="width: 100%; background: #ea5656; color: #fff; padding: 8px;">RESET</button>
                         </div>
                     </div>
 
@@ -1415,7 +1500,14 @@
                     </div>
 
                     <div id="adventureScreen" class="game-screen" style="background:#000; padding:0; overflow:hidden;">
-                        <iframe id="adventureFrame" src="BigAdventureGame/index.html" style="width:100%; height:100%; border:none; background:#000; display:block;"></iframe>
+                        <canvas id="advCanvas" width="300" height="280" style="display: block; margin: 0 auto;"></canvas>
+                        <div style="position: absolute; top: 0; left: 0; right: 0; padding: 8px; pointer-events: none;">
+                            <div style="position: absolute; top: 8px; left: 8px; color: #0f0; font-size: 8px; font-family: monospace;">LEVEL <span id="advLevel">1</span>/10</div>
+                            <div style="position: absolute; top: 8px; right: 8px; color: #0f0; font-size: 8px; font-family: monospace;">GOLD: <span id="advGold">0</span></div>
+                            <div style="position: absolute; bottom: 8px; left: 8px; color: #0f0; font-size: 8px; font-family: monospace;">ATTACK: A button</div>
+                            <div id="advNpcDialog" style="position: absolute; bottom: 30px; left: 8px; right: 8px; background: rgba(0,0,0,0.5); color: #0f0; padding: 6px; font-size: 7px; display: none; min-height: 30px; text-align: center;">"></div>
+                        </div>
+                        <!-- iframe for BigAdventureGame removed - using RetroQuest directly -->
                     </div>
 
                     <div id="trollScreen" class="game-screen" style="position: relative;">

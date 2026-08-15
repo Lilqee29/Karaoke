@@ -1,3 +1,207 @@
+// ========== CURRENCY CONVERTER ==========
+const CURRENCIES = [
+    { code: 'USD', flag: '🇺🇸', name: 'US Dollar' },
+    { code: 'EUR', flag: '🇪🇬', name: 'Euro' },
+    { code: 'GBP', flag: '🇬🇧', name: 'British Pound' },
+    { code: 'JPY', flag: '🇯🇵', name: 'Japanese Yen' },
+    { code: 'CNY', flag: '🇨🇳', name: 'Chinese Yuan' },
+    { code: 'INR', flag: '🇮🇳', name: 'Indian Rupee' },
+    { code: 'BRL', flag: '🇧🇷', name: 'Brazilian Real' },
+    { code: 'CAD', flag: '🇨🇦', name: 'Canadian Dollar' },
+    { code: 'AUD', flag: '🇦🇺', name: 'Australian Dollar' },
+    { code: 'CHF', flag: '🇨🇭', name: 'Swiss Franc' }
+];
+
+window.initCurrency = function() {
+    populateCurrencyDropdowns();
+    document.getElementById('amountInput').value = '1';
+    convertCurrency();
+};
+
+function populateCurrencyDropdowns() {
+    const fromSlot = document.getElementById('fromSlot');
+    const toSlot = document.getElementById('toSlot');
+    if (!fromSlot || !toSlot) return;
+
+    fromSlot.textContent = '';
+    toSlot.textContent = '';
+
+    CURRENCIES.forEach(currency => {
+        const fromOpt = document.createElement('div');
+        fromOpt.className = 'currency-slot' + (currency.code === 'USD' ? ' flag' : '');
+        fromOpt.textContent = currency.flag + ' ' + currency.code;
+        fromOpt.onclick = () => { fromSlot.textContent = currency.flag + ' ' + currency.code; convertCurrency(); };
+        fromSlot.appendChild(fromOpt);
+
+        const toOpt = document.createElement('div');
+        toOpt.className = 'currency-slot';
+        toOpt.textContent = currency.flag + ' ' + currency.code;
+        toOpt.onclick = () => { toSlot.textContent = currency.flag + ' ' + currency.code; convertCurrency(); };
+        toSlot.appendChild(toOpt);
+    });
+
+    // Set defaults
+    fromSlot.textContent = 'USD🇺🇸';
+    toSlot.textContent = 'EUR🇪🇬';
+}
+
+function convertCurrency() {
+    const amount = parseFloat(document.getElementById('amountInput').value) || 1;
+    const fromCode = document.getElementById('fromSlot').textContent.split(' ')[1];
+    const toCode = document.getElementById('toSlot').textContent.split(' ')[1];
+
+    fetch('https://open.er-api.com/v6/latest/USD')
+        .then(res => res.json())
+        .then(data => {
+            if (data.result !== 'success') throw new Error('API error');
+            const rates = data.rates;
+
+            const fromRate = rates[fromCode] || 1;
+            const toRate = rates[toCode] || 1;
+
+            const converted = (amount / fromRate) * toRate;
+            document.getElementById('result').textContent = converted.toFixed(2);
+
+            // Highlight the result
+            const resultEl = document.getElementById('result');
+            resultEl.style.color = '#0f380f';
+            setTimeout(() => resultEl.style.color = '', 1500);
+        })
+        .catch(err => {
+            document.getElementById('result').textContent = 'ERROR';
+            console.error(err);
+        });
+}
+
+window.swapCurrency = function() {
+    const fromSlot = document.getElementById('fromSlot');
+    const toSlot = document.getElementById('toSlot');
+    const temp = fromSlot.textContent;
+    fromSlot.textContent = toSlot.textContent;
+    toSlot.textContent = temp;
+    convertCurrency();
+};
+
+// ========== IP SCANNER ==========
+window.initIp = function() {
+    getIpInfo();
+};
+
+window.getIpInfo = function() {
+    fetch('https://ipapi.co/json/')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('ipAddr').textContent = data.ip || 'unknown';
+            document.getElementById('ipCity').textContent = data.city || 'unknown';
+            document.getElementById('ipIsp').textContent = data.isp || 'unknown';
+            document.getElementById('ipCountry').textContent = data.country_name || 'unknown';
+            document.getElementById('ipTz').textContent = data.timezone || 'unknown';
+        });
+};
+
+window.runSpeedTest = function() {
+    const startTime = performance.now();
+    const speedImg = new Image();
+    speedImg.onload = function() {
+        const endTime = performance.now();
+        const durationSec = (endTime - startTime) / 1000000;
+        const bytes = 10000000;
+        const mbps = (bytes * 8) / (durationSec * 1000000);
+        document.getElementById('speedMbps').textContent = mbps.toFixed(2);
+        document.getElementById('speedResult').style.display = 'block';
+    };
+    speedImg.src = 'https://speed.cloudflare.com/__down?bytes=10000000';
+};
+
+// ========== WATER TRACKER ==========
+let waterData = { count: 0, goal: 8, lastDate: '' };
+
+window.initWater = function() {
+    const saved = localStorage.getItem('waterTracker');
+    if (saved) {
+        try { waterData = JSON.parse(saved); } catch(e) { waterData = { count: 0, goal: 8, lastDate: '' }; }
+    }
+    // Auto-reset if date changed
+    const today = new Date().toISOString().split('T')[0];
+    if (waterData.lastDate !== today) {
+        // Check if yesterday goal was met to maintain streak
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        if (waterData.lastDate === yesterdayStr && waterData.count >= waterData.goal) {
+            waterData.streak = (waterData.streak || 0) + 1;
+        } else {
+            waterData.streak = 0;
+        }
+        waterData.count = 0;
+        waterData.lastDate = today;
+    }
+    renderWater();
+    saveWater();
+};
+
+window.addWater = function() {
+    if (waterData.count < waterData.goal) {
+        waterData.count++;
+        renderWater();
+        saveWater();
+        checkStreak();
+    }
+};
+
+window.minusWater = function() {
+    if (waterData.count > 0) {
+        waterData.count--;
+        renderWater();
+        saveWater();
+    }
+};
+
+window.setGoal = function(goal) {
+    waterData.goal = goal;
+    renderWater();
+    saveWater();
+};
+
+window.resetWater = function() {
+    waterData = { count: 0, goal: 8, lastDate: '', streak: 0 };
+    renderWater();
+    saveWater();
+};
+
+function renderWater() {
+    const pct = (waterData.count / waterData.goal) * 100;
+    const fillEl = document.getElementById('waterFill');
+    const countEl = document.getElementById('waterCurrent');
+    const streakEl = document.getElementById('waterStreak');
+    
+    if (fillEl) {
+        fillEl.style.height = `${pct}%`;
+        fillEl.style.backgroundColor = pct >= 100 ? '#0f380f' : '#0f380f';
+    }
+    if (countEl) countEl.textContent = waterData.count;
+    
+    if (streakEl) streakEl.textContent = waterData.streak || 0;
+}
+
+function saveWater() {
+    localStorage.setItem('waterTracker', JSON.stringify(waterData));
+}
+
+function checkStreak() {
+    if (waterData.count >= waterData.goal) {
+        const today = new Date().toISOString().split('T')[0];
+        if (waterData.lastDate === today) {
+            // Same day, don't increment streak twice
+            return;
+        }
+    }
+    // Calculate streak - simple approach: increment if goal met
+    waterData.streak = (waterData.streak || 0) + 1;
+    renderWater();
+    saveWater();
+}
+
 // ========== EMERGENCY SOS ==========
 window.initSos = function() {
     const screen = document.getElementById('sosScreen');
