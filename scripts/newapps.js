@@ -46,7 +46,8 @@ window.loadMusicFile = function() {
 async function searchMusic() {
     const query = document.getElementById('musicSearch').value;
     if (!query) return;
-    document.getElementById('musicTitle').textContent = "SEARCHING...";
+    const musicTitle = document.getElementById('musicTitle');
+    if (musicTitle) musicTitle.textContent = "SEARCHING...";
     try {
         const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=jsonflat&limit=10&search=${encodeURIComponent(query)}`);
         const data = await res.json();
@@ -54,8 +55,8 @@ async function searchMusic() {
         currentMusicIdx = 0;
         renderQueue();
         if (musicQueue.length > 0) playMusic(0);
-        else document.getElementById('musicTitle').textContent = "NO RESULTS";
-    } catch (e) { document.getElementById('musicTitle').textContent = "API ERROR"; }
+        else { const mt = document.getElementById('musicTitle'); if(mt) mt.textContent = "NO RESULTS"; }
+    } catch (e) { const mt = document.getElementById('musicTitle'); if(mt) mt.textContent = "API ERROR"; }
 }
 
 function playMusic(idx) {
@@ -66,9 +67,12 @@ function playMusic(idx) {
     audio.src = track.audio;
     audio.play();
     isMusicPlaying = true;
-    document.getElementById('musicTitle').textContent = track.name.toUpperCase();
-    document.getElementById('musicArtist').textContent = track.artist_name.toUpperCase();
-    document.getElementById('musicPlayBtn').textContent = "⏸";
+    const mt = document.getElementById('musicTitle');
+    if(mt) mt.textContent = track.name.toUpperCase();
+    const ma = document.getElementById('musicArtist');
+    if(ma) ma.textContent = track.artist_name.toUpperCase();
+    const mp = document.getElementById('musicPlayBtn');
+    if(mp) mp.textContent = "⏸";
     startVinyl();
     document.getElementById('vinylNeedle').style.transform = "rotate(0deg)";
 }
@@ -146,8 +150,8 @@ async function searchRadio() {
                 radioPlayer.src = station.url_resolved; 
                 radioPlayer.play(); 
                 isRadioPlaying = true; 
-                document.getElementById('radioPlayBtn').textContent = "STOP"; 
-                document.getElementById('radioFreqText').textContent = station.name.substring(0,8); 
+                const rpb = document.getElementById('radioPlayBtn'); if(rpb) rpb.textContent = "STOP"; 
+                const rft = document.getElementById('radioFreqText'); if(rft) rft.textContent = station.name.substring(0,8); 
                 startRadioVisual(); 
 
                 // Background Audio Support for Radio
@@ -166,7 +170,7 @@ async function searchRadio() {
         });
     } catch (e) { list.innerHTML = 'ERROR'; }
 }
-function toggleRadio() { if (isRadioPlaying) { radioPlayer.pause(); isRadioPlaying = false; document.getElementById('radioPlayBtn').textContent = "START"; } else if (radioPlayer.src) { radioPlayer.play(); isRadioPlaying = true; document.getElementById('radioPlayBtn').textContent = "STOP"; } }
+function toggleRadio() { if (isRadioPlaying) { radioPlayer.pause(); isRadioPlaying = false; const rpb = document.getElementById('radioPlayBtn'); if(rpb) rpb.textContent = "START"; } else if (radioPlayer.src) { radioPlayer.play(); isRadioPlaying = true; const rpb = document.getElementById('radioPlayBtn'); if(rpb) rpb.textContent = "STOP"; } }
 function startRadioVisual() {
     const c = document.getElementById('radioCanvas'); if(!c) return; const ctx = c.getContext('2d');
     const draw = () => { if (!isRadioPlaying) return; const data = ctx.createImageData(c.width, c.height); for (let i = 0; i < data.data.length; i += 4) { const v = Math.random() * 255; data.data[i] = data.data[i+1] = data.data[i+2] = v; data.data[i+3] = 255; } ctx.putImageData(data, 0, 0); requestAnimationFrame(draw); };
