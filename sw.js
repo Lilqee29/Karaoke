@@ -70,11 +70,19 @@ self.addEventListener('fetch', (e) => {
                     });
                     return response;
                 })
-                .catch(() => caches.match(e.request)) // Fallback to cache
+                .catch(() => {
+                    return caches.match(e.request).then(cached => {
+                        return cached || new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+                    });
+                })
         );
     } else {
         e.respondWith(
-            caches.match(e.request).then((response) => response || fetch(e.request))
+            caches.match(e.request).then((response) => {
+                return response || fetch(e.request).catch(() => {
+                    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+                });
+            })
         );
     }
 });

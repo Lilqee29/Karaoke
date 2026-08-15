@@ -124,7 +124,8 @@ function triggerGhostSignal() {
     pulse.style.animation = 'none'; setTimeout(() => { pulse.style.animation = 'radar-pulse 1s ease-out'; }, 10);
     setTimeout(() => { dot.style.display = 'none'; status.textContent = "SEARCHING..."; status.style.color = "#0f0"; }, 2000);
 }
-function playBeep(freq, dur) { const ctx = new AudioContext(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.value = freq; g.gain.value = 0.1; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + dur); }
+let _beepCtx = null;
+function playBeep(freq, dur) { if(!_beepCtx) _beepCtx = new (window.AudioContext || window.webkitAudioContext)(); const o = _beepCtx.createOscillator(); const g = _beepCtx.createGain(); o.frequency.value = freq; g.gain.value = 0.1; o.connect(g); g.connect(_beepCtx.destination); o.start(); o.stop(_beepCtx.currentTime + dur); }
 
 // ========== WORLD RADIO (Live Streams) ==========
 let radioPlayer = new Audio();
@@ -4117,6 +4118,9 @@ window.initHelp = function() {
             ⚔️ <b>QUEST:</b> 10-level tile-based RPG adventure.<br>
             📡 <b>BITCHAT:</b> P2P link-cable chat & games over WebRTC.
         </div>
+    `;
+};
+
 // ========== LENIS & GSAP SMOOTH ANIMATIONS ==========
 window.addEventListener('DOMContentLoaded', () => {
     try {
