@@ -3,7 +3,7 @@
 // 1. QR GENERATOR
 window.initQr = function() {};
 window.generateQR = function() {
-    const text = document.getElementById('qrText').value;
+    const text = document.getElementById('qrInput').value;
     const out = document.getElementById('qrOutput');
     if(!text) return;
     out.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(text)}" style="border: 4px solid var(--gb-text);">`;
