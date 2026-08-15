@@ -119,6 +119,7 @@ window.addEventListener('load', () => {
     initHomeScreen();
     saveState();
     if(typeof karaoke !== 'undefined') karaoke.init();
+    window.initWater();
     
     // Boot Sequence
     setTimeout(() => {

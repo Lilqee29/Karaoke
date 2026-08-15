@@ -62,6 +62,7 @@ body {
   z-index: 10;
 }
 
+/* ── Ensure physical controls stay within Game Boy body ────────────────────── */
 /* ── Screen Bezel ─────────────────────────────────────────────── */
 
 .screen-bezel {
@@ -137,6 +138,14 @@ body {
 
 .game-screen.active {
   display: block;
+}
+
+/* Screens that need flex layout when active */
+#calcScreen.active,
+#paintScreen.active,
+#timerScreen.active,
+#qrScreen.active {
+  display: flex;
 }
 
 /* ================================================================
@@ -344,6 +353,7 @@ select:focus {
   flex-shrink: 0;
   position: relative;
   gap: 8px;
+  contain: layout style;
 }
 
 /* Hairline divider between screen and controls */
@@ -1322,4 +1332,20 @@ select:focus {
 #chatLog::-webkit-scrollbar-thumb {
   background: #0f0;
   border-radius: 2px;
+}
+
+/* ── News Category Buttons ───────────────────────────────────── */
+.news-cat-btn {
+  background: transparent;
+  color: var(--gb-text);
+  border: 1px solid var(--gb-text);
+  font-family: "Press Start 2P", monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.news-cat-btn.active,
+.news-cat-btn:hover {
+  background: var(--gb-text);
+  color: var(--gb-bg);
 }

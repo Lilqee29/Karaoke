@@ -40,6 +40,67 @@
 
     <script src="engine/core.js"></script>
     <script>
+        // ── Gem Rewards & High Score (v4.0) ──────────────────────────────────
+        const TrollSave = {
+            gems: parseInt(localStorage.getItem('trollGems')) || 0,
+            highLevel: parseInt(localStorage.getItem('trollHighLevel')) || 1,
+
+            addGems: function(amount) {
+                this.gems += amount;
+                localStorage.setItem('trollGems', this.gems);
+                // Also add to parent OS gems
+                try { window.parent.addGems(amount); } catch(e) {}
+                this.updateHUD();
+            },
+
+            updateHigh: function(level) {
+                if (level > this.highLevel) {
+                    this.highLevel = level;
+                    localStorage.setItem('trollHighLevel', this.highLevel);
+                }
+                this.updateHUD();
+            },
+
+            updateHUD: function() {
+                try {
+                    const pDoc = window.parent.document;
+                    const gemsEl = pDoc.getElementById('mainTrollGems');
+                    const hiEl = pDoc.getElementById('mainTrollHi');
+                    if (gemsEl) gemsEl.textContent = `💎 ${this.gems}`;
+                    if (hiEl) hiEl.textContent = `HI: ${this.highLevel}`;
+                } catch(e) {}
+            }
+        };
+
+        // Patch TrollEngine.nextLevel to award gems
+        const _origNextLevel = TrollEngine.nextLevel.bind(TrollEngine);
+        TrollEngine.nextLevel = function() {
+            if (this.level >= 1000) {
+                this.won = true;
+                return;
+            }
+            // Award gems: 5 base + up to 10 bonus for fewer deaths
+            const baseGems = 5;
+            const bonusGems = Math.max(0, 10 - this.deaths);
+            TrollSave.addGems(baseGems + bonusGems);
+            TrollSave.updateHigh(this.level + 1);
+
+            // Win flash
+            const frame = document.getElementById('gbFrame');
+            if (frame) {
+                frame.classList.remove('win-flash');
+                void frame.offsetWidth;
+                frame.classList.add('win-flash');
+                frame.addEventListener('animationend', () => frame.classList.remove('win-flash'), {once:true});
+            }
+
+            this.level++;
+            this.loadLevel(this.level);
+        };
+
+        // Update HUD on boot
+        TrollSave.updateHUD();
+
         // ── Touch + Mouse D-Pad bridge ───────────────────────────────────────
         const dpadState = {};
         function dpadPress(key) {
