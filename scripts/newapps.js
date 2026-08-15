@@ -5043,8 +5043,6 @@ window.genRandomAscii = function() {
     const artDiv = document.getElementById('asciiArt');
     if(artDiv) artDiv.innerHTML = art.replace(/\n/g, '<br>');
 };
-'
-
 
 // Initialize currency converter on page load
 window.initCurrency().catch(() => {
