@@ -1,4 +1,4 @@
-// ========== SIGNAL ZERO: A MURDER IN THE DEAD CHANNELS (v6.5 EXPANDED) ==========
+// ========== SIGNAL ZERO: A MURDER IN THE DEAD CHANNELS (v7.0 STORY TREE) ==========
 // Full Detective Case Files: Suspects, Forensics, P2P Co-Op Clue Sync & Accusations!
 
 const MYSTERY_SUSPECTS = {
@@ -33,6 +33,158 @@ const MYSTERY_SUSPECTS = {
         location: "Reactor Core (Found 04:12 AM)",
         alibi: "Autopsy confirms death at 01:00 AM.",
         status: "DECEASED 💀"
+    }
+};
+
+// ── STORY TREE: 3 Acts, ~15 Nodes ──────────────────────────────────────────
+const MYSTERY_NODES = {
+    // ═══ ACT 1: INVESTIGATE CRIME SCENE ═══
+    start: {
+        title: "ACT I — THE BODY",
+        speaker: "CHIEF INVESTIGATOR LOG",
+        text: "04:12 AM. Alarms scream through Station Erebus.\n\nDr. Evelyn Vance — lead researcher on Project Tachyon — is found dead in the Reactor Core. Her wristwatch melted at exactly 01:00:14 AM.\n\nYou are the Chief Investigator. The station is on lockdown. Three suspects remain aboard.",
+        choices: [
+            { text: "Examine the body closely", next: "body" },
+            { text: "Check the security cameras first", next: "cctv" }
+        ]
+    },
+    body: {
+        title: "THE VICTIM",
+        speaker: "FORENSICS",
+        text: "Vance's body shows signs of high-voltage electrocution. Her lab coat smells of ozone. In her hand: a crumpled note reading 'THE BUFFER MUST NOT — '\n\nThe note is torn. The rest is missing.\n\nHer keycard chip shows a timestamp of 03:45 AM — four hours AFTER her death.",
+        choices: [
+            { text: "Investigate the Tachyon Buffer lab", next: "tachyon_lab" },
+            { text: "Interrogate Dr. Aris in the Mess Hall", next: "interrogate_aris" },
+            { text: "Check the reactor logs", next: "reactor_logs" }
+        ],
+        unlock: "e1"
+    },
+    cctv: {
+        title: "SECURITY FOOTAGE",
+        speaker: "CCTV DATABASE",
+        text: "You pull up the Mess Hall camera at 02:30 AM. Dr. Aris is visible — but he's talking to a shimmering holographic projection of... Dr. Vance.\n\nVance was already dead at 01:00 AM.\n\nThe projection speaks with Vance's voice. Aris appears distressed, then the feed cuts to static.",
+        choices: [
+            { text: "Confront Dr. Aris about the hologram", next: "interrogate_aris" },
+            { text: "Investigate the Tachyon Buffer lab", next: "tachyon_lab" },
+            { text: "Check the reactor logs", next: "reactor_logs" }
+        ],
+        unlock: "e3"
+    },
+    // ═══ ACT 2: INTERROGATE SUSPECTS ═══
+    tachyon_lab: {
+        title: "TACHYON BUFFER LAB",
+        speaker: "SCIENCE WING",
+        text: "The Tachyon Buffer is a device that can send 12-second messages through time. The logs show a transmission was sent at 04:00 AM — sending a message 4 hours into the PAST.\n\nThe sender ID is... YOUR keycard.\n\nYou don't remember sending anything. The message reads: 'VANCE MUST DIE. STOP THE BUFFER.'",
+        choices: [
+            { text: "This is a frame-up! Check the data trails", next: "data_trails" },
+            { text: "Interrogate Commander Rex about security", next: "interrogate_rex" },
+            { text: "Find Engineer Carter at the reactor", next: "interrogate_carter" }
+        ],
+        unlock: "e4"
+    },
+    data_trails: {
+        title: "DIGITAL FORENSICS",
+        speaker: "DATA ANALYSIS",
+        text: "The transmission was forged using YOUR credentials. Someone accessed your keycard at 03:45 AM — the same timestamp on Vance's planted keycard.\n\nBoth keycards were in the evidence locker until 03:00 AM. Only Security Chief Rex has access to the evidence locker.\n\nBut Rex claims he was monitoring comms the whole time...",
+        choices: [
+            { text: "Confront Commander Rex with this evidence", next: "interrogate_rex" },
+            { text: "Question Engineer Carter about the reactor", next: "interrogate_carter" },
+            { text: "Return to the crime scene for more clues", next: "body第二次" }
+        ]
+    },
+    body第二次: {
+        title: "RE-EXAMINING THE BODY",
+        speaker: "SECOND PASS",
+        text: "On closer inspection, you notice something: Vance's neural implant port is freshly removed. Someone extracted her Tachyon research directly from her brain.\n\nThe extraction tool matches equipment from Dr. Aris's lab.\n\nBut Aris has no motive to kill — unless the Tachyon data contains something worth dying for.",
+        choices: [
+            { text: "Confront Dr. Aris about the neural extraction", next: "interrogate_aris" },
+            { text: "Check what the Tachyon data actually contains", next: "tachyon_secret" }
+        ]
+    },
+    tachyon_secret: {
+        title: "THE TACHYON SECRET",
+        speaker: "CLASSIFIED DATA",
+        text: "You decrypt Vance's research. The Tachyon Buffer doesn't just send messages — it creates TEMPORAL LOOPS.\n\nVance discovered that every transmission causes a paradox. The station has been stuck in a loop for 72 hours. The 'death' at 01:00 AM already happened — and will happen again.\n\nThe only way to break the loop: destroy the Buffer. But someone wants it preserved.",
+        choices: [
+            { text: "Interrogate Dr. Aris — he wants the data", next: "interrogate_aris" },
+            { text: "Interrogate Commander Rex — he's covering failures", next: "interrogate_rex" },
+            { text: "Interrogate Engineer Carter — he tampered with the reactor", next: "interrogate_carter" }
+        ]
+    },
+    reactor_logs: {
+        title: "REACTOR CORE DATA",
+        speaker: "REACTOR SYSTEMS",
+        text: "At 00:50 AM — one hour before the murder — someone tampered with the voltage grid. The surge was routed specifically to the research lab.\n\nEngineer Carter's access code was used. Carter claims he was 'calibrating oxygen scrubbers,' but the scrubbers show no maintenance logs.\n\nThe voltage surge was powerful enough to kill.",
+        choices: [
+            { text: "Confront Engineer Carter about the voltage", next: "interrogate_carter" },
+            { text: "Check who ordered the surge", next: "surge_order" }
+        ]
+    },
+    surge_order: {
+        title: "WHO ORDERED THE SURGE?",
+        speaker: "COMMAND CHAIN",
+        text: "The surge was ordered via remote command — from the Control Deck. Only Commander Rex has override access to reactor systems.\n\nRex's comms log shows he was 'monitoring array communications' at 01:00 AM. But the array was offline for maintenance.\n\nHe was lying about his alibi.",
+        choices: [
+            { text: "Confront Commander Rex with this evidence", next: "interrogate_rex" },
+            { text: "Investigate further before accusing", next: "interrogate_carter" }
+        ]
+    },
+    // ═══ INTERROGATIONS ═══
+    interrogate_aris: {
+        title: "DR. ARIS — INTERROGATION",
+        speaker: "MESS HALL — 02:30 AM RECONSTRUCTION",
+        text: "ARIS: 'Yes, I spoke to Vance's projection. The Buffer created a temporal echo — her last moments replayed. She was trying to warn me... about the loop.'\n\nARIS: 'I didn't steal anything. The neural extraction data — it was ALREADY in the Buffer before I touched it. Someone put it there hours ago.'\n\nARIS: 'Vance sent herself a message from 4 hours in the future. The message said: DON'T LET THEM DESTROY THE BUFFER.'\n\nHis hands are shaking.",
+        choices: [
+            { text: "Interesting... interrogate Rex next", next: "interrogate_rex" },
+            { text: "Check Engineer Carter's alibi", next: "interrogate_carter" },
+            { text: "Go to the accusation terminal", next: "accuse_prompt" }
+        ]
+    },
+    interrogate_rex: {
+        title: "COMMANDER REX — INTERROGATION",
+        speaker: "CONTROL DECK",
+        text: "REX: 'I was monitoring comms. The array was operational — you're wrong about that.'\n\nBut you show him the maintenance logs. The array WAS offline. He goes pale.\n\nREX: 'Fine. I wasn't monitoring comms. I was... reviewing security footage. Vance came to me two days ago. She said the Tachyon loop was killing her — literally. She begged me to shut down the Buffer.'\n\nREX: 'I refused. Classified project. Then she said she'd do it herself. I ordered the voltage surge to stop her reaching the Buffer room.'\n\nREX: 'I didn't mean to KILL her. Just delay her.'",
+        choices: [
+            { text: "You killed her over a classified project?", next: "rex_confrontation" },
+            { text: "Check Carter's involvement", next: "interrogate_carter" },
+            { text: "Go to the accusation terminal", next: "accuse_prompt" }
+        ]
+    },
+    rex_confrontation: {
+        title: "REX — THE TRUTH",
+        speaker: "CONTROL DECK — BREAKING POINT",
+        text: "REX breaks down:\n\n'The Tachyon project was MY idea. I convinced the board to fund it. When Vance proved it was creating loops — killing her repeatedly across timelines — I couldn't admit failure. The project was worth more than...'\n\nHe stops.\n\n'One life. I sacrificed one life to protect a billion-dollar project. And now the loop means she'll die again. And again. Unless someone destroys the Buffer.'",
+        choices: [
+            { text: "Accuse Commander Rex", next: "accuse_prompt" },
+            { text: "Consider all evidence first", next: "accuse_prompt" }
+        ]
+    },
+    interrogate_carter: {
+        title: "ENGINEER CARTER — INTERROGATION",
+        speaker: "REACTOR LOWER LEVEL",
+        text: "CARTER: 'I tampered with the voltage — yes. But Rex ORDERED me to. He said it was a safety override.'\n\nCARTER: 'I didn't know Vance was in the lab. The surge was supposed to lock the doors, not kill anyone. But Rex used a lethal setting.'\n\nCARTER: 'There's something else. The reactor logs show TWO surges. One at 00:50 — mine. Another at 01:00 — that wasn't me. Someone else triggered a second surge after I left.'\n\nHe points to a hidden admin access log. The second surge was triggered by... Dr. Aris's credentials.",
+        choices: [
+            { text: "Aris triggered the fatal surge?", next: "aris_secret" },
+            { text: "This changes everything — accuse someone", next: "accuse_prompt" }
+        ]
+    },
+    aris_secret: {
+        title: "DR. ARIS — THE HIDDEN TRUTH",
+        speaker: "CONFRONTATION",
+        text: "You confront Aris with the evidence.\n\nARIS: '...You found it. Yes. I triggered the second surge. But I did it to SAVE her.'\n\nARIS: 'Vance was dying from temporal radiation. The Buffer was killing her slowly. She asked me to end it — to destroy the reactor and the Buffer together. A mercy kill.'\n\nARIS: 'But Rex's first surge had already electrocuted her. When I triggered mine, she was already dead. I... I was too late.'\n\nThe room goes silent.",
+        choices: [
+            { text: "Accuse Dr. Aris", next: "accuse_prompt" },
+            { text: "The real culprit is the time loop itself", next: "accuse_prompt" }
+        ]
+    },
+    // ═══ ACT 3: ACCUSE ═══
+    accuse_prompt: {
+        title: "ACT III — FINAL DEDUCTION",
+        speaker: "DECISION TIME",
+        text: "All evidence collected. All suspects interrogated.\n\nThe truth: The Tachyon Buffer created a temporal loop. Vance died because of a cascade of actions — Rex's security order, Carter's voltage, Aris's delayed response.\n\nBut the REAL question isn't who killed her. It's how to STOP the loop from killing her again.\n\nThe answer lies in the Tachyon Buffer itself.",
+        choices: [
+            { text: "Go to the Accusation Terminal", next: "accuse_prompt" }
+        ]
     }
 };
 
@@ -112,7 +264,7 @@ function getStoryHTML() {
     const node = MYSTERY_NODES[currentMysteryNode] || MYSTERY_NODES.start;
     let choicesHtml = node.choices.map((c) => `
         <button onclick="selectMysteryChoice('${c.next}')" style="width: 100%; text-align: left; padding: 6px; font-family: 'VT323', monospace; font-size: 8px; background: rgba(0,255,0,0.1); color: #0f0; border: 1px solid #0f0; margin-bottom: 4px; cursor: pointer;">
-            ${c.label}
+            ${c.text}
         </button>
     `).join('');
 
@@ -173,9 +325,10 @@ function getAccuseHTML() {
             <div style="font-size: 10px; font-weight: bold; color: #f00; margin-bottom: 6px;">⚖️ FINAL DEDUCTION TERMINAL</div>
             <div style="margin-bottom: 10px; opacity: 0.8;">SELECT THE CULPRIT RESPONSIBLE FOR THE PARADOX:</div>
             
-            <button onclick="accuseCulprit('aris')" style="width: 100%; padding: 8px; margin-bottom: 6px; background: #200; color: #fff; border: 1px solid #f00; font-family: 'VT323';">ACCUSE DR. ARIS (STOLE TACHYON DATA)</button>
-            <button onclick="accuseCulprit('carter')" style="width: 100%; padding: 8px; margin-bottom: 6px; background: #200; color: #fff; border: 1px solid #f00; font-family: 'VT323';">ACCUSE ENGINEER CARTER (REACTOR VOLTAGE)</button>
-            <button onclick="accuseCulprit('paradox')" style="width: 100%; padding: 8px; background: #040; color: #0f0; border: 1px solid #0f0; font-family: 'VT323';">EXPOSE THE TEMPORAL LOOP (FUTURE SELF)</button>
+            <button onclick="accuseCulprit('aris')" style="width: 100%; padding: 8px; margin-bottom: 6px; background: #200; color: #fff; border: 1px solid #f00; font-family: 'VT323';">DR. ARIS — NEURAL EXTRACTION</button>
+            <button onclick="accuseCulprit('rex')" style="width: 100%; padding: 8px; margin-bottom: 6px; background: #200; color: #fff; border: 1px solid #f00; font-family: 'VT323';">CMDR. REX — ORDERED THE SURGE</button>
+            <button onclick="accuseCulprit('carter')" style="width: 100%; padding: 8px; margin-bottom: 6px; background: #200; color: #fff; border: 1px solid #f00; font-family: 'VT323';">ENGINEER CARTER — TAMPERED REACTOR</button>
+            <button onclick="accuseCulprit('paradox')" style="width: 100%; padding: 8px; background: #040; color: #0f0; border: 1px solid #0f0; font-family: 'VT323';">EXPOSE THE TEMPORAL LOOP (BREAK THE CYCLE)</button>
         </div>
     `;
 }
@@ -187,18 +340,25 @@ window.switchMysteryTab = function(tab) {
 
 window.selectMysteryChoice = function(nextNodeKey) {
     currentMysteryNode = nextNodeKey;
-    if(nextNodeKey === "body") unlockedClues.add("e1");
-    if(nextNodeKey === "keycard") unlockedClues.add("e2");
-    if(nextNodeKey === "cctv") unlockedClues.add("e3");
-    if(nextNodeKey === "terminal" || nextNodeKey === "paradox") unlockedClues.add("e4");
+    const node = MYSTERY_NODES[nextNodeKey];
+    if(node && node.unlock) unlockedClues.add(node.unlock);
+    if(nextNodeKey === "accuse_prompt") {
+        activeTab = "ACCUSE";
+    }
     renderMysteryUI();
 };
 
 window.accuseCulprit = function(culprit) {
     if(culprit === 'paradox') {
-        alert("CORRECT DEDUCTION! 🏆\n\nYou proved Evelyn Vance was killed by a temporal voltage feedback loop caused by your future self's transmission!\n\nCASE RESOLVED: TIME LOOP CLOSED!");
-    } else {
-        alert("INCORRECT ACCUSATION! ❌\n\nYour accusation caused a paradox cascade! The temporal loop resets...");
+        alert("🏆 CORRECT DEDUCTION!\n\nYou proved Evelyn Vance was killed by a temporal voltage feedback loop — a cascade of actions across timelines. Rex ordered the surge, Carter executed it, Aris tried to save her. But the REAL killer is the Tachyon Buffer itself.\n\nYou destroy the Buffer. The loop breaks. Vance lives — in the next timeline.\n\nCASE RESOLVED: TIME LOOP CLOSED.");
+    } else if(culprit === 'rex') {
+        alert("⚠️ PARTIAL TRUTH!\n\nCommander Rex ordered the voltage surge, but he didn't act alone. The temporal loop means this will happen again — unless you expose the system itself.\n\nTry a different deduction.");
+        window.startMystery();
+    } else if(culprit === 'aris') {
+        alert("⚠️ PARTIAL TRUTH!\n\nDr. Aris triggered the second surge — but he was trying to HELP Vance, not kill her. The real cause is deeper.\n\nTry a different deduction.");
+        window.startMystery();
+    } else if(culprit === 'carter') {
+        alert("⚠️ PARTIAL TRUTH!\n\nEngineer Carter tampered with the reactor — but he was following Rex's orders. The real cause is the system.\n\nTry a different deduction.");
         window.startMystery();
     }
 };

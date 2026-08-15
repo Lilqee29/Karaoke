@@ -12,7 +12,7 @@ window.startRacer = function() {
     let aiBaseSpeed = diff === 'easy' ? 4.0 : (diff === 'hard' ? 8.5 : 6.0);
     const winDist = 5000;
 
-    let me = { x: 75, distance: 0, speed: 0, color: '#0f0' };
+    let me = { x: 75, distance: 0, speed: 0, color: '#0f0', steer: 0 };
     let peer = { x: 225, distance: 0, speed: 0, color: '#f0f' };
     
     P2PGameEngine.activeGame = {
@@ -68,7 +68,7 @@ window.startRacer = function() {
         const yBase = 240;
         const distDiff = (peer.distance - me.distance) * 0.1;
         
-        drawCar(80, yBase, me, "YOU");
+        drawCar(me.x, yBase, me, "YOU");
         drawCar(240, yBase + distDiff, peer, P2PGameEngine.isSolo ? "CPU" : "PEER");
 
         // HUD - Speed & Progress
@@ -135,10 +135,20 @@ window.startRacer = function() {
 
     const handleInput = (e) => {
         if(currentScreen !== 'racer') return;
-        if(e.target.tagName !== 'INPUT' && (e.key === 'z' || e.key === 'x' || e.key === 'ArrowUp' || e.key === ' ' || e.key === 'Enter')) {
+        if(e.target.tagName === 'INPUT') return;
+        // A button / ArrowUp / Space = accelerate
+        if(e.key === 'z' || e.key === 'a' || e.key === 'ArrowUp' || e.key === ' ' || e.key === 'Enter') {
             me.speed = Math.min(25, me.speed + 1.2);
             if(window.sounds && window.sounds.click) window.sounds.click();
             if(navigator.vibrate) navigator.vibrate(20);
+        }
+        // D-pad left/right = steer
+        if(e.key === 'ArrowLeft') me.x = Math.max(40, me.x - 8);
+        if(e.key === 'ArrowRight') me.x = Math.min(280, me.x + 8);
+        // B button / ArrowDown = brake
+        if(e.key === 'x' || e.key === 'b' || e.key === 'ArrowDown') {
+            me.speed = Math.max(0, me.speed - 2);
+            if(window.sounds && window.sounds.click) window.sounds.click();
         }
     };
 

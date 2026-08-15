@@ -224,6 +224,13 @@ window.initChess = function(resume = false) {
                     div.style.animation  = 'pulseSelected 1.4s ease-in-out infinite';
                 }
 
+                // Keyboard cursor highlight
+                if (chessCursor && chessCursor.r === r && chessCursor.c === c && !(selected && selected.r === r && selected.c === c)) {
+                    div.style.outline      = '2px solid #0ff';
+                    div.style.outlineOffset = '-2px';
+                    div.style.zIndex       = '4';
+                }
+
                 div.onclick = () => handleCellClick(r, c);
                 grid.appendChild(div);
             });
@@ -288,6 +295,13 @@ window.initChess = function(resume = false) {
 
                 // Pawn promotion
                 if (board[r][c] === 'P' && r === 0) board[r][c] = 'Q';
+
+                // Track move for history
+                if (typeof ChessTimer !== 'undefined' && typeof chessNotation === 'function') {
+                    const piece = board[r][c];
+                    ChessTimer.addMove(chessNotation(piece, selected.r, selected.c, r, c, victim !== '.'));
+                    ChessTimer.switchTurn('black');
+                }
 
                 saveChessGame(board, turn, captured, window._chessState.mode, window._chessState.difficulty, window._chessState.wins);
 
@@ -356,10 +370,19 @@ window.initChess = function(resume = false) {
 
             // AI pawn promotion
             if (board[move.tr][move.tc] === 'p' && move.tr === 7) board[move.tr][move.tc] = 'q';
+
+            // Track AI move for history
+            if (typeof ChessTimer !== 'undefined' && typeof chessNotation === 'function') {
+                const piece = board[move.tr][move.tc];
+                ChessTimer.addMove(chessNotation(piece, move.sr, move.sc, move.tr, move.tc, victim !== '.'));
+            }
         }
 
         turn = 'white';
         renderBoard();
+
+        // Switch timer to white's turn
+        if (typeof ChessTimer !== 'undefined') ChessTimer.switchTurn('white');
 
         saveChessGame(board, turn, captured, window._chessState.mode, window._chessState.difficulty, window._chessState.wins);
 
@@ -468,6 +491,34 @@ window.initChess = function(resume = false) {
         }, isPlayerWin ? 600 : 300);
     }
 
+    // ── Keyboard Navigation (D-Pad + A/B) ───────────────────────────────────
+    let chessCursor = { r: 6, c: 4 }; // Start on a white pawn
+
+    const handleChessInput = (e) => {
+        if (currentScreen !== 'chess') return;
+        if (e.target.tagName === 'INPUT') return;
+        if (turn !== 'white') return;
+
+        if (e.key === 'ArrowUp')   { chessCursor.r = Math.max(0, chessCursor.r - 1); renderBoard(); chessAudio.select(); }
+        if (e.key === 'ArrowDown') { chessCursor.r = Math.min(7, chessCursor.r + 1); renderBoard(); chessAudio.select(); }
+        if (e.key === 'ArrowLeft') { chessCursor.c = Math.max(0, chessCursor.c - 1); renderBoard(); chessAudio.select(); }
+        if (e.key === 'ArrowRight'){ chessCursor.c = Math.min(7, chessCursor.c + 1); renderBoard(); chessAudio.select(); }
+
+        // A button = select/move piece
+        if (e.key === 'z' || e.key === 'a' || e.key === 'Enter' || e.key === ' ') {
+            handleCellClick(chessCursor.r, chessCursor.c);
+        }
+        // B button = cancel selection
+        if (e.key === 'x' || e.key === 'b' || e.key === 'Escape') {
+            if (selected) {
+                selected = null;
+                chessAudio.invalid();
+                renderBoard();
+            }
+        }
+    };
+    window.addEventListener('keydown', handleChessInput);
+
     // ── Kick off ─────────────────────────────────────────────────────────────
     renderBoard();
 
@@ -489,4 +540,15 @@ window.startChessMode = function(mode, difficulty) {
     window._chessState.mode       = mode;
     window._chessState.difficulty = difficulty || 'normal';
     window.startChess();
+};
+
+// ── Move Notation Helper ─────────────────────────────────────────────────────
+window.chessNotation = function(piece, sr, sc, tr, tc, captured) {
+    const files = 'abcdefgh';
+    const ranks = '87654321';
+    const p = piece.toUpperCase();
+    const pName = { P:'', R:'R', K:'N', B:'B', Q:'Q', M:'K' }[p] || p;
+    const cap = captured ? 'x' : '';
+    const from = p === 'P' && captured ? files[sc] : '';
+    return `${pName}${from}${cap}${files[tc]}${ranks[tr]}`;
 };

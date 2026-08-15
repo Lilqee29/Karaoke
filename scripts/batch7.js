@@ -1,40 +1,13 @@
 // ========== BATCH 7 APPS ==========
 // Fixed: All variables scoped with IIFE to prevent "already declared" conflicts
-// Stopwatch, Pomodoro
+// Merged Timer+Stopwatch, Pomodoro
 
 (function() { // <-- IIFE START: all vars below are local, no global conflicts
 
 // ==================== 1. STOPWATCH (CHRONO) ====================
-// Renamed: swInterval → _swInterval, swTime → _swTime, swLaps → _swLaps
-// to avoid collision with any existing stopwatch vars in other files.
-
 let _swInterval = null;
 let _swTime = 0;
 let _swLaps = [];
-
-window.initStopwatch = function() {
-    const screen = document.getElementById('stopwatchScreen');
-    if (!screen) return;
-
-    // Clear any running interval from previous launch
-    if (_swInterval) { intervalManager.clear(_swInterval); _swInterval = null; }
-    _swTime = 0;
-    _swLaps = [];
-
-    screen.innerHTML = `
-        <div style="padding: 20px; text-align: center; font-family: 'VT323', monospace;">
-            <div style="font-size: 40px; margin-bottom: 20px;" id="swDisplay">00:00.00</div>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button onclick="swToggle()" id="swBtn" style="flex: 1; padding: 10px;">START</button>
-                <button onclick="swLap()"    style="flex: 1; padding: 10px;">LAP</button>
-                <button onclick="swReset()"  style="flex: 1; padding: 10px;">RESET</button>
-            </div>
-            <div id="swLaps" style="height: 150px; overflow-y: auto; text-align: left;
-                 font-size: 10px; border-top: 2px solid #333; padding-top: 10px;"></div>
-        </div>
-    `;
-    _swUpdate();
-};
 
 window.swToggle = function() {
     const btn = document.getElementById('swBtn');
@@ -71,27 +44,108 @@ window.swLap = function() {
     const lapsEl = document.getElementById('swLaps');
     if (!lapsEl) return;
     const div = document.createElement('div');
-    div.textContent = `#${_swLaps.length} - ${_formatTime(_swTime)}`;
+    div.textContent = `#${_swLaps.length} - ${_swFormatTime(_swTime)}`;
     div.style.borderBottom = '1px solid #ccc';
-    lapsEl.prepend(div);
     sounds.coin();
 };
 
 function _swUpdate() {
     const d = document.getElementById('swDisplay');
-    if (d) d.textContent = _formatTime(_swTime);
+    if (d) d.textContent = _swFormatTime(_swTime);
 }
 
-function _formatTime(ms) {
+function _swFormatTime(ms) {
     const m  = Math.floor(ms / 60000);
     const s  = Math.floor((ms % 60000) / 1000);
     const cs = Math.floor((ms % 1000) / 10);
-    return `${_pad(m)}:${_pad(s)}.${_pad(cs)}`;
+    return `${_swPad(m)}:${_swPad(s)}.${_swPad(cs)}`;
 }
 
-// Private pad — won't clash with global pad() in system.js
-function _pad(n) { return n.toString().padStart(2, '0'); }
+function _swPad(n) { return n.toString().padStart(2, '0'); }
+var _pad = _swPad;
 
+// ==================== 1b. TAB SWITCHING ====================
+let _currentTimerTab = 'timer';
+let _tmTime = 0;
+let _tmInterval = null;
+let _tmTotalTime = 0;
+
+window.switchTimerTab = function(tab) {
+    _currentTimerTab = tab;
+    document.getElementById('timerTimerTab').style.display = tab === 'timer' ? 'flex' : 'none';
+    document.getElementById('timerStopwatchTab').style.display = tab === 'stopwatch' ? 'flex' : 'none';
+    document.getElementById('timerTabBtn').style.background = tab === 'timer' ? 'var(--gb-text)' : 'transparent';
+    document.getElementById('timerTabBtn').style.color = tab === 'timer' ? 'var(--gb-bg)' : 'var(--gb-text)';
+    document.getElementById('stopwatchTabBtn').style.background = tab === 'stopwatch' ? 'var(--gb-text)' : 'transparent';
+    document.getElementById('stopwatchTabBtn').style.color = tab === 'stopwatch' ? 'var(--gb-bg)' : 'var(--gb-text)';
+    sounds.click();
+};
+
+window.setTimer = function(m) {
+    if (_tmInterval) return;
+    _tmTime += m * 60;
+    _tmTotalTime = _tmTime;
+    _tmUpdateDisplay();
+    _tmUpdateRing();
+    sounds.click();
+};
+
+window.startTimer = function() {
+    if (_tmInterval) {
+        clearInterval(_tmInterval);
+        _tmInterval = null;
+        document.getElementById('tmBtn').textContent = 'RESUME';
+        return;
+    }
+    if (_tmTime <= 0) return;
+    _tmTotalTime = _tmTime;
+    document.getElementById('tmBtn').textContent = 'PAUSE';
+    _tmInterval = setInterval(() => {
+        _tmTime--;
+        _tmUpdateDisplay();
+        _tmUpdateRing();
+        if (_tmTime <= 0) {
+            clearInterval(_tmInterval);
+            _tmInterval = null;
+            document.getElementById('tmBtn').textContent = 'START';
+            sounds.launch();
+        }
+    }, 1000);
+    sounds.coin();
+};
+
+window.resetTimer = function() {
+    clearInterval(_tmInterval);
+    _tmInterval = null;
+    _tmTime = 0;
+    _tmTotalTime = 0;
+    _tmUpdateDisplay();
+    _tmUpdateRing();
+    document.getElementById('tmBtn').textContent = 'START';
+    sounds.back();
+};
+
+function _tmUpdateDisplay() {
+    const el = document.getElementById('tmDisplay');
+    if (!el) return;
+    const m = Math.floor(_tmTime / 60);
+    const s = _tmTime % 60;
+    el.textContent = `${_swPad(m)}:${_swPad(s)}`;
+}
+
+function _tmUpdateRing() {
+    const ring = document.getElementById('timerProgress');
+    if (!ring) return;
+    const circumference = 2 * Math.PI * 52;
+    const pct = _tmTotalTime > 0 ? _tmTime / _tmTotalTime : 1;
+    ring.setAttribute('stroke-dashoffset', circumference * (1 - pct));
+}
+
+window.initTimer = function() {
+    _tmUpdateDisplay();
+    _tmUpdateRing();
+    _swUpdate();
+};
 
 // ==================== 2. POMODORO (POMO) ====================
 

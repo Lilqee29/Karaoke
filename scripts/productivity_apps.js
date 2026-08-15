@@ -262,102 +262,142 @@ let budget = JSON.parse(localStorage.getItem('gbBudget')) || {
     monthlyBudget: 1000,
     expenses: []
 };
+let budgetType = 'expense';
+let budgetCat = '🍔';
 
 window.initBudget = function() {
     renderBudget();
 };
 
+window.setBudgetType = function(t) {
+    budgetType = t;
+    document.getElementById('budgetExpBtn').style.background = t === 'expense' ? 'var(--gb-text)' : 'transparent';
+    document.getElementById('budgetExpBtn').style.color = t === 'expense' ? 'var(--gb-bg)' : 'var(--gb-text)';
+    document.getElementById('budgetIncBtn').style.background = t === 'income' ? 'var(--gb-text)' : 'transparent';
+    document.getElementById('budgetIncBtn').style.color = t === 'income' ? 'var(--gb-bg)' : 'var(--gb-text)';
+};
+
+window.selectBudgetCat = function(c) {
+    budgetCat = c;
+    document.querySelectorAll('.budget-cat').forEach(el => {
+        el.style.background = el.dataset.cat === c ? 'var(--gb-text)' : 'rgba(15,56,15,0.15)';
+        el.style.color = el.dataset.cat === c ? 'var(--gb-bg)' : 'var(--gb-text)';
+    });
+};
+
 function renderBudget() {
     const screen = document.getElementById('budgetScreen');
     if (!screen) return;
-    
-    const totalSpent = budget.expenses.reduce((sum, e) => sum + e.amount, 0);
-    const remaining = budget.monthlyBudget - totalSpent;
-    const percentUsed = Math.round((totalSpent / budget.monthlyBudget) * 100);
-    
-    let html = `
-        <div style="padding: 10px;">
-            <div style="text-align: center; margin-bottom: 15px;">
-                <div style="font-size: 6px; opacity: 0.7;">MONTHLY BUDGET</div>
-                <div style="font-size: 12px; font-weight: bold; margin: 5px 0;">$${budget.monthlyBudget}</div>
-                <div style="font-size: 8px; color: ${remaining >= 0 ? '#0f0' : '#f00'};">
-                    ${remaining >= 0 ? 'REMAINING' : 'OVER'}: $${Math.abs(remaining)}
-                </div>
-                <div style="
-                    width: 100%;
-                    height: 10px;
-                    background: rgba(15, 56, 15, 0.2);
-                    border: 1px solid var(--gb-text);
-                    border-radius: 5px;
-                    margin-top: 8px;
-                    overflow: hidden;
-                ">
-                    <div style="
-                        width: ${Math.min(percentUsed, 100)}%;
-                        height: 100%;
-                        background: ${percentUsed > 100 ? '#f00' : percentUsed > 75 ? '#ff0' : '#0f0'};
-                        transition: width 0.3s;
-                    "></div>
-                </div>
-            </div>
-            
-            <button onclick="addExpense()" style="width: 100%; margin-bottom: 10px;">+ ADD EXPENSE</button>
-            <button onclick="setBudget()" style="width: 100%; margin-bottom: 10px; font-size: 6px;">⚙️ SET BUDGET</button>
-            
-            <div style="max-height: 150px; overflow-y: auto; border-top: 1px solid var(--gb-text); padding-top: 10px;">
-    `;
-    
-    budget.expenses.slice().reverse().forEach((exp, i) => {
-        const actualIndex = budget.expenses.length - 1 - i;
-        html += `
-            <div style="
-                padding: 5px;
-                border-bottom: 1px solid rgba(15, 56, 15, 0.2);
-                display: flex;
-                justify-content: space-between;
-                font-size: 7px;
-            ">
-                <span>${sanitizeHTML(exp.name)}</span>
-                <span style="font-weight: bold;">-$${exp.amount}</span>
-            </div>
-        `;
-    });
-    
-    html += `</div></div>`;
-    screen.innerHTML = html;
+
+    const income = budget.expenses.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+    const expense = budget.expenses.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+    const balance = income - expense;
+
+    const balEl = document.getElementById('budgetBalance');
+    const incEl = document.getElementById('budgetIncome');
+    const expEl = document.getElementById('budgetExpense');
+    if (balEl) { balEl.textContent = '$' + balance.toFixed(2); balEl.style.color = balance >= 0 ? '#0f0' : '#f00'; }
+    if (incEl) incEl.textContent = '$' + income.toFixed(2);
+    if (expEl) expEl.textContent = '$' + expense.toFixed(2);
+
+    const txList = document.getElementById('budgetTxList');
+    if (txList) {
+        txList.innerHTML = '';
+        budget.expenses.slice().reverse().forEach((tx, i) => {
+            const actualIndex = budget.expenses.length - 1 - i;
+            const color = tx.type === 'income' ? '#0f0' : '#f00';
+            const div = document.createElement('div');
+            div.style.cssText = 'padding:4px; border-bottom:1px solid rgba(15,56,15,0.2); font-size:7px; display:flex; justify-content:space-between;';
+            div.innerHTML = `<span>${tx.cat} ${sanitizeHTML(tx.name)}</span><span style="color:${color};font-weight:bold;">${tx.type === 'income' ? '+' : '-'}$${tx.amount.toFixed(2)}</span>`;
+            txList.appendChild(div);
+        });
+    }
+
+    drawBudgetChart();
 }
 
-window.addExpense = function() {
-    const name = prompt('EXPENSE NAME:');
-    if (!name) return;
-    const amount = parseFloat(prompt('AMOUNT:'));
-    if (isNaN(amount) || amount <= 0) return;
-    
+function drawBudgetChart() {
+    const canvas = document.getElementById('budgetChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const categories = {};
+    budget.expenses.filter(e => e.type === 'expense').forEach(e => {
+        categories[e.cat] = (categories[e.cat] || 0) + e.amount;
+    });
+
+    const cats = Object.keys(categories);
+    if (cats.length === 0) {
+        ctx.fillStyle = '#888';
+        ctx.font = '9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('NO DATA', w / 2, h / 2 + 3);
+        return;
+    }
+
+    const maxVal = Math.max(...Object.values(categories));
+    const barW = Math.min(30, (w - 20) / cats.length - 4);
+    const startX = (w - cats.length * (barW + 4)) / 2;
+
+    cats.forEach((cat, i) => {
+        const val = categories[cat];
+        const barH = maxVal > 0 ? (val / maxVal) * (h - 28) : 0;
+        const x = startX + i * (barW + 4);
+        const y = h - 14 - barH;
+
+        ctx.fillStyle = '#0f380f';
+        ctx.fillRect(x, y, barW, barH);
+        ctx.fillStyle = '#000';
+        ctx.font = '8px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(cat, x + barW / 2, h - 3);
+    });
+}
+
+window.addBudgetTx = function() {
+    const nameEl = document.getElementById('budgetNameInput');
+    const amtEl = document.getElementById('budgetAmtInput');
+    if (!nameEl || !amtEl) return;
+    const name = nameEl.value.trim();
+    const amount = parseFloat(amtEl.value);
+    if (!name || isNaN(amount) || amount <= 0) return;
+
     budget.expenses.push({
-        name: name.trim().substring(0, 30),
+        name: name.substring(0, 30),
         amount: Math.round(amount * 100) / 100,
+        type: budgetType,
+        cat: budgetCat,
         date: new Date().toISOString()
     });
     localStorage.setItem('gbBudget', JSON.stringify(budget));
-    sounds.click();
+    nameEl.value = '';
+    amtEl.value = '';
+    if (window.sounds) sounds.click();
     renderBudget();
 };
 
-window.setBudget = function() {
-    const amount = parseFloat(prompt('MONTHLY BUDGET:'));
-    if (isNaN(amount) || amount <= 0) return;
-    
-    budget.monthlyBudget = Math.round(amount * 100) / 100;
-    localStorage.setItem('gbBudget', JSON.stringify(budget));
-    sounds.coin();
-    renderBudget();
+window.exportBudgetCSV = function() {
+    let csv = 'Date,Type,Category,Name,Amount\n';
+    budget.expenses.forEach(tx => {
+        csv += `${tx.date},${tx.type},${tx.cat},"${tx.name}",${tx.amount}\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'budget_export.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    if (window.sounds) sounds.coin();
 };
 
 window.clearBudget = function() {
-    if (confirm('CLEAR ALL EXPENSES?')) {
+    if (confirm('CLEAR ALL TRANSACTIONS?')) {
         budget.expenses = [];
         localStorage.setItem('gbBudget', JSON.stringify(budget));
-        sounds.back();
+        if (window.sounds) sounds.back();
         renderBudget();
     }
 };
@@ -502,133 +542,139 @@ window.onNavMapClick = function(e) {
     }
 };
 
-// ── UPGRADED PASSWORD GENERATOR (v3.0) ─────────────────────────────────────
+// ── UPGRADED PASSWORD GENERATOR (v4.0) ─────────────────────────────────────
 window.generatePassHub = function() {
     const len = parseInt(document.getElementById('passLength')?.value) || 16;
     const num = document.getElementById('passNums')?.checked;
     const sym = document.getElementById('passSyms')?.checked;
+    const upper = document.getElementById('passUpper')?.checked;
     const seed = document.getElementById('passSeed')?.value.trim() || '';
 
-    let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let chars = "abcdefghijklmnopqrstuvwxyz";
+    if(upper) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     if(num) chars += "0123456789";
     if(sym) chars += "!@#$%^&*()_+-=[]{}";
 
-    let password = "";
-    if(seed) {
-        // Deterministic or seeded prefix
-        password = seed.substring(0, Math.floor(len / 2));
-    }
-    for(let i = password.length; i < len; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    function makePass(overrideLen) {
+        let password = "";
+        if(seed) {
+            password = seed.substring(0, Math.floor(overrideLen / 2));
+        }
+        for(var i = password.length; i < overrideLen; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
     }
 
+    const main = makePass(len);
     const out = document.getElementById('passOutput');
-    if(out) out.value = password;
+    if(out) out.value = main;
+
+    // Strength meter
+    var entropy = len * Math.log2(chars.length || 1);
+    var pct = Math.min(entropy / 128 * 100, 100);
+    var bar = document.getElementById('passStrengthBar');
+    var label = document.getElementById('passStrengthLabel');
+    if(bar) {
+        bar.style.width = pct + '%';
+        bar.style.background = entropy < 40 ? '#f00' : entropy < 80 ? '#ff8800' : '#0f0';
+    }
+    if(label) label.textContent = 'ENTROPY: ' + Math.round(entropy) + ' bits | ' + (entropy < 40 ? 'WEAK' : entropy < 80 ? 'MEDIUM' : 'STRONG');
+
+    // 3 Variants
+    var variants = document.getElementById('passVariants');
+    if(variants) {
+        var v1 = makePass(Math.max(len - 4, 8));
+        var v2 = makePass(len + 4);
+        var v3 = makePass(len);
+        // Shuffle v3 chars
+        v3 = v3.split('').sort(function() { return Math.random() - 0.5; }).join('');
+        variants.innerHTML =
+            '<div style="margin-bottom:2px;"><b>V1 (' + v1.length + '):</b> ' + v1 + '</div>' +
+            '<div style="margin-bottom:2px;"><b>V2 (' + v2.length + '):</b> ' + v2 + '</div>' +
+            '<div><b>V3 (shuffle):</b> ' + v3 + '</div>';
+    }
+
     if(window.sounds && window.sounds.coin) window.sounds.coin();
 };
 
 window.copyPassHub = function() {
     const out = document.getElementById('passOutput');
     if(!out || !out.value) return;
-    navigator.clipboard.writeText(out.value);
-    if(window.sounds && window.sounds.coin) window.sounds.coin();
-    alert('PASSWORD COPIED! 🔐');
-};
-
-// ── UPGRADED WEATHER (City Name + 5-Day Forecast) ─────────────────────────
-window.initWeather = function() {
-    window.fetchWeatherHub('Paris');
-};
-
-window.fetchWeatherHub = async function(city = 'Paris') {
-    const screen = document.getElementById('weatherScreen');
-    if(!screen) return;
-    screen.innerHTML = '<div style="text-align:center; padding: 20px; font-size: 8px;">CONNECTING TO WEATHER SATELLITE... ☀️</div>';
-
-    try {
-        // Geocode city name to lat/lon via Open-Meteo geocoding API
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
-        const geoData = await geoRes.json();
-        
-        let lat = 48.8566, lon = 2.3522, cityName = "PARIS, FR";
-        if(geoData.results && geoData.results.length > 0) {
-            lat = geoData.results[0].latitude;
-            lon = geoData.results[0].longitude;
-            cityName = `${geoData.results[0].name.toUpperCase()}, ${geoData.results[0].country_code.toUpperCase()}`;
-        }
-
-        // Fetch forecast from Open-Meteo API
-        const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
-        const weatherData = await weatherRes.json();
-        const current = weatherData.current_weather;
-
-        screen.innerHTML = `
-            <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; height: 100%; box-sizing: border-box;">
-                <!-- SEARCH -->
-                <div style="display: flex; gap: 4px;">
-                    <input id="weatherCityInput" placeholder="CITY NAME..." value="${city}" style="flex: 1; font-size: 7px; padding: 4px;">
-                    <button onclick="fetchWeatherHub(document.getElementById('weatherCityInput').value)" style="padding: 4px 8px; font-size: 7px;">SEARCH</button>
-                </div>
-
-                <!-- MAIN DISPLAY -->
-                <div style="background: rgba(15,56,15,0.15); border: 2px solid var(--gb-text); padding: 10px; text-align: center; border-radius: 4px;">
-                    <div style="font-size: 8px; font-weight: bold; opacity: 0.8;">${cityName}</div>
-                    <div style="font-size: 28px; font-weight: bold; margin: 4px 0;">${Math.round(current.temperature)}°C</div>
-                    <div style="font-size: 7px;">WIND: ${current.windspeed} KM/H</div>
-                </div>
-
-                <!-- FORECAST -->
-                <div style="font-size: 7px; font-weight: bold; text-align: center; opacity: 0.8;">5-DAY FORECAST</div>
-                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; text-align: center; font-size: 6px;">
-                    ${weatherData.daily.temperature_2m_max.slice(0, 5).map((max, i) => `
-                        <div style="background: rgba(15,56,15,0.08); border: 1px solid var(--gb-text); padding: 4px; border-radius: 2px;">
-                            <div>DAY ${i+1}</div>
-                            <div style="font-weight: bold; margin-top: 2px;">${Math.round(max)}°</div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    } catch(e) {
-        screen.innerHTML = '<div style="text-align:center; padding: 20px; font-size: 8px;">WEATHER SATELLITE OFFLINE 🌧️</div>';
+    if(navigator.clipboard) {
+        navigator.clipboard.writeText(out.value).then(function() {
+            if(window.sounds && window.sounds.coin) window.sounds.coin();
+        });
+    } else {
+        out.select();
+        document.execCommand('copy');
     }
 };
 
+// ── WEATHER (Moved to newapps.js with full upgrade) ─────────────────────────
+
 // ── PAINT APP UNDO & CLEAR LOGIC ──────────────────────────────────────────
 let paintHistory = [];
+let paintErasing = false;
 window.initPaint = function() {
     const canvas = document.getElementById('paintCanvas');
     if(!canvas) return;
     const ctx = canvas.getContext('2d');
     paintHistory = [];
+    paintErasing = false;
     
-    // Save initial state
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     paintHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
 
-    let drawing = false;
-    canvas.onmousedown = canvas.ontouchstart = () => { drawing = true; };
+    canvas.onmousedown = canvas.ontouchstart = (e) => {
+        e.preventDefault();
+        isPainting = true;
+        drawPaint(e.touches ? e.touches[0] : e);
+    };
     canvas.onmouseup = canvas.ontouchend = () => {
-        if(drawing) {
-            drawing = false;
-            if(paintHistory.length >= 10) paintHistory.shift();
+        if(isPainting) {
+            isPainting = false;
+            if(paintHistory.length >= 20) paintHistory.shift();
             paintHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
         }
     };
-
     canvas.onmousemove = canvas.ontouchmove = (e) => {
-        if(!drawing) return;
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const x = (clientX - rect.left) * (canvas.width / rect.width);
-        const y = (clientY - rect.top) * (canvas.height / rect.height);
-        
-        ctx.fillStyle = document.getElementById('paintColor')?.value || '#000';
-        const size = parseInt(document.getElementById('brushSize')?.value) || 3;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
+        if(!isPainting) return;
+        e.preventDefault();
+        drawPaint(e.touches ? e.touches[0] : e);
     };
+
+    const brushEl = document.getElementById('brushSize');
+    const labelEl = document.getElementById('brushSizeLabel');
+    if(brushEl && labelEl) {
+        brushEl.oninput = () => { labelEl.textContent = brushEl.value; };
+    }
+};
+
+function drawPaint(e) {
+    const canvas = document.getElementById('paintCanvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.clientX !== undefined ? e.clientX : e.pageX;
+    const clientY = e.clientY !== undefined ? e.clientY : e.pageY;
+    const x = (clientX - rect.left) * (canvas.width / rect.width);
+    const y = (clientY - rect.top) * (canvas.height / rect.height);
+
+    ctx.fillStyle = paintErasing ? '#ffffff' : (document.getElementById('paintColor')?.value || '#000');
+    const size = parseInt(document.getElementById('brushSize')?.value) || 3;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+window.setPaintColor = function(c) {
+    const el = document.getElementById('paintColor');
+    if(el) el.value = c;
+    paintErasing = false;
+    const btn = document.getElementById('paintEraserBtn');
+    if(btn) { btn.style.background = ''; btn.style.color = ''; }
 };
 
 window.paintFunc = function(action) {
@@ -643,11 +689,24 @@ window.paintFunc = function(action) {
         if(window.sounds && window.sounds.click) window.sounds.click();
     } else if(action === 'undo') {
         if(paintHistory.length > 1) {
-            paintHistory.pop(); // Remove current state
+            paintHistory.pop();
             const previous = paintHistory[paintHistory.length - 1];
             ctx.putImageData(previous, 0, 0);
             if(window.sounds && window.sounds.click) window.sounds.click();
         }
+    } else if(action === 'eraser') {
+        paintErasing = !paintErasing;
+        const btn = document.getElementById('paintEraserBtn');
+        if(btn) {
+            btn.style.background = paintErasing ? 'var(--gb-text)' : '';
+            btn.style.color = paintErasing ? 'var(--gb-bg)' : '';
+        }
+    } else if(action === 'save') {
+        const link = document.createElement('a');
+        link.download = 'pixel_art.png';
+        link.href = canvas.toDataURL();
+        link.click();
+        if(window.sounds) sounds.coin();
     }
 };
 

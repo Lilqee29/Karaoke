@@ -34,7 +34,7 @@ window.startBrawl = function() {
             } else {
                 if(Math.random() < aiAggro) {
                     opponent.state = 'punch';
-                    if(dist < 40) player.hp -= (diff === 'hard' ? 6 : 3);
+                    if(dist < 40 && player.state !== 'block') player.hp -= (diff === 'hard' ? 6 : 3);
                     setTimeout(() => opponent.state = 'idle', 250);
                 }
             }
@@ -99,6 +99,14 @@ window.startBrawl = function() {
             ctx.fillStyle = '#fff';
             ctx.fillRect(30 * dir, -35, 5 * dir, 10);
         }
+        if(f.state === 'block') {
+            ctx.fillStyle = '#0ff';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#0ff';
+            ctx.fillRect(-20, -55, 8, 40);
+            ctx.fillRect(-25, -55, 18, 5);
+            ctx.fillRect(-25, -20, 18, 5);
+        }
         
         ctx.restore();
     }
@@ -128,9 +136,12 @@ window.startBrawl = function() {
 
     const handleInput = (e) => {
         if(currentScreen !== 'brawl') return;
+        if(e.target.tagName === 'INPUT') return;
+        // D-pad movement
         if(e.key === 'ArrowLeft') player.x = Math.max(20, player.x - 10);
         if(e.key === 'ArrowRight') player.x = Math.min(300, player.x + 10);
-        if(e.target.tagName !== 'INPUT' && (e.key === 'z' || e.key === 'x' || e.key === ' ' || e.key === 'Enter')) {
+        // A button = punch
+        if(e.key === 'z' || e.key === 'a' || e.key === ' ' || e.key === 'Enter') {
             if(player.state === 'idle') {
                 player.state = 'punch';
                 if(window.sounds && window.sounds.click) window.sounds.click();
@@ -139,6 +150,14 @@ window.startBrawl = function() {
                     if(navigator.vibrate) navigator.vibrate(50);
                 }
                 setTimeout(() => player.state = 'idle', 150);
+            }
+        }
+        // B button = block (reduces incoming damage)
+        if(e.key === 'x' || e.key === 'b') {
+            if(player.state === 'idle') {
+                player.state = 'block';
+                if(window.sounds && window.sounds.click) window.sounds.click();
+                setTimeout(() => player.state = 'idle', 400);
             }
         }
     };

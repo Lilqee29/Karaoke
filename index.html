@@ -20,6 +20,7 @@
     
     <link rel="stylesheet" href="styles.css">
     <script src="scripts/system.js"></script> <!-- Ensure system specific vars load early -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" defer></script>
 </head>
 <body>
     <div class="gameboy">
@@ -160,9 +161,19 @@
 
                     <!-- CALCULATOR -->
                     <div id="calcScreen" class="game-screen" style="flex-direction: column; height: 100%; padding: 8px; box-sizing: border-box;">
-                        <input type="text" id="calcDisplay" readonly value="0" style="width: 100%; padding: 10px; margin-bottom: 8px; text-align: right; font-size: 16px; flex-shrink: 0; box-sizing: border-box;">
+                        <input type="text" id="calcDisplay" readonly value="0" style="width: 100%; padding: 10px; margin-bottom: 4px; text-align: right; font-size: 16px; flex-shrink: 0; box-sizing: border-box;">
+                        <div id="calcSciRow" style="display:none; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 4px; flex-shrink: 0;">
+                            <button onclick="calcFunc('sin')" style="font-size: 6px; padding: 6px 0;">SIN</button>
+                            <button onclick="calcFunc('cos')" style="font-size: 6px; padding: 6px 0;">COS</button>
+                            <button onclick="calcFunc('tan')" style="font-size: 6px; padding: 6px 0;">TAN</button>
+                            <button onclick="calcFunc('sqrt')" style="font-size: 6px; padding: 6px 0;">√</button>
+                            <button onclick="calcFunc('pi')" style="font-size: 6px; padding: 6px 0;">π</button>
+                            <button onclick="calcFunc('^')" style="font-size: 6px; padding: 6px 0;">^</button>
+                            <button onclick="calcFunc('log')" style="font-size: 6px; padding: 6px 0;">LOG</button>
+                            <button onclick="calcFunc('ln')" style="font-size: 6px; padding: 6px 0;">LN</button>
+                        </div>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; flex: 1;">
-                            <button onclick="calcFunc('C')" style="height: 100%;">C</button>
+                            <button onclick="calcFunc('SCI')" style="height: 100%; font-size: 6px;">SCI</button>
                             <button onclick="calcFunc('/')" style="height: 100%;">/</button>
                             <button onclick="calcFunc('*')" style="height: 100%;">*</button>
                             <button onclick="calcFunc('BSP')" style="height: 100%;">←</button>
@@ -180,6 +191,7 @@
                             <button onclick="calcFunc('=')" style="grid-row: span 2; height: 100%;">EQ</button>
                             <button onclick="calcFunc('0')" style="grid-column: span 2; height: 100%;">0</button>
                             <button onclick="calcFunc('.')" style="height: 100%;">.</button>
+                            <button onclick="calcFunc('C')" style="height: 100%; font-size: 6px;">CLR</button>
                         </div>
                     </div>
 
@@ -194,14 +206,33 @@
                     </div>
 
                     <!-- PAINT -->
-                    <div id="paintScreen" class="game-screen" style="padding: 6px; flex-direction: column; height: 100%; box-sizing: border-box;">
-                        <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
-                            <button onclick="paintFunc('clear')" style="font-size: 7px; padding: 4px 6px;">CLR</button>
-                            <button onclick="paintFunc('undo')" style="font-size: 7px; padding: 4px 6px;">↩ UNDO</button>
-                            <input type="color" id="paintColor" value="#000000" style="width: 28px; height: 22px; padding: 0; border: none; cursor: pointer;">
-                            <input type="range" id="brushSize" min="1" max="15" value="3" style="flex: 1;">
+                    <div id="paintScreen" class="game-screen" style="padding: 0; flex-direction: column; height: 100%; box-sizing: border-box;">
+                        <canvas id="paintCanvas" width="300" height="280" style="background: white; cursor: crosshair; flex: 1; width: 100%; border: none;"></canvas>
+                        <div style="flex-shrink: 0; padding: 6px; border-top: 2px solid var(--gb-text); background: var(--gb-bg);">
+                            <div id="paintPalette" style="display: flex; gap: 3px; overflow-x: auto; margin-bottom: 6px; padding-bottom: 2px; scrollbar-width: none;">
+                                <div onclick="setPaintColor('#000000')" style="width:20px;height:20px;background:#000;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ffffff')" style="width:20px;height:20px;background:#fff;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ff0000')" style="width:20px;height:20px;background:#f00;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#00aa00')" style="width:20px;height:20px;background:#0a0;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#0044ff')" style="width:20px;height:20px;background:#04f;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ffaa00')" style="width:20px;height:20px;background:#fa0;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#aa00ff')" style="width:20px;height:20px;background:#a0f;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ff00aa')" style="width:20px;height:20px;background:#f0a;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#00ffcc')" style="width:20px;height:20px;background:#0fc;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#888888')" style="width:20px;height:20px;background:#888;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ffcccc')" style="width:20px;height:20px;background:#fcc;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#884400')" style="width:20px;height:20px;background:#840;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                            </div>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="color" id="paintColor" value="#000000" style="width: 24px; height: 20px; padding: 0; border: none; cursor: pointer;">
+                                <input type="range" id="brushSize" min="1" max="20" value="3" style="flex: 1;">
+                                <span id="brushSizeLabel" style="font-size: 6px; min-width: 18px;">3</span>
+                                <button onclick="paintFunc('undo')" style="font-size: 6px; padding: 3px 5px;">↩</button>
+                                <button onclick="paintFunc('eraser')" id="paintEraserBtn" style="font-size: 6px; padding: 3px 5px;">⬜</button>
+                                <button onclick="paintFunc('clear')" style="font-size: 6px; padding: 3px 5px; color:#f00;">CLR</button>
+                                <button onclick="paintFunc('save')" style="font-size: 6px; padding: 3px 5px;">💾</button>
+                            </div>
                         </div>
-                        <canvas id="paintCanvas" width="300" height="280" style="background: white; cursor: crosshair; flex: 1; width: 100%; height: auto; border: 2px solid var(--gb-text); border-radius: 4px;"></canvas>
                     </div>
 
 
@@ -313,11 +344,18 @@
 
                     <!-- MORSE CONVERTER -->
                     <div id="morseScreen" class="game-screen">
-                        <div style="padding: 10px;">
-                            <div style="font-size: 8px; margin-bottom: 10px;">MORSE CODE</div>
-                            <input type="text" id="morseInput" placeholder="TEXT..." oninput="updateMorse()" style="width: 100%; margin-bottom: 10px;">
-                            <div id="morseOutput" style="background: rgba(0,0,0,0.1); padding: 10px; min-height: 100px; font-size: 8px; word-break: break-all;">.... . .-.. .-.. ---</div>
-                            <button onclick="playMorse()" style="width: 100%; margin-top: 10px;">PLAY SOUND</button>
+                        <div style="padding: 10px; display: flex; flex-direction: column; height: 100%;">
+                            <div style="font-size: 8px; margin-bottom: 6px; text-align: center;">MORSE CODE</div>
+                            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                <button onclick="setMorseMode('encode')" id="morseEncodeBtn" style="flex: 1; font-size: 6px; padding: 4px; background: var(--gb-text); color: var(--gb-bg);">TEXT → MORSE</button>
+                                <button onclick="setMorseMode('decode')" id="morseDecodeBtn" style="flex: 1; font-size: 6px; padding: 4px;">MORSE → TEXT</button>
+                            </div>
+                            <div style="font-size: 6px; margin-bottom: 4px; opacity: 0.7;">INPUT:</div>
+                            <textarea id="morseInput" placeholder="ENTER TEXT..." oninput="updateMorse()" style="width: 100%; height: 60px; margin-bottom: 6px; font-size: 8px; resize: none; box-sizing: border-box;"></textarea>
+                            <div style="font-size: 6px; margin-bottom: 4px; opacity: 0.7;">OUTPUT:</div>
+                            <div id="morseOutput" style="background: rgba(0,0,0,0.1); padding: 6px; min-height: 50px; font-size: 7px; word-break: break-all; border: 1px solid var(--gb-text); border-radius: 4px; margin-bottom: 6px; font-family: monospace;">.... . .-.. .-.. ---</div>
+                            <button onclick="playMorse()" id="morsePlayBtn" style="width: 100%; margin-bottom: 6px;">▶ PLAY SOUND</button>
+                            <div style="font-size: 5px; text-align: center; opacity: 0.5;">DOT=0.1s | DASH=0.3s</div>
                         </div>
                     </div>
 
@@ -347,37 +385,63 @@
 
                     <!-- TRANSLATE -->
                     <div id="translateScreen" class="game-screen">
-                        <div style="padding: 20px; text-align: center;">
-                            <div style="font-size: 8px; margin-bottom: 10px;">8-BIT TRANSLATOR</div>
-                            <textarea id="transInput" style="width: 100%; height: 80px; font-size: 6px; margin-bottom: 10px;" placeholder="ENTER TEXT..."></textarea>
-                            <select id="transLang" style="width: 100%; margin-bottom: 10px;">
-                                <option value="fr">FRENCH</option>
-                                <option value="es">SPANISH</option>
-                                <option value="de">GERMAN</option>
-                                <option value="ja">JAPANESE</option>
-                            </select>
-                            <button onclick="translateText()" style="width: 100%; margin-bottom: 10px;">TRANSLATE</button>
-                            <div id="transOutput" style="background: rgba(0,0,0,0.1); padding: 10px; min-height: 80px; font-size: 6px;">RESULTS...</div>
+                        <div style="padding: 8px; display: flex; flex-direction: column; height: 100%;">
+                            <div style="font-size: 9px; font-weight: bold; text-align: center; margin-bottom: 6px;">8-BIT TRANSLATOR</div>
+                            <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 6px;">
+                                <select id="transFrom" style="flex: 1; font-size: 6px; padding: 4px;">
+                                    <option value="en">ENGLISH</option>
+                                    <option value="fr">FRENCH</option>
+                                    <option value="es">SPANISH</option>
+                                    <option value="de">GERMAN</option>
+                                    <option value="it">ITALIAN</option>
+                                    <option value="pt">PORTUGUESE</option>
+                                    <option value="ja">JAPANESE</option>
+                                    <option value="ko">KOREAN</option>
+                                    <option value="zh">CHINESE</option>
+                                    <option value="ar">ARABIC</option>
+                                    <option value="ru">RUSSIAN</option>
+                                    <option value="hi">HINDI</option>
+                                </select>
+                                <button onclick="swapLanguages()" style="font-size: 9px; padding: 4px 6px;">⇄</button>
+                                <select id="transTo" style="flex: 1; font-size: 6px; padding: 4px;">
+                                    <option value="fr">FRENCH</option>
+                                    <option value="es">SPANISH</option>
+                                    <option value="de">GERMAN</option>
+                                    <option value="it">ITALIAN</option>
+                                    <option value="pt">PORTUGUESE</option>
+                                    <option value="ja">JAPANESE</option>
+                                    <option value="ko">KOREAN</option>
+                                    <option value="zh">CHINESE</option>
+                                    <option value="ar">ARABIC</option>
+                                    <option value="ru">RUSSIAN</option>
+                                    <option value="hi">HINDI</option>
+                                    <option value="en">ENGLISH</option>
+                                </select>
+                            </div>
+                            <textarea id="transInput" style="width: 100%; height: 60px; font-size: 7px; margin-bottom: 6px; padding: 5px;" placeholder="ENTER TEXT..."></textarea>
+                            <button onclick="translateText()" style="width: 100%; margin-bottom: 6px; padding: 6px;">TRANSLATE</button>
+                            <div id="transOutput" style="background: rgba(0,0,0,0.05); padding: 6px; min-height: 50px; font-size: 7px; border: 1px dotted var(--gb-text); border-radius: 4px; margin-bottom: 6px;">RESULTS...</div>
+                            <div style="font-size: 6px; font-weight: bold; margin-bottom: 4px;">HISTORY</div>
+                            <div id="transHistory" style="flex: 1; overflow-y: auto; font-size: 6px; border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; padding: 4px; background: rgba(255,255,255,0.2);">
+                                <div style="text-align: center; opacity: 0.5; margin-top: 10px;">NO TRANSLATIONS YET</div>
+                            </div>
                         </div>
                     </div>
 
                     <!-- NEWS -->
                     <div id="newsScreen" class="game-screen">
-                        <div style="padding: 10px;">
-                            <div id="newsCategoryBar" style="display: flex; gap: 5px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 5px; scrollbar-width: none;">
+                        <div style="padding: 8px; display: flex; flex-direction: column; height: 100%;">
+                            <div id="newsCategoryBar" style="display: flex; gap: 4px; overflow-x: auto; margin-bottom: 6px; padding-bottom: 4px; scrollbar-width: none;">
                                 <style>#newsCategoryBar::-webkit-scrollbar { display: none; }</style>
-                                <button onclick="setNewsCategory('general')" style="font-size: 5px; padding: 4px; white-space: nowrap;">ALL</button>
-                                <button onclick="setNewsCategory('technology')" style="font-size: 5px; padding: 4px; white-space: nowrap;">TECH</button>
-                                <button onclick="setNewsCategory('business')" style="font-size: 5px; padding: 4px; white-space: nowrap;">BIZ</button>
-                                <button onclick="setNewsCategory('entertainment')" style="font-size: 5px; padding: 4px; white-space: nowrap;">ENT</button>
-                                <button onclick="setNewsCategory('sports')" style="font-size: 5px; padding: 4px; white-space: nowrap;">SPORTS</button>
-                                <button onclick="setNewsCategory('science')" style="font-size: 5px; padding: 4px; white-space: nowrap;">SCI</button>
-                                <button onclick="setNewsCategory('health')" style="font-size: 5px; padding: 4px; white-space: nowrap;">HEALTH</button>
+                                <button onclick="setNewsCategory('space')" class="news-cat-btn active" style="font-size: 5px; padding: 3px 6px; white-space: nowrap;">🚀 SPACE</button>
+                                <button onclick="setNewsCategory('world')" class="news-cat-btn" style="font-size: 5px; padding: 3px 6px; white-space: nowrap;">🌍 WORLD</button>
+                                <button onclick="setNewsCategory('technology')" class="news-cat-btn" style="font-size: 5px; padding: 3px 6px; white-space: nowrap;">💡 TECH</button>
+                                <button onclick="setNewsCategory('science')" class="news-cat-btn" style="font-size: 5px; padding: 3px 6px; white-space: nowrap;">🔬 SCIENCE</button>
                             </div>
-                            <div id="newsTicker" style="background: #000; color: #0f0; padding: 5px; font-family: monospace; font-size: 8px; overflow: hidden; white-space: nowrap; margin-bottom: 10px;">
-                                <div id="newsText" style="display: inline-block; animation: ticker 20s linear infinite;">LATEST: GAMEBOY OS v4.0 RELEASED... ALL APPS UPDATED... NEW PWA FEATURES ACTIVE...</div>
+                            <div id="newsTicker" style="background: #000; color: #0f0; padding: 4px; font-family: monospace; font-size: 7px; overflow: hidden; white-space: nowrap; margin-bottom: 6px;">
+                                <div id="newsText" style="display: inline-block; animation: ticker 20s linear infinite;">LATEST: LOADING HEADLINES...</div>
                             </div>
-                            <div id="newsList" style="display: flex; flex-direction: column; gap: 10px; height: 180px; overflow-y: auto;">
+                            <div id="newsList" style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto;">
                                 <!-- News items -->
                             </div>
                         </div>
@@ -401,12 +465,21 @@
 
                     <!-- RELAX (Breathe) -->
                     <div id="breatheScreen" class="game-screen">
-                        <div style="text-align: center; padding: 30px;">
-                            <div style="font-size: 10px; margin-bottom: 30px;">MINDFULNESS</div>
-                            <div id="breatheCircle" style="width: 120px; height: 120px; border: 4px solid var(--gb-text); border-radius: 50%; margin: 0 auto 30px; display: flex; align-items: center; justify-content: center; transition: transform 4s ease-in-out;">
-                                <div id="breatheText" style="font-size: 10px;">BREATHE IN</div>
+                        <div style="text-align: center; padding: 10px; display: flex; flex-direction: column; height: 100%;">
+                            <div style="font-size: 10px; margin-bottom: 8px;">MINDFULNESS</div>
+                            <div style="display: flex; gap: 4px; margin-bottom: 10px; justify-content: center;">
+                                <button onclick="setBreatheMode('478')" id="bm478" style="font-size: 5px; padding: 3px 6px; background: var(--gb-text); color: var(--gb-bg);">4-7-8</button>
+                                <button onclick="setBreatheMode('box')" id="bmBox" style="font-size: 5px; padding: 3px 6px;">BOX</button>
+                                <button onclick="setBreatheMode('wim')" id="bmWim" style="font-size: 5px; padding: 3px 6px;">WIM HOF</button>
                             </div>
-                            <div style="font-size: 6px; opacity: 0.7;">FOCUS ON THE CIRCLE</div>
+                            <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+                                <div id="breatheCircle" style="width: 100px; height: 100px; border: 4px solid var(--gb-text); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: transform 0.3s ease-in-out;">
+                                    <div id="breatheText" style="font-size: 8px; font-weight: bold;">READY</div>
+                                </div>
+                            </div>
+                            <div id="breathePhase" style="font-size: 7px; margin-bottom: 6px; opacity: 0.7; height: 14px;"></div>
+                            <div id="breatheTimer" style="font-size: 6px; margin-bottom: 8px; opacity: 0.6;">SESSION: 0:00</div>
+                            <button onclick="toggleBreathe()" id="breatheBtn" style="width: 100%; padding: 10px;">START</button>
                         </div>
                     </div>
 
@@ -433,15 +506,33 @@
                         </div>
                     </div>
 
-                    <!-- QR GENERATOR -->
-                    <div id="qrScreen" class="game-screen">
-                        <div style="text-align: center; padding: 20px;">
-                            <div style="font-size: 8px; margin-bottom: 20px;">QR/BARCODE GEN</div>
-                            <input type="text" id="qrInput" placeholder="ENTER TEXT/URL..." style="width: 100%; margin-bottom: 20px;">
-                            <div id="qrOutput" style="width: 150px; height: 150px; background: #fff; margin: 0 auto; padding: 10px; border: 4px solid var(--gb-text);">
+                    <!-- QR GENERATOR + SCANNER (MERGED) -->
+                    <div id="qrScreen" class="game-screen" style="display:none; flex-direction:column; height:100%;">
+                        <div style="display:flex; border-bottom:2px solid var(--gb-text); flex-shrink:0;">
+                            <button onclick="switchQrTab('generate')" id="qrGenTabBtn" style="flex:1; padding:6px; font-size:7px; border:none; background:var(--gb-text); color:var(--gb-bg); font-weight:bold;">GENERATE</button>
+                            <button onclick="switchQrTab('scan')" id="qrScanTabBtn" style="flex:1; padding:6px; font-size:7px; border:none; background:transparent; color:var(--gb-text); font-weight:bold;">SCAN</button>
+                        </div>
+                        <div id="qrGenTab" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:15px;">
+                            <div style="font-size:8px; margin-bottom:15px;">QR/BARCODE GEN</div>
+                            <input type="text" id="qrInput" placeholder="ENTER TEXT/URL..." style="width: 100%; margin-bottom: 15px;">
+                            <div id="qrOutput" style="width: 140px; height: 140px; background: #fff; margin: 0 auto; padding: 8px; border: 4px solid var(--gb-text);">
                                 <div id="qrPlaceholder" style="width: 100%; height: 100%; background: repeating-linear-gradient(45deg, #000, #000 5px, #fff 5px, #fff 10px);"></div>
                             </div>
-                            <button onclick="generateQR()" style="width: 100%; margin-top: 20px;">GENERATE</button>
+                            <button onclick="generateQR()" style="width: 100%; margin-top: 15px;">GENERATE</button>
+                        </div>
+                        <div id="qrScanTab" style="flex:1; display:none; flex-direction:column; align-items:center; padding:10px;">
+                            <div style="font-size:8px; margin-bottom:10px;">QR SCANNER</div>
+                            <div style="width:220px; height:220px; position:relative; border:4px solid var(--gb-text); background:#000; overflow:hidden; margin-bottom:10px;">
+                                <video id="qrScanVideo" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                                <canvas id="qrScanCanvas" style="display:none;"></canvas>
+                                <div style="position:absolute; top:0; left:0; right:0; height:2px; background:var(--gb-text); box-shadow:0 0 8px var(--gb-text); animation:scan-line 2s infinite linear;"></div>
+                            </div>
+                            <div id="qrScanResult" style="width:100%; background:rgba(0,0,0,0.1); padding:8px; font-size:7px; word-break:break-all; min-height:40px; border:1px solid var(--gb-text); margin-bottom:8px; text-align:center;">POINT CAMERA AT QR CODE</div>
+                            <div style="display:flex; gap:5px; width:100%;">
+                                <button onclick="qrOpenLink()" id="qrOpenBtn" style="flex:1; display:none;">OPEN</button>
+                                <button onclick="qrCopyResult()" id="qrCopyBtn" style="flex:1; display:none;">COPY</button>
+                                <button onclick="qrStartScan()" id="qrScanBtn" style="flex:1;">START SCAN</button>
+                            </div>
                         </div>
                     </div>
 
@@ -490,13 +581,26 @@
 
                     <!-- BOOK APP -->
                     <div id="bookScreen" class="game-screen">
-                        <div style="padding: 10px;">
-                            <div style="font-size: 8px; text-align: center; margin-bottom: 10px;">LIBRARY SEARCH</div>
-                            <div style="display: flex; gap: 5px;">
-                                <input type="text" id="bookSearch" placeholder="TITLE/AUTHOR..." style="width: 100%; margin-bottom: 5px;">
-                                <button onclick="searchBook()" style="width: 40px; margin-bottom: 5px;">GO</button>
+                        <div style="padding: 8px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                            <div style="font-size: 9px; text-align: center; margin-bottom: 6px;">📚 LIBRARY</div>
+                            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                <input type="text" id="bookSearch" placeholder="TITLE / AUTHOR..." style="flex: 1; font-size: 7px; padding: 5px;">
+                                <button onclick="searchBook()" style="padding: 5px 10px; font-size: 7px;">🔍</button>
                             </div>
-                            <div id="bookList" style="height: 180px; overflow-y: auto; font-size: 6px; padding: 5px; background: rgba(0,0,0,0.05);"></div>
+                            <div id="bookList" style="flex: 1; overflow-y: auto; font-size: 6px;"></div>
+                            <div id="bookDetail" style="display: none; padding: 6px; border: 2px solid var(--gb-text); border-radius: 4px; margin-top: 4px; background: rgba(15,56,15,0.08);">
+                                <div style="display: flex; gap: 8px;">
+                                    <img id="bookCover" style="width: 50px; height: 70px; object-fit: cover; border: 1px solid var(--gb-text);">
+                                    <div style="flex: 1;">
+                                        <div id="bookTitle" style="font-size: 8px; font-weight: bold;"></div>
+                                        <div id="bookAuthor" style="font-size: 6px; opacity: 0.7; margin-top: 2px;"></div>
+                                        <div id="bookYear" style="font-size: 6px; opacity: 0.7; margin-top: 2px;"></div>
+                                        <div id="bookDesc" style="font-size: 6px; margin-top: 4px; max-height: 40px; overflow-y: auto; line-height: 1.3;"></div>
+                                        <a id="bookLink" href="#" target="_blank" style="display: inline-block; margin-top: 4px; font-size: 6px; color: var(--gb-text); text-decoration: underline;">READ ON OPENLIBRARY ↗</a>
+                                    </div>
+                                </div>
+                                <button onclick="closeBookDetail()" style="width: 100%; margin-top: 4px; font-size: 6px; padding: 3px;">CLOSE</button>
+                            </div>
                         </div>
                     </div>
 
@@ -515,28 +619,42 @@
 
                     <!-- POKEDEX APP -->
                     <div id="pokedexScreen" class="game-screen">
-                        <div id="pokedexWrapper" style="height: 100%; display: flex; flex-direction: column;">
-                            <div id="pokedexMain" style="padding: 10px; text-align: center;">
-                                <div style="font-size: 10px; margin-bottom: 10px; color: #8b0000;">POKEDEX v1.0</div>
-                                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                                    <input type="text" id="pokeSearch" placeholder="NAME/ID..." style="flex: 1;">
-                                    <button onclick="searchPokemon()" style="width: 30px;">GO</button>
+                        <div id="pokedexWrapper" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
+                            <div id="pokedexMain" style="padding: 8px; text-align: center; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                                <div style="font-size: 8px; margin-bottom: 6px; color: #8b0000; font-weight: bold;">POKEDEX v2.0</div>
+                                
+                                <!-- Search + Filter Row -->
+                                <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                    <input type="text" id="pokeSearch" placeholder="NAME/ID..." style="flex: 1; font-size: 7px; padding: 4px;" onkeypress="if(event.key==='Enter') searchPokemon()">
+                                    <select id="pokeTypeFilter" style="width: 60px; font-size: 5px; padding: 2px;">
+                                        <option value="">ALL</option>
+                                    </select>
+                                    <button onclick="searchPokemon()" style="width: 28px; font-size: 6px;">GO</button>
                                 </div>
-                                <div id="pokeDisplay" style="border: 2px solid var(--gb-text); background: rgba(15, 56, 15, 0.1); padding: 10px; border-radius: 4px; min-height: 150px;">
-                                    <div id="pokeImgContainer" style="width: 96px; height: 96px; margin: 0 auto; background: rgba(255,255,255,0.5); border: 2px solid var(--gb-text); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                
+                                <!-- Sprite Display (Top 45%) -->
+                                <div id="pokeDisplay" style="flex: 0 0 45%; border: 2px solid var(--gb-text); background: rgba(15, 56, 15, 0.1); padding: 6px; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 4px; position: relative;">
+                                    <div id="pokeImgContainer" style="width: 80px; height: 80px; background: rgba(255,255,255,0.5); border: 2px solid var(--gb-text); border-radius: 4px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                                         <img id="pokeImg" src="" style="display: none; width: 100%; image-rendering: pixelated;">
-                                        <span id="pokePlaceholder" style="font-size: 20px;">?</span>
+                                        <span id="pokePlaceholder" style="font-size: 18px;">?</span>
                                     </div>
-                                    <div id="pokeName" style="font-weight: bold; margin-top: 5px;">UNKNOWN</div>
-                                    <div id="pokeType" style="font-size: 6px; margin-top: 2px;">TYPE: ???</div>
+                                    <div id="pokeName" style="font-weight: bold; margin-top: 4px; font-size: 9px;">UNKNOWN</div>
+                                    <div id="pokeId" style="font-size: 5px; opacity: 0.6;"></div>
+                                    <div id="pokeTypeChips" style="display: flex; gap: 3px; margin-top: 3px; flex-wrap: wrap; justify-content: center;"></div>
                                 </div>
-                                <button id="pokeBattleBtn" style="display: none; width: 100%; margin-top: 5px; background: #ea5a5a; color: #fff;">BATTLE!</button>
+                                
+                                <!-- Stats Section (Bottom 55%) -->
+                                <div style="flex: 1; overflow-y: auto; border: 1px solid var(--gb-text); border-radius: 4px; padding: 4px; background: rgba(0,0,0,0.03);">
+                                    <div id="pokeStats" style="font-size: 5px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px;"></div>
+                                    <div id="pokeEvolution" style="margin-top: 4px; font-size: 5px; border-top: 1px dashed var(--gb-text); padding-top: 4px;"></div>
+                                </div>
+                                
+                                <button id="pokeBattleBtn" style="display: none; width: 100%; margin-top: 4px; background: #ea5a5a; color: #fff; font-size: 6px; padding: 4px;">BATTLE!</button>
                             </div>
 
-                            <!-- POKÉMON BATTLE (Moved inside) -->
+                            <!-- POKÉMON BATTLE -->
                             <div id="pokeBattleScreen" style="display: none; flex-direction: column; padding: 10px; flex: 1; justify-content: center; background: #f8f8f8; color: #000;">
                                 <div style="font-size: 10px; margin-bottom: 20px; text-align: center;">POKÉMON BATTLE</div>
-                                <!-- Enemy -->
                                 <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 20px;">
                                     <div style="text-align: right; margin-right: 10px;">
                                         <div id="battleEnemyName" style="font-size: 8px; font-weight: bold;">PIDGEY</div>
@@ -544,7 +662,6 @@
                                     </div>
                                     <img id="battleEnemyImg" src="" style="width: 60px; height: 60px; image-rendering: pixelated;">
                                 </div>
-                                <!-- Player -->
                                 <div style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 20px;">
                                     <img id="battlePlayerImg" src="" style="width: 60px; height: 60px; image-rendering: pixelated;">
                                     <div style="text-align: left; margin-left: 10px;">
@@ -567,39 +684,95 @@
 
                     <!-- TRIVIA APP -->
                     <div id="triviaScreen" class="game-screen">
-                        <div style="padding: 15px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 15px;">BRAIN QUEST</div>
-                            <div id="triviaCategory" style="font-size: 6px; opacity: 0.7; margin-bottom: 5px;">CATEGORY</div>
-                            <div id="triviaQuestion" style="min-height: 60px; font-size: 7px; margin-bottom: 15px; padding: 5px; border: 1px dotted var(--gb-text);">PRESS START</div>
-                            <div id="triviaOptions" style="display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px;">
-                                <!-- Options -->
+                        <div style="padding: 10px; text-align: center; display: flex; flex-direction: column; height: 100%;">
+                            <div style="font-size: 9px; margin-bottom: 6px; font-weight: bold;">BRAIN QUEST</div>
+                            
+                            <!-- Score + Lives Row -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 7px;">
+                                <div id="triviaLives">❤️❤️❤️</div>
+                                <div id="triviaStreak">🔥 0</div>
+                                <div id="triviaScore">💎 0</div>
                             </div>
-                            <div id="triviaResult" style="height: 15px; font-size: 8px; font-weight: bold;"></div>
-                            <button onclick="getTrivia()" style="width: 100%; margin-top: 5px;">NEW QUESTION</button>
+                            
+                            <!-- Category + Difficulty Selectors -->
+                            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                <select id="triviaCatSelect" style="flex: 1; font-size: 5px; padding: 3px;">
+                                    <option value="">ALL CATEGORIES</option>
+                                    <option value="17">SCIENCE</option>
+                                    <option value="23">HISTORY</option>
+                                    <option value="22">GEOGRAPHY</option>
+                                    <option value="11">POP CULTURE</option>
+                                    <option value="21">SPORTS</option>
+                                    <option value="12">MUSIC</option>
+                                    <option value="18">COMPUTERS</option>
+                                </select>
+                                <select id="triviaDiffSelect" style="width: 70px; font-size: 5px; padding: 3px;">
+                                    <option value="">NORMAL</option>
+                                    <option value="easy">EASY</option>
+                                    <option value="hard">HARD</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Question Display -->
+                            <div id="triviaCategory" style="font-size: 5px; opacity: 0.6; margin-bottom: 3px;">CATEGORY</div>
+                            <div id="triviaQuestion" style="flex: 1; min-height: 50px; font-size: 7px; margin-bottom: 8px; padding: 6px; border: 1px dotted var(--gb-text); display: flex; align-items: center; justify-content: center; overflow-y: auto;">SELECT OPTIONS & PRESS START</div>
+                            
+                            <!-- Options -->
+                            <div id="triviaOptions" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px;">
+                            </div>
+                            
+                            <!-- Result -->
+                            <div id="triviaResult" style="height: 14px; font-size: 7px; font-weight: bold;"></div>
+                            
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 4px;">
+                                <button onclick="getTrivia()" id="triviaStartBtn" style="flex: 1; padding: 6px; font-size: 6px;">START</button>
+                                <button onclick="resetTrivia()" style="flex: 1; padding: 6px; font-size: 6px; background: #a00; color: #fff;">RESET</button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- WEATHER APP -->
                     <div id="weatherScreen" class="game-screen">
-                        <div style="padding: 10px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 10px;">ATMOSPHERE</div>
-                            <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                                <input type="text" id="weatherInput" placeholder="LAT,LON" value="51.5,-0.1" style="flex: 1;">
-                                <button onclick="getWeather()" style="width: 30px;">GO</button>
+                        <div style="padding: 8px; height: 100%; display: flex; flex-direction: column;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-size: 9px; font-weight: bold;">ATMOSPHERE</span>
+                                <span id="weatherCityName" style="font-size: 7px; opacity: 0.7;">LOADING...</span>
                             </div>
-                            <div id="weatherDisplay" style="border: 2px solid var(--gb-text); padding: 10px; min-height: 100px; font-size: 7px; text-align: left;">
-                                NO DATA
+                            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                <input type="text" id="weatherInput" placeholder="LAT,LON (optional)" style="flex:1; font-size:6px; padding:4px;">
+                                <button onclick="getWeather()" style="font-size:6px; padding:4px 6px;">GO</button>
+                            </div>
+                            <div id="weatherCurrent" style="text-align: center; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.1); margin-bottom: 6px;">
+                                <div id="weatherIcon" style="font-size: 28px;">🌡️</div>
+                                <div id="weatherTemp" style="font-size: 18px; font-weight: bold;">--°C</div>
+                                <div id="weatherCondition" style="font-size: 7px; opacity: 0.7;">LOADING...</div>
+                            </div>
+                            <div style="font-size: 6px; font-weight: bold; margin-bottom: 4px;">5-DAY FORECAST</div>
+                            <div id="weatherForecast" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 6px;">
+                                <div style="text-align: center; min-width: 40px; font-size: 6px; opacity: 0.5;">WAIT...</div>
+                            </div>
+                            <div style="font-size: 6px; font-weight: bold; margin-bottom: 4px;">HOURLY TEMP</div>
+                            <div style="flex: 1; min-height: 80px; border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; background: rgba(255,255,255,0.3); overflow: hidden;">
+                                <canvas id="weatherChart" width="280" height="100"></canvas>
                             </div>
                         </div>
                     </div>
 
                     <!-- DICTIONARY APP -->
                     <div id="dictScreen" class="game-screen">
-                        <div style="padding: 10px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 10px;">WORD BANK</div>
-                            <input type="text" id="dictInput" placeholder="WORD..." style="width: 100%; margin-bottom: 5px;">
-                            <button onclick="getDefinition()" style="width: 100%; margin-bottom: 10px;">DEFINE</button>
-                            <div id="dictDisplay" style="text-align: left; font-size: 7px; padding: 5px; border: 1px dotted var(--gb-text); min-height: 100px;"></div>
+                        <div style="padding: 8px; display: flex; flex-direction: column; height: 100%;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-size: 9px; font-weight: bold;">WORD BANK</span>
+                                <button onclick="getWordOfDay()" style="font-size: 6px; padding: 3px 6px; border: 1px solid var(--gb-text); background: rgba(0,0,0,0.05);">WORD OF DAY</button>
+                            </div>
+                            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                <input type="text" id="dictInput" placeholder="WORD..." onkeypress="if(event.key==='Enter') getDefinition()" style="flex: 1; font-size: 7px; padding: 5px;">
+                                <button onclick="getDefinition()" style="padding: 5px 8px; font-size: 7px;">DEFINE</button>
+                            </div>
+                            <div id="dictDisplay" style="flex: 1; overflow-y: auto; font-size: 7px; padding: 6px; border: 1px dotted var(--gb-text); border-radius: 4px; background: rgba(255,255,255,0.2);">
+                                <div style="text-align: center; opacity: 0.5; margin-top: 30px;">SEARCH A WORD OR TRY WORD OF THE DAY</div>
+                            </div>
                         </div>
                     </div>
 
@@ -664,48 +837,73 @@
                     </div>
 
 
-                    <!-- STOPWATCH APP -->
-                    <div id="stopwatchScreen" class="game-screen">
-                        <div style="padding: 10px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 10px;">CHRONO</div>
-                            <div id="swDisplay" style="font-size: 20px; font-family: monospace; margin-bottom: 20px;">00:00:00</div>
-                            <button id="swBtn" onclick="toggleStopwatch()" style="width: 100%; margin-bottom: 5px;">START</button>
-                            <button onclick="resetStopwatch()" style="width: 100%;">RESET</button>
+                    <!-- TIMER + STOPWATCH (MERGED) -->
+                    <div id="timerScreen" class="game-screen" style="display:none; flex-direction:column; height:100%;">
+                        <div style="display:flex; border-bottom:2px solid var(--gb-text); flex-shrink:0;">
+                            <button onclick="switchTimerTab('timer')" id="timerTabBtn" style="flex:1; padding:6px; font-size:7px; border:none; background:var(--gb-text); color:var(--gb-bg); font-weight:bold;">TIMER</button>
+                            <button onclick="switchTimerTab('stopwatch')" id="stopwatchTabBtn" style="flex:1; padding:6px; font-size:7px; border:none; background:transparent; color:var(--gb-text); font-weight:bold;">STOPWATCH</button>
                         </div>
-                    </div>
-
-                    <!-- TIMER APP -->
-                    <div id="timerScreen" class="game-screen">
-                        <div style="padding: 10px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 10px;">TIMER</div>
-                            <div id="tmDisplay" style="font-size: 20px; font-family: monospace; margin-bottom: 15px;">00:00</div>
-                            <div style="display: flex; gap: 5px; justify-content: center; margin-bottom: 15px;">
-                                <button onclick="setTimer(1)" style="flex: 1;">+1m</button>
-                                <button onclick="setTimer(5)" style="flex: 1;">+5m</button>
-                                <button onclick="setTimer(10)" style="flex: 1;">+10m</button>
+                        <div id="timerTimerTab" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px;">
+                            <svg id="timerRing" width="120" height="120" style="margin-bottom:10px;">
+                                <circle cx="60" cy="60" r="52" fill="none" stroke="var(--gb-text)" stroke-width="4" opacity="0.2"/>
+                                <circle id="timerProgress" cx="60" cy="60" r="52" fill="none" stroke="var(--gb-text)" stroke-width="4" stroke-dasharray="326.73" stroke-dashoffset="0" transform="rotate(-90 60 60)" stroke-linecap="round"/>
+                            </svg>
+                            <div id="tmDisplay" style="font-size:40px; font-family:monospace; font-weight:bold; margin-bottom:8px;">00:00</div>
+                            <div style="display:flex; gap:4px; margin-bottom:8px;">
+                                <button onclick="setTimer(1)" style="padding:5px 10px; font-size:7px;">+1m</button>
+                                <button onclick="setTimer(5)" style="padding:5px 10px; font-size:7px;">+5m</button>
+                                <button onclick="setTimer(10)" style="padding:5px 10px; font-size:7px;">+10m</button>
                             </div>
-                            <button id="tmBtn" onclick="startTimer()" style="width: 100%; margin-bottom: 5px;">START</button>
-                            <button onclick="resetTimer()" style="width: 100%;">RESET</button>
+                            <div style="display:flex; gap:5px; width:100%; max-width:200px;">
+                                <button id="tmBtn" onclick="startTimer()" style="flex:1;">START</button>
+                                <button onclick="resetTimer()" style="flex:1;">RESET</button>
+                            </div>
+                        </div>
+                        <div id="timerStopwatchTab" style="flex:1; display:none; flex-direction:column; align-items:center; justify-content:center; padding:10px;">
+                            <div id="swDisplay" style="font-size:40px; font-family:monospace; font-weight:bold; margin-bottom:15px;">00:00.00</div>
+                            <div style="display:flex; gap:5px; width:100%; max-width:200px; margin-bottom:10px;">
+                                <button id="swBtn" onclick="swToggle()" style="flex:1;">START</button>
+                                <button onclick="swLap()" style="flex:1;">LAP</button>
+                                <button onclick="swReset()" style="flex:1;">RESET</button>
+                            </div>
+                            <div id="swLaps" style="width:100%; max-width:200px; height:120px; overflow-y:auto; text-align:left; font-size:8px; border-top:2px solid var(--gb-text); padding-top:5px;"></div>
                         </div>
                     </div>
 
                     <!-- PIXEL APP -->
                     <div id="pixelScreen" class="game-screen">
-                        <div style="padding: 5px; text-align: center;">
-                            <div style="font-size: 10px; margin-bottom: 5px;">PIXEL ART</div>
-                            <div id="pixelGrid" style="width: 120px; height: 120px; display: grid; grid-template-columns: repeat(8, 1fr); margin: 0 auto; border: 1px solid #333; margin-bottom: 5px;">
-                                <!-- 64 divs -->
+                        <div style="padding: 5px; text-align: center; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                            <div style="font-size: 10px; margin-bottom: 4px;">PIXEL ART</div>
+                            
+                            <div style="display: flex; gap: 4px; justify-content: center; margin-bottom: 4px;">
+                                <button onclick="pixelUndo()" style="font-size: 6px; padding: 3px 6px;">↩ UNDO</button>
+                                <button onclick="clearPixel()" style="font-size: 6px; padding: 3px 6px;">🗑 CLR</button>
+                                <div style="display: flex; gap: 2px; align-items: center;">
+                                    <button onclick="setPixelZoom(8)" id="pz8" style="font-size: 6px; padding: 3px 5px; background: var(--gb-text); color: var(--gb-bg);">8x8</button>
+                                    <button onclick="setPixelZoom(16)" id="pz16" style="font-size: 6px; padding: 3px 5px;">16x16</button>
+                                    <button onclick="setPixelZoom(32)" id="pz32" style="font-size: 6px; padding: 3px 5px;">32x32</button>
+                                </div>
                             </div>
-                            <div style="display: flex; gap: 2px; justify-content: center; margin-bottom: 5px;">
-                                <div onclick="setPixelColor('#000')" style="width: 15px; height: 15px; background: #000; border: 1px solid #777;"></div>
-                                <div onclick="setPixelColor('#555')" style="width: 15px; height: 15px; background: #555; border: 1px solid #777;"></div>
-                                <div onclick="setPixelColor('#aaa')" style="width: 15px; height: 15px; background: #aaa; border: 1px solid #777;"></div>
-                                <div onclick="setPixelColor('#000')" style="width: 15px; height: 15px; background: #000; border: 1px solid #777;"></div>
-                                <div onclick="setPixelColor('#f00')" style="width: 15px; height: 15px; background: #f00; border: 1px solid #777;"></div>
-                                <div onclick="setPixelColor('#00f')" style="width: 15px; height: 15px; background: #00f; border: 1px solid #777;"></div>
-
+                            
+                            <div id="pixelCoord" style="font-size: 6px; margin-bottom: 3px; opacity: 0.7;">X: - Y: -</div>
+                            
+                            <div id="pixelGrid" style="width: 220px; height: 220px; display: grid; margin: 0 auto; border: 1px solid #333; margin-bottom: 4px;"></div>
+                            
+                            <div style="display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; margin-bottom: 4px;">
+                                <div onclick="setPixelColor('#000')" style="width: 14px; height: 14px; background: #000; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#555')" style="width: 14px; height: 14px; background: #555; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#aaa')" style="width: 14px; height: 14px; background: #aaa; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#fff')" style="width: 14px; height: 14px; background: #fff; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#f00')" style="width: 14px; height: 14px; background: #f00; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#0f0')" style="width: 14px; height: 14px; background: #0f0; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#00f')" style="width: 14px; height: 14px; background: #00f; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#ff0')" style="width: 14px; height: 14px; background: #ff0; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#0ff')" style="width: 14px; height: 14px; background: #0ff; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#f0f')" style="width: 14px; height: 14px; background: #f0f; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#fa0')" style="width: 14px; height: 14px; background: #fa0; border: 1px solid #777; cursor:pointer;"></div>
+                                <div onclick="setPixelColor('#840')" style="width: 14px; height: 14px; background: #840; border: 1px solid #777; cursor:pointer;"></div>
                             </div>
-                            <button onclick="clearPixel()" style="width: 100%;">CLEAR</button>
+                            <input type="color" id="pixelCustomColor" value="#000000" onchange="setPixelColor(this.value)" style="width: 30px; height: 16px; padding: 0; border: none; cursor: pointer; margin: 0 auto;">
                         </div>
                     </div>
 
@@ -837,20 +1035,31 @@
                     <!-- GB WIKI (Wikipedia RAG) -->
                     <div id="wikiScreen" class="game-screen">
                         <div style="padding: 10px; display: flex; flex-direction: column; height: 100%;">
-                            <div style="font-size: 10px; text-align: center; margin-bottom: 15px;">GB WIKI v1.0</div>
+                            <div style="font-size: 10px; text-align: center; margin-bottom: 10px;">GB WIKI</div>
                             
-                            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                            <div style="display: flex; gap: 5px; margin-bottom: 8px;">
                                 <input type="text" id="wikiSearch" placeholder="SEARCH TOPIC..." style="flex: 1; font-size: 8px; padding: 5px;">
-                                <button onclick="searchWiki()" style="padding: 5px 10px; font-size: 8px;">FIND</button>
+                                <button onclick="searchWiki()" style="padding: 5px 8px; font-size: 7px;">FIND</button>
+                                <button onclick="randomWiki()" style="padding: 5px 8px; font-size: 7px;">🎲</button>
                             </div>
 
-                            <div id="wikiContentArea" class="app-text-content" style="flex: 1; font-size: 14px; text-align: left; align-items: flex-start; overflow-y: auto; display: block;">
-                                <div id="wikiStatus" style="font-size: 10px; color: var(--gb-text-light); text-align: center; margin-top: 20px;">
-                                    ENTER A TOPIC TO FETCH KNOWLEDGE...
+                            <div id="wikiThumb" style="width: 100%; max-height: 80px; overflow: hidden; border: 2px solid var(--gb-text); border-radius: 4px; margin-bottom: 8px; display: none; text-align: center; background: rgba(0,0,0,0.05);">
+                                <img id="wikiThumbImg" style="width: 100%; height: 80px; object-fit: cover;">
+                            </div>
+
+                            <div id="wikiContentArea" style="flex: 1; font-size: 7px; text-align: left; overflow-y: auto; display: block;">
+                                <div id="wikiStatus" style="font-size: 8px; color: var(--gb-text-light); text-align: center; margin-top: 20px;">
+                                    ENTER A TOPIC OR TAP 🎲 FOR RANDOM
                                 </div>
-                                <div id="wikiResult" style="display: none; padding: 5px;">
-                                    <h2 id="wikiTitle" style="font-size: 14px; border-bottom: 2px solid var(--gb-text); margin-bottom: 8px; font-family: 'VT323', monospace;"></h2>
-                                    <p id="wikiSummary" style="font-size: 12px; line-height: 1.3; font-family: 'VT323', monospace;"></p>
+                                <div id="wikiResult" style="display: none; padding: 2px;">
+                                    <div onclick="toggleWikiSection(this)" style="font-size: 9px; font-weight: bold; border-bottom: 2px solid var(--gb-text); margin-bottom: 6px; cursor: pointer; padding: 4px 0;">
+                                        <span id="wikiTitle"></span> <span style="font-size: 6px; opacity: 0.6;">▼</span>
+                                    </div>
+                                    <div class="wiki-section-body">
+                                        <p id="wikiSummary" style="font-size: 8px; line-height: 1.4;"></p>
+                                    </div>
+
+                                    <div id="wikiSections"></div>
                                 </div>
                             </div>
                         </div>
@@ -893,12 +1102,10 @@
                     </div>
 
                     <!-- TERMINAL -->
-                    <div id="termScreen" class="game-screen" style="background: #000; color: #0f0; padding: 10px; font-family: monospace;">
-                        <div id="termOutput" style="font-size: 8px; white-space: pre-wrap; margin-bottom: 10px; min-height: 100px;">
-Welcome to GB-OS Terminal v1.0
-Type 'help' for commands.
-                        </div>
-                        <div style="display: flex; gap: 5px;">
+                    <div id="termScreen" class="game-screen" style="background: #000; color: #0f0; padding: 10px; font-family: monospace; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                        <canvas id="matrixCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;"></canvas>
+                        <div id="termOutput" style="font-size: 8px; white-space: pre-wrap; margin-bottom: 10px; flex: 1; overflow-y: auto; z-index: 1; position: relative;"></div>
+                        <div style="display: flex; gap: 5px; z-index: 1; position: relative; flex-shrink: 0;">
                             <span style="color: #0f0;">&gt;</span>
                             <input id="termInput" type="text" style="flex: 1; background: transparent; border: none; color: #0f0; font-family: monospace; padding: 0; font-size: 8px;" autocomplete="off">
                         </div>
@@ -912,32 +1119,47 @@ Type 'help' for commands.
                         </div>
                     </div>
 
+                    <!-- PERIODIC TABLE -->
                     <div id="elemScreen" class="game-screen">
-                        <div style="padding: 10px; text-align: center; height: 100%; display: flex; flex-direction: column;">
-                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                                <div id="elemSymbol" style="font-size: 50px; font-weight: bold; border: 4px solid var(--gb-text); display: inline-block; padding: 10px; margin: 0 auto 10px;">H</div>
-                                <canvas id="atomCanvas" width="100" height="100" style="display: none; margin: 0 auto 10px; border-radius: 50%; background: rgba(0,0,0,0.05);"></canvas>
-                                <div id="elemName" style="font-size: 14px; font-weight: bold;">Hydrogen</div>
-                                <div id="elemNum" style="font-size: 10px; margin-top: 5px;"></div>
-                                
-                                <div id="elemInfo" style="margin-top: 10px; font-size: 8px;">
-                                    <div id="elemMass"></div>
-                                    <div id="elemShell"></div>
+                        <div style="padding: 20px 0;">
+                            <div style="text-align: center; margin-bottom: 20px;">
+                                <div style="font-size: 12px; color: var(--gb-text); margin-bottom: 10px;">PERIODIC TABLE</div>
+                                <div style="font-size: 8px; color: var(--gb-text-light);">Click any element for details</div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(18, 1fr); gap: 10px; justify-items: center;" id="elemGrid">
+                                <!-- Element tiles injected by JS -->
+                            </div>
+                            <div id="elemDetail" style="margin-top: 20px; padding: 20px; background: rgba(15,56,15,0.8); border: 2px solid var(--gb-text); border-radius: 8px; color: var(--gb-text); display: none;">
+                                <button onclick="closeElemDetail()" style="width: 100%; margin-bottom: 6px; font-size: 7px;">BACK</button>
+                                <div id="elemDetailHeader"></div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                                    <div>
+                                        <div style="font-size: 10px; margin-bottom: 5px;">Atomic Number</div>
+                                        <div style="font-size: 24px; font-weight: bold;" id="elemNumber"></div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 10px; margin-bottom: 5px;">Atomic Mass</div>
+                                        <div style="font-size: 24px;" id="elemMass"></div>
+                                    </div>
                                 </div>
-                                <div id="elemIso" style="margin-top: 10px; font-size: 8px; display: none; color: #555;">
-                                    <div>ISOTOPES:</div>
-                                    <div id="elemIsotopes" style="word-wrap: break-word;"></div>
+                                <div>
+                                    <div style="font-size: 10px; margin-bottom: 5px;">Symbol</div>
+                                    <div style="font-size: 32px; font-weight: bold;" id="elemSymbol"></div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 10px; margin-bottom: 5px;">Electron Configuration</div>
+                                    <div id="elemConfig"></div>
                                 </div>
                             </div>
-
-                            <div style="margin-top: auto;">
-                                <button onclick="toggleElemDetails()" style="width: 100%; margin-bottom: 5px; font-size: 8px;">TOGGLE DETAILS / ISOTOPES</button>
-                                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                                    <button onclick="nextElem(-1)" style="flex: 1;">PREV</button>
-                                    <button onclick="nextElem(1)" style="flex: 1;">NEXT</button>
-                                </div>
-                                <input id="elemSearch" placeholder="Search (Enter)..." onchange="searchElem(this.value)" style="width: 100%;">
+                            <div style="margin-top: 15px;">
+                                <div style="font-size: 10px; margin-bottom: 5px;">Category</div>
+                                <div style="font-size: 10px; color: var(--gb-text-light);" id="elemCategory"></div>
                             </div>
+                            <div style="margin-top: 15px;">
+                                <div style="font-size: 10px; margin-bottom: 5px;">Uses</div>
+                                <div id="elemUses" style="height: 80px; overflow-y: auto;"></div>
+                            </div>
+                            <button onclick="closeElemDetail()" style="width: 100%; margin-top: 10px; padding: 8px; background: #33aa33; color: #fff; border: none; font-family: 'VT323';">CLOSE</button>
                         </div>
                     </div>
 
@@ -968,6 +1190,8 @@ Type 'help' for commands.
                                 <div style="font-size: 18px; text-shadow: 0 0 10px #0f0;">LINK CABLE v2</div>
                                 <div id="chatMyId" style="font-size: 8px; opacity: 0.6;">FREQ: ---</div>
                                 <input id="chatNick" placeholder="ENTER NICK" maxlength="8" style="width: 80%; background: #000; color: #0f0; border: 2px solid #0f0; padding: 10px; text-align: center; font-family: 'VT323'; font-size: 16px;">
+                                <input id="chatRoom" placeholder="ROOM NAME (OPTIONAL)" maxlength="12" style="width: 80%; background: #000; color: #0f0; border: 1px solid #0f04; padding: 6px; text-align: center; font-family: 'VT323'; font-size: 10px; opacity: 0.7;">
+                                <div id="chatStatusDot" style="font-size: 7px; color: #555; text-align: center;">● OFFLINE</div>
                                 
                                 <div id="chatLanding" style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
                                     <button onclick="chatHost()" style="width: 100%; padding: 15px; background: #0f0; color: #000; font-weight: bold; font-family: 'VT323'; border: none;">BROADCAST (HOST)</button>
@@ -1037,7 +1261,7 @@ Type 'help' for commands.
                             <!-- P2P GAMES (Unified Layouts) -->
                             <div id="brawlScreen" class="game-screen" style="background: #111;">
                                 <canvas id="brawlCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
-                                <div style="background: rgba(0,255,0,0.1); padding: 5px; font-size: 10px; color: #0f0; text-align: center; font-family: 'VT323';">ARROWS=MOVE | Z=PUNCH</div>
+                                <div style="background: rgba(0,255,0,0.1); padding: 5px; font-size: 10px; color: #0f0; text-align: center; font-family: 'VT323';">D-PAD=MOVE | A=PUNCH | B=BLOCK</div>
                             </div>
                     <div id="chessScreen" class="game-screen">
 
@@ -1068,6 +1292,20 @@ Type 'help' for commands.
                                 <div id="chessWinsBar" style="font-size:5px; color:#c9a84c88; letter-spacing:0.1em;"></div>
                             </div>
 
+                            <!-- Timer Selection -->
+                            <div id="chessTimerSelect" style="display:flex; gap:3px; width:100%; padding:0 4px; margin-bottom:4px;">
+                                <button onclick="setChessTimer('blitz')" id="chessTimerBlitz" class="chess-timer-btn" style="flex:1; font-size:5px; padding:3px; background:transparent; color:#c9a84c44; border:1px solid #c9a84c22; cursor:pointer;">BLITZ 3m</button>
+                                <button onclick="setChessTimer('rapid')" id="chessTimerRapid" class="chess-timer-btn" style="flex:1; font-size:5px; padding:3px; background:#c9a84c22; color:#c9a84c; border:1px solid #c9a84c66; cursor:pointer;">RAPID 10m</button>
+                                <button onclick="setChessTimer('classical')" id="chessTimerClassical" class="chess-timer-btn" style="flex:1; font-size:5px; padding:3px; background:transparent; color:#c9a84c44; border:1px solid #c9a84c22; cursor:pointer;">CLASS 30m</button>
+                                <button onclick="setChessTimer('none')" id="chessTimerNone" class="chess-timer-btn" style="flex:1; font-size:5px; padding:3px; background:transparent; color:#c9a84c44; border:1px solid #c9a84c22; cursor:pointer;">NO TIMER</button>
+                            </div>
+
+                            <!-- Timer Display -->
+                            <div id="chessTimerBar" style="display:flex; justify-content:space-between; width:100%; padding:0 4px; margin-bottom:4px;">
+                                <div id="chessTimerWhite" style="font-size:7px; font-family:monospace; color:#f5edd8; background:#1a0e05; padding:2px 6px; border:1px solid #c9a84c44; letter-spacing:0.1em;">10:00</div>
+                                <div id="chessTimerBlack" style="font-size:7px; font-family:monospace; color:#1a0e05; background:#c9a84c; padding:2px 6px; border:1px solid #1a0e05; letter-spacing:0.1em;">10:00</div>
+                            </div>
+
                             <!-- Board + captured pieces layout -->
                             <div style="display:flex; gap:4px; align-items:flex-start; width:100%;">
 
@@ -1081,6 +1319,9 @@ Type 'help' for commands.
                                 <div id="chessCapturedByPlayer" style="display:flex; flex-direction:column; flex-wrap:wrap; width:14px; gap:0px; align-content:flex-start; min-height:20px;"></div>
 
                             </div>
+
+                            <!-- Move History -->
+                            <div id="chessMoveHistory" style="width:100%; max-height:50px; overflow-y:auto; font-size:5px; font-family:monospace; color:#c9a84c88; background:#0a0805; border:1px solid #c9a84c22; border-radius:3px; padding:3px; margin-top:4px; letter-spacing:0.05em;"></div>
 
                             <div style="text-align:center; font-size:5px; margin-top:4px; color:#c9a84c44; letter-spacing:0.2em;">CYBER-CHESS | P2P TACTICS</div>
                         </div>
@@ -1098,10 +1339,12 @@ Type 'help' for commands.
 
                     <div id="racerScreen" class="game-screen" style="background: #000;">
                         <canvas id="racerCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
+                        <div style="background: rgba(0,255,0,0.1); padding: 5px; font-size: 10px; color: #0f0; text-align: center; font-family: 'VT323';">D-PAD L/R=STEER | A=ACCEL | B=BRAKE</div>
                     </div>
 
                     <div id="duelScreen" class="game-screen" style="background: #000;">
                         <canvas id="duelCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
+                        <div style="background: rgba(0,255,0,0.1); padding: 5px; font-size: 10px; color: #0f0; text-align: center; font-family: 'VT323';">D-PAD=AIM/MOVE | A=FIRE | B=DODGE</div>
                     </div>
 
                     <div id="syncScreen" class="game-screen" style="background: #000;">
@@ -1174,10 +1417,12 @@ Type 'help' for commands.
                     </div>
 
                     <div id="trollScreen" class="game-screen" style="position: relative;">
-                        <!-- Transparent Floating HUD - No more 'Bar' at the top -->
+                        <!-- Transparent Floating HUD -->
                         <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; z-index: 1000; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 100%);">
                             <div id="mainTrollLevel" style="font-size: 8px; color: var(--gb-text); font-weight: bold; text-shadow: 0 1px 1px rgba(255,255,255,0.4);">LVL: 1</div>
+                            <div id="mainTrollGems" style="font-size: 8px; color: var(--gb-text); font-weight: bold; text-shadow: 0 1px 1px rgba(255,255,255,0.4);">💎 0</div>
                             <div id="mainTrollDeaths" style="font-size: 8px; color: var(--accent); font-weight: bold; text-shadow: 0 1px 1px rgba(255,255,255,0.4);">☠ 0</div>
+                            <div id="mainTrollHi" style="font-size: 7px; color: var(--gb-text); opacity: 0.7; text-shadow: 0 1px 1px rgba(255,255,255,0.4);">HI: 1</div>
                         </div>
                         
                         <iframe id="trollFrame" src="MiniTrollGame/index.html"></iframe>
@@ -1245,7 +1490,45 @@ Type 'help' for commands.
 
                     <!-- BUDGET TRACKER -->
                     <div id="budgetScreen" class="game-screen">
-                        <!-- Content dynamically injected by productivity_apps.js -->
+                        <div style="padding: 8px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                            <div style="font-size: 9px; font-weight: bold; text-align: center; margin-bottom: 6px;">💰 BUDGET TRACKER</div>
+                            
+                            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                <button onclick="setBudgetType('expense')" id="budgetExpBtn" style="flex: 1; font-size: 6px; padding: 4px; background: var(--gb-text); color: var(--gb-bg);">EXPENSE</button>
+                                <button onclick="setBudgetType('income')" id="budgetIncBtn" style="flex: 1; font-size: 6px; padding: 4px;">INCOME</button>
+                            </div>
+
+                            <div id="budgetCatRow" style="display: flex; gap: 3px; overflow-x: auto; margin-bottom: 6px; flex-shrink: 0; scrollbar-width: none;">
+                                <div onclick="selectBudgetCat('🍔')" class="budget-cat selected" data-cat="🍔">🍔</div>
+                                <div onclick="selectBudgetCat('🏠')" class="budget-cat" data-cat="🏠">🏠</div>
+                                <div onclick="selectBudgetCat('🚗')" class="budget-cat" data-cat="🚗">🚗</div>
+                                <div onclick="selectBudgetCat('🎮')" class="budget-cat" data-cat="🎮">🎮</div>
+                                <div onclick="selectBudgetCat('👕')" class="budget-cat" data-cat="👕">👕</div>
+                                <div onclick="selectBudgetCat('💊')" class="budget-cat" data-cat="💊">💊</div>
+                                <div onclick="selectBudgetCat('📚')" class="budget-cat" data-cat="📚">📚</div>
+                                <div onclick="selectBudgetCat('📦')" class="budget-cat" data-cat="📦">📦</div>
+                            </div>
+
+                            <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                                <input type="text" id="budgetNameInput" placeholder="NAME..." style="flex: 1; font-size: 7px; padding: 4px;">
+                                <input type="number" id="budgetAmtInput" placeholder="AMT" style="width: 60px; font-size: 7px; padding: 4px;">
+                                <button onclick="addBudgetTx()" style="font-size: 7px; padding: 4px 8px;">+</button>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; font-size: 7px; margin-bottom: 4px; padding: 4px; background: rgba(15,56,15,0.1); border-radius: 3px;">
+                                <span>BAL: <b id="budgetBalance">$0</b></span>
+                                <span>IN: <span id="budgetIncome" style="color:#0f0">$0</span> | OUT: <span id="budgetExpense" style="color:#f00">$0</span></span>
+                            </div>
+
+                            <canvas id="budgetChart" width="300" height="70" style="width: 100%; border: 1px solid var(--gb-text); border-radius: 3px; margin-bottom: 6px;"></canvas>
+
+                            <div id="budgetTxList" style="flex: 1; overflow-y: auto; border-top: 1px solid var(--gb-text); padding-top: 4px;"></div>
+
+                            <div style="display: flex; gap: 4px; margin-top: 4px;">
+                                <button onclick="exportBudgetCSV()" style="flex: 1; font-size: 6px; padding: 4px;">📥 CSV</button>
+                                <button onclick="clearBudget()" style="flex: 1; font-size: 6px; padding: 4px; background: #a00; color: #fff;">CLR ALL</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- TO-DO LIST -->
@@ -1339,25 +1622,41 @@ Type 'help' for commands.
 
                     <!-- PASS GENERATOR -->
                     <div id="passScreen" class="game-screen">
-                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px; height: 100%; box-sizing: border-box;">
+                        <div style="padding: 10px; display: flex; flex-direction: column; gap: 6px; height: 100%; box-sizing: border-box;">
                             <div style="font-size: 9px; font-weight: bold; text-align: center; border-bottom: 2px solid var(--gb-text); padding-bottom: 4px;">🔐 PASSWORD VAULT</div>
-                            <input id="passOutput" readonly style="width: 100%; padding: 8px; font-family: monospace; font-size: 9px; text-align: center; background: rgba(15,56,15,0.15); border: 2px solid var(--gb-text); border-radius: 4px;">
                             
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 7px;">
+                            <!-- Main Password Display -->
+                            <input id="passOutput" readonly style="width: 100%; padding: 8px; font-family: monospace; font-size: 8px; text-align: center; background: rgba(15,56,15,0.15); border: 2px solid var(--gb-text); border-radius: 4px; word-break: break-all;">
+                            
+                            <!-- Strength Meter -->
+                            <div style="width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden;">
+                                <div id="passStrengthBar" style="width: 0%; height: 100%; background: #f00; transition: width 0.3s, background 0.3s;"></div>
+                            </div>
+                            <div id="passStrengthLabel" style="font-size: 5px; text-align: center; opacity: 0.7;">ENTROPY: 0 bits</div>
+                            
+                            <!-- Length Slider -->
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 6px;">
                                 <span>LENGTH: <b id="passLenVal">16</b></span>
-                                <input id="passLength" type="range" min="8" max="32" value="16" oninput="document.getElementById('passLenVal').textContent=this.value" style="width: 100px;">
+                                <input id="passLength" type="range" min="8" max="64" value="16" oninput="document.getElementById('passLenVal').textContent=this.value" style="flex: 1; margin: 0 6px;">
                             </div>
 
-                            <div style="display: flex; gap: 10px; font-size: 7px;">
+                            <!-- Checkboxes -->
+                            <div style="display: flex; gap: 8px; font-size: 6px; flex-wrap: wrap;">
                                 <label><input id="passNums" type="checkbox" checked> 0-9</label>
                                 <label><input id="passSyms" type="checkbox" checked> #$%&</label>
+                                <label><input id="passUpper" type="checkbox" checked> A-Z</label>
                             </div>
 
-                            <input id="passSeed" placeholder="CUSTOM SEED/PATTERN..." style="width: 100%; font-size: 7px; padding: 6px;">
+                            <!-- Seed Input -->
+                            <input id="passSeed" placeholder="SEED PHRASE (OPTIONAL)..." style="width: 100%; font-size: 6px; padding: 5px;">
 
-                            <div style="display: flex; gap: 6px; margin-top: auto;">
-                                <button onclick="generatePassHub()" style="flex: 1; padding: 8px;">🎲 GENERATE</button>
-                                <button onclick="copyPassHub()" style="flex: 1; padding: 8px;">📋 COPY</button>
+                            <!-- 3 Variants Display -->
+                            <div id="passVariants" style="font-size: 5px; font-family: monospace; background: rgba(0,0,0,0.05); padding: 4px; border-radius: 4px; border: 1px solid var(--gb-text); min-height: 40px; overflow-y: auto;"></div>
+
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 4px; margin-top: auto;">
+                                <button onclick="generatePassHub()" style="flex: 1; padding: 6px; font-size: 6px;">🎲 GENERATE</button>
+                                <button onclick="copyPassHub()" style="flex: 1; padding: 6px; font-size: 6px;">📋 COPY</button>
                             </div>
                         </div>
                     </div>
@@ -1425,6 +1724,20 @@ Type 'help' for commands.
             background: var(--gb-screen);
             transform: translateZ(0); /* Force GPU */
         }
+
+        .budget-cat {
+            width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; cursor: pointer; flex-shrink: 0; font-size: 14px;
+            background: rgba(15,56,15,0.15); border: 1px solid var(--gb-text);
+        }
+
+        .wiki-section-body {
+            font-size: 7px; line-height: 1.4;
+        }
+
+        #bookDetail {
+            transition: opacity 0.2s;
+        }
     </style>
 
     <!-- GSAP & Lenis Smooth Animations -->
@@ -1452,6 +1765,7 @@ Type 'help' for commands.
     <script src="scripts/batch6.js"></script>
     <script src="scripts/batch7.js"></script>
     <script src="scripts/utils_expanded.js"></script>
+    <script src="scripts/app_upgrades.js"></script>
     <script src="app.js"></script>
 
     <!-- PERSISTENT BITCHAT FLOATING WIDGET -->

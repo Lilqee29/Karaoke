@@ -1,13 +1,92 @@
 // ========== POWER TOOLS BATCH 6 ==========
 
-// 1. QR GENERATOR
-window.initQr = function() {};
+// 1. QR GENERATOR + SCANNER (MERGED)
+let _qrScanStream = null;
+let _qrScanRAF = null;
+
+window.switchQrTab = function(tab) {
+    document.getElementById('qrGenTab').style.display = tab === 'generate' ? 'flex' : 'none';
+    document.getElementById('qrScanTab').style.display = tab === 'scan' ? 'flex' : 'none';
+    document.getElementById('qrGenTabBtn').style.background = tab === 'generate' ? 'var(--gb-text)' : 'transparent';
+    document.getElementById('qrGenTabBtn').style.color = tab === 'generate' ? 'var(--gb-bg)' : 'var(--gb-text)';
+    document.getElementById('qrScanTabBtn').style.background = tab === 'scan' ? 'var(--gb-text)' : 'transparent';
+    document.getElementById('qrScanTabBtn').style.color = tab === 'scan' ? 'var(--gb-bg)' : 'var(--gb-text)';
+    if (tab === 'generate') qrStopScan();
+    sounds.click();
+};
+
+window.initQr = function() { qrStopScan(); };
 window.generateQR = function() {
     const text = document.getElementById('qrInput').value;
     const out = document.getElementById('qrOutput');
     if(!text) return;
     out.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(text)}" style="border: 4px solid var(--gb-text);">`;
     if(typeof sounds !== 'undefined') sounds.coin();
+};
+
+window.qrStartScan = async function() {
+    const video = document.getElementById('qrScanVideo');
+    const canvas = document.getElementById('qrScanCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const resultEl = document.getElementById('qrScanResult');
+    const scanBtn = document.getElementById('qrScanBtn');
+
+    try {
+        _qrScanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = _qrScanStream;
+        scanBtn.textContent = 'STOP SCAN';
+        resultEl.textContent = 'SCANNING...';
+
+        video.onloadedmetadata = () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            _qrScanFrame(video, canvas, ctx, resultEl);
+        };
+    } catch(e) {
+        resultEl.textContent = 'CAMERA ACCESS DENIED';
+    }
+};
+
+function _qrScanFrame(video, canvas, ctx, resultEl) {
+    if (!video.srcObject) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    if (typeof jsQR !== 'undefined') {
+        const code = jsQR(imgData.data, imgData.width, imgData.height);
+        if (code && code.data) {
+            resultEl.textContent = code.data;
+            document.getElementById('qrOpenBtn').style.display = 'block';
+            document.getElementById('qrCopyBtn').style.display = 'block';
+            document.getElementById('qrScanBtn').textContent = 'SCAN AGAIN';
+            qrStopScan();
+            sounds.coin();
+            return;
+        }
+    }
+    _qrScanRAF = requestAnimationFrame(() => _qrScanFrame(video, canvas, ctx, resultEl));
+}
+
+function qrStopScan() {
+    if (_qrScanRAF) { cancelAnimationFrame(_qrScanRAF); _qrScanRAF = null; }
+    if (_qrScanStream) {
+        _qrScanStream.getTracks().forEach(t => t.stop());
+        _qrScanStream = null;
+    }
+    const scanBtn = document.getElementById('qrScanBtn');
+    if (scanBtn) scanBtn.textContent = 'START SCAN';
+}
+
+window.qrOpenLink = function() {
+    const txt = document.getElementById('qrScanResult').textContent;
+    if (txt && (txt.startsWith('http://') || txt.startsWith('https://'))) {
+        window.open(txt, '_blank');
+    }
+};
+
+window.qrCopyResult = function() {
+    const txt = document.getElementById('qrScanResult').textContent;
+    if (txt) navigator.clipboard.writeText(txt).then(() => alert('COPIED!'));
 };
 
 // 2. ASCII ART GALLERY
@@ -108,188 +187,7 @@ window.convertHex = function(from) {
     }
 };
 
-// 6. ELEMENTS (Enhanced with Full JSON)
-let elements = [];
-let elemIdx = 0;
-let showDetails = false;
-
-window.initElem = async function() { 
-    showDetails = false;
-    const canvas = document.getElementById('atomCanvas');
-    if(canvas) canvas.style.display = 'none';
-    const symbol = document.getElementById('elemSymbol');
-    if(symbol) symbol.style.display = 'inline-block';
-
-    document.getElementById('elemSearch').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            window.searchElem(e.target.value);
-            e.target.blur();
-        }
-    });
-
-    // Load data if empty
-    if(elements.length === 0) {
-        document.getElementById('elemName').textContent = "LOADING DATA...";
-        try {
-            const res = await fetch('chemistry.json');
-            const data = await res.json();
-            // Convert object to array for navigation
-            elements = Object.keys(data).map(key => {
-                const e = data[key];
-                return {
-                    name: key,
-                    s: e.symbol,
-                    n: e.number,
-                    mass: e.atomic_mass,
-                    shells: e.shells, // Keep as array for drawing
-                    config: e.electron_configuration,
-                    summary: e.summary,
-                    discovered: e.discovered_by,
-                    phase: e.phase,
-                    density: e.density,
-                    melt: e.melt,
-                    boil: e.boil,
-                    category: e.category
-                };
-            }).sort((a,b) => a.n - b.n);
-            
-            updateElem();
-        } catch(e) {
-            document.getElementById('elemName').textContent = "DATA ERROR";
-            console.error(e);
-        }
-    } else {
-        updateElem();
-    }
-};
-
-window.nextElem = function(dir) {
-    if(elements.length === 0) return;
-    elemIdx = (elemIdx + dir + elements.length) % elements.length;
-    updateElem();
-    if(typeof sounds !== 'undefined') sounds.click();
-};
-
-window.searchElem = function(q) {
-    if(!q || elements.length === 0) return;
-    const idx = elements.findIndex(e => e.name.toLowerCase() === q.toLowerCase() || e.s.toLowerCase() === q.toLowerCase());
-    if(idx !== -1) {
-        elemIdx = idx;
-        updateElem();
-        if(typeof sounds !== 'undefined') sounds.select();
-    } else {
-        alert("ELEMENT NOT FOUND");
-    }
-};
-
-window.toggleElemDetails = function() {
-    showDetails = !showDetails;
-    const info = document.getElementById('elemInfo');
-    const iso = document.getElementById('elemIso');
-    const symbol = document.getElementById('elemSymbol');
-    const canvas = document.getElementById('atomCanvas');
-    
-    if(showDetails) {
-        info.style.display = 'none';
-        iso.style.display = 'block';
-        symbol.style.display = 'none';
-        canvas.style.display = 'block';
-        
-        const e = elements[elemIdx];
-        iso.innerHTML = `
-            <div style="font-weight:bold; margin-bottom:5px; border-bottom:1px solid #555;">DETAILED INFO</div>
-            <div>${e.category || '-'}</div>
-            <div>Phase: ${e.phase || '-'}</div>
-            <div>Melt: ${e.melt || '?'} K | Boil: ${e.boil || '?'} K</div>
-            <div style="font-size: 7px; margin-top: 2px;">Config: ${e.config || '-'}</div>
-            <div style="margin-top:5px; font-style:italic; max-height: 40px; overflow-y: auto;">${e.summary ? e.summary.substring(0, 100) + '...' : ''}</div>
-        `;
-        drawAtom(e);
-    } else {
-        info.style.display = 'block';
-        iso.style.display = 'none';
-        symbol.style.display = 'inline-block';
-        canvas.style.display = 'none';
-    }
-    if(typeof sounds !== 'undefined') sounds.click();
-};
-
-function updateElem() {
-    if(elements.length === 0) return;
-    const e = elements[elemIdx];
-    document.getElementById('elemSymbol').textContent = e.s;
-    document.getElementById('elemName').textContent = e.name;
-    document.getElementById('elemNum').textContent = `Atomic #: ${e.n}`;
-    document.getElementById('elemMass').textContent = `Mass: ${e.mass}`;
-    document.getElementById('elemShell').textContent = `Shells: ${e.shells ? e.shells.join(', ') : '?'}`;
-    
-    if(showDetails) toggleElemDetails(); 
-}
-
-function drawAtom(e) {
-    const canvas = document.getElementById('atomCanvas');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.width;
-    const h = canvas.height;
-    const cx = w/2;
-    const cy = h/2;
-    
-    ctx.clearRect(0, 0, w, h);
-    
-    // Nucleus
-    ctx.beginPath();
-    ctx.arc(cx, cy, 6, 0, Math.PI*2);
-    ctx.fillStyle = '#333';
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = '6px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(e.s, cx, cy);
-    
-    if(!e.shells) return;
-    
-    // Shells
-    const maxRadius = w/2 - 5;
-    const shellStep = maxRadius / (e.shells.length + 1);
-    
-    e.shells.forEach((count, i) => {
-        const r = (i + 1) * shellStep + 5;
-        
-        // Ring
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        
-        // Electrons
-        for(let j=0; j<count; j++) {
-            const angle = (j / count) * Math.PI * 2 - (Math.PI/2);
-            const ex = cx + Math.cos(angle) * r;
-            const ey = cy + Math.sin(angle) * r;
-            
-            ctx.beginPath();
-            ctx.arc(ex, ey, 2, 0, Math.PI*2);
-            ctx.fillStyle = '#555';
-            ctx.fill();
-        }
-    });
-}
-
-function updateElem() {
-    if(elements.length === 0) return;
-    const e = elements[elemIdx];
-    document.getElementById('elemSymbol').textContent = e.s;
-    document.getElementById('elemName').textContent = e.name;
-    document.getElementById('elemNum').textContent = `Atomic #: ${e.n}`;
-    document.getElementById('elemMass').textContent = `Mass: ${e.mass}`;
-    document.getElementById('elemShell').textContent = `Shells: ${e.shell}`;
-    
-    // Reset view to basic when switching elements
-    if(showDetails) toggleElemDetails(); 
-}
+// 6. ELEMENTS - Moved to newapps.js (Periodic Table Grid)
 
 // 7. SFX
 window.initSfx = function() {};

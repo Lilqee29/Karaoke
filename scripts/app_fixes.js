@@ -1,23 +1,6 @@
 // COMPREHENSIVE FIXES FOR ALL BROKEN APPS
 
-// Fix 1: Weather - Default to Paris
-window.getWeather = async function() {
-    const input = document.getElementById('weatherInput').value.split(',');
-    const lat = input[0] || '48.8566'; // Paris lat
-    const lon = input[1] || '2.3522';  // Paris lon
-    const display = document.getElementById('weatherDisplay');
-    
-    display.textContent = "SCANNING SKIES...";
-    sounds.click();
-    
-    try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&temperature_unit=celsius`);
-        const data = await res.json();
-        
-        display.textContent = `LOCATION: PARIS\nTEMP: ${data.current_weather.temperature}°C\nWIND: ${data.current_weather.windspeed} km/h\nWEATHER CODE: ${data.current_weather.weathercode}`;
-        sounds.coin();
-    } catch(e) { display.textContent = "RADAR FAILURE"; }
-};
+// Fix 1: Weather - Moved to newapps.js with full upgrade
 
 // Fix 2: Quote API - Better fallback
 window.getQuote = async function() {
@@ -112,87 +95,9 @@ function updateZodiac() {
     if(dateEl) dateEl.textContent = `${now.toLocaleDateString().toUpperCase()}`;
 }
 
-// Fix 5: Translate - Use real API (MyMemory)
-window.initTranslate = function() {};
-window.translateText = async function() {
-    const input = document.getElementById('translateInput');
-    const output = document.getElementById('translateOutput');
-    const langpair = document.getElementById('translateLang').value;
-    
-    if(!input || !input.value) return;
-    
-    output.textContent = 'TRANSLATING...';
-    sounds.click();
-    
-    try {
-        const text = encodeURIComponent(input.value);
-        const res = await fetch(`https://api.mymemory.translated.net/get?q=${text}&langpair=${langpair}`);
-        const data = await res.json();
-        
-        if(data.responseData && data.responseData.translatedText) {
-            output.textContent = data.responseData.translatedText.toUpperCase();
-            sounds.coin();
-        } else {
-            throw new Error('Translation failed');
-        }
-    } catch(e) {
-        output.textContent = '[TRANSLATION SERVICE OFFLINE]';
-    }
-};
+// Fix 5: Translate - Moved to newapps.js with full upgrade
 
-// Fix 6: News - Show full articles with read more
-window.initNews = function() {
-    loadNews();
-};
-
-let newsArticles = [];
-let newsIndex = 0;
-
-async function loadNews() {
-    const display = document.getElementById('newsDisplay');
-    display.textContent = 'LOADING NEWS...';
-    sounds.click();
-    
-    try {
-        const res = await fetch('https://api.spaceflightnewsapi.net/v4/articles?limit=10');
-        const data = await res.json();
-        newsArticles = data.results || [];
-        newsIndex = 0;
-        showNewsArticle();
-    } catch(e) {
-        display.textContent = 'NEWS SATELLITE OFFLINE';
-    }
-}
-
-function showNewsArticle() {
-    if(newsArticles.length === 0) return;
-    
-    const article = newsArticles[newsIndex];
-    const display = document.getElementById('newsDisplay');
-    
-    const summary = article.summary || article.title || '';
-    const date = article.published_at ? new Date(article.published_at).toLocaleDateString() : '';
-    const fullSummary = summary.length > 500 ? summary.substring(0, 500) + '...' : summary;
-    
-    display.innerHTML = 
-        `<div style="font-weight:bold; font-size:7px; margin-bottom:6px; border-bottom:1px solid rgba(15,56,15,0.3); padding-bottom:4px;">${article.title.toUpperCase()}</div>` +
-        (date ? `<div style="font-size:5px; opacity:0.6; margin-bottom:5px;">📅 ${date.toUpperCase()} · ${article.news_site ? article.news_site.toUpperCase() : ''}</div>` : '') +
-        `<div style="font-size:6px; line-height:1.5; margin-bottom:8px;">${fullSummary.toUpperCase()}</div>` +
-        (article.url ? `<div style="font-size:5px; margin-top:4px;"><a href="${article.url}" target="_blank" style="color:var(--gb-text); text-decoration:underline;">🔗 READ FULL ARTICLE</a></div>` : '');
-    sounds.coin();
-}
-
-window.nextNews = function() {
-    newsIndex = (newsIndex + 1) % newsArticles.length;
-    showNewsArticle();
-    sounds.click();
-};
-
-window.prevNews = function() {
-    newsIndex = (newsIndex - 1 + newsArticles.length) % newsArticles.length;
-    showNewsArticle();
-    sounds.click();
-};
+// Fix 6: News - Moved to newapps.js (Algolia API with category tabs)
 
 // Fix 7: Better Music Player using RapidAPI Deezer (or fallback to Jamendo)
 window.initMusic = function() {

@@ -174,56 +174,139 @@ function startRadioVisual() {
 }
 
 // ========== 10 NEW APPS INIT ==========
-// ========== WEATHER (REAL ACCURATE DATA) ==========
+// ========== WEATHER (ENHANCED: CITY + 5-DAY + HOURLY CHART) ==========
+const weatherCodes = {
+    0: { icon: '☀️', desc: 'CLEAR SKY' }, 1: { icon: '🌤️', desc: 'MAINLY CLEAR' },
+    2: { icon: '⛅', desc: 'PARTLY CLOUDY' }, 3: { icon: '☁️', desc: 'OVERCAST' },
+    45: { icon: '🌫️', desc: 'FOGGY' }, 48: { icon: '🌫️', desc: 'RIME FOG' },
+    51: { icon: '🌧️', desc: 'LIGHT DRIZZLE' }, 53: { icon: '🌧️', desc: 'DRIZZLE' },
+    55: { icon: '🌧️', desc: 'DENSE DRIZZLE' }, 56: { icon: '🌧️', desc: 'FREEZING DRIZZLE' },
+    57: { icon: '🌧️', desc: 'FREEZING DRIZZLE' }, 61: { icon: '🌧️', desc: 'SLIGHT RAIN' },
+    63: { icon: '🌧️', desc: 'MODERATE RAIN' }, 65: { icon: '🌧️', desc: 'HEAVY RAIN' },
+    66: { icon: '🌧️', desc: 'FREEZING RAIN' }, 67: { icon: '🌧️', desc: 'FREEZING RAIN' },
+    71: { icon: '❄️', desc: 'SLIGHT SNOW' }, 73: { icon: '❄️', desc: 'MODERATE SNOW' },
+    75: { icon: '❄️', desc: 'HEAVY SNOW' }, 77: { icon: '❄️', desc: 'GRAUPEL' },
+    80: { icon: '🌦️', desc: 'LIGHT SHOWERS' }, 81: { icon: '🌦️', desc: 'MODERATE SHOWERS' },
+    82: { icon: '🌦️', desc: 'VIOLENT SHOWERS' }, 85: { icon: '❄️', desc: 'SNOW SHOWERS' },
+    86: { icon: '❄️', desc: 'HEAVY SNOW SHOWERS' },
+    95: { icon: '⛈️', desc: 'THUNDERSTORM' }, 96: { icon: '⛈️', desc: 'THUNDERSTORM + HAIL' },
+    99: { icon: '⛈️', desc: 'THUNDERSTORM + HAIL' }
+};
+const DAY_NAMES = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+
 window.initWeather = async function() {
-    const screen = document.getElementById('weatherScreen');
-    if(!screen) return;
-    
-    screen.innerHTML = '<div style="text-align:center; padding-top:100px; font-family: monospace;">CONNECTING TO SATELLITE...</div>';
-    
+    const cityName = document.getElementById('weatherCityName');
+    if(cityName) cityName.textContent = 'LOCATING...';
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
-            try {
-                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-                const data = await res.json();
-                const temp = data.current_weather.temperature;
-                const code = data.current_weather.weathercode;
-                
-                const conditions = {
-                    0: "☀️ CLEAR SKY",
-                    1: "🌤️ MAINLY CLEAR", 2: "⛅ PARTLY CLOUDY", 3: "☁️ OVERCAST",
-                    45: "🌫️ FOGGY", 48: "🌫️ RIME FOG",
-                    51: "🌧️ LIGHT DRIZZLE", 53: "🌧️ MODERATE DRIZZLE", 55: "🌧️ DENSE DRIZZLE",
-                    61: "🌧️ SLIGHT RAIN", 63: "🌧️ MODERATE RAIN", 65: "🌧️ HEAVY RAIN",
-                    71: "❄️ SLIGHT SNOW", 73: "❄️ MODERATE SNOW", 75: "❄️ HEAVY SNOW",
-                    95: "⛈️ THUNDERSTORM"
-                };
-                
-                screen.innerHTML = `
-                    <div style="padding: 10px; text-align: center; background: #9bbc0f; color: #0f380f; height: 100%; font-family: 'VT323', monospace;">
-                        <div style="font-size: 14px; border-bottom: 2px solid #0f380f; margin-bottom: 20px;">LOCAL WEATHER</div>
-                        <div style="font-size: 60px; margin-bottom: 10px;">${conditions[code]?.split(' ')[0] || '🌡️'}</div>
-                        <div style="font-size: 40px; font-weight: bold;">${temp.toFixed(1)}°C</div>
-                        <div style="font-size: 14px; margin-top: 10px; letter-spacing: 2px;">${conditions[code]?.split(' ').slice(1).join(' ') || 'UNKNOWN'}</div>
-                        
-                        <div style="margin-top: 30px; font-size: 8px; opacity: 0.6;">
-                            LAT: ${lat.toFixed(2)} | LON: ${lon.toFixed(2)}
-                            <br>UPDATE: ${new Date().toLocaleTimeString()}
-                        </div>
-                    </div>
-                `;
-            } catch(e) {
-                screen.innerHTML = '<div style="text-align:center; padding-top:100px; color: #f00;">STATION OFFLINE</div>';
-            }
+            await fetchWeatherData(lat, lon);
         }, () => {
-            screen.innerHTML = '<div style="text-align:center; padding-top:100px;">GPS SIGNAL LOST</div>';
+            const cn = document.getElementById('weatherCityName');
+            if(cn) cn.textContent = 'GPS UNAVAILABLE';
         });
-    } else {
-        screen.innerHTML = '<div style="text-align:center; padding-top:100px;">NO SENSOR DETECTED</div>';
     }
 };
+
+window.getWeather = async function() {
+    const input = document.getElementById('weatherInput');
+    if(!input) { await initWeather(); return; }
+    const parts = input.value.split(',').map(Number);
+    const lat = parts[0] || 48.8566;
+    const lon = parts[1] || 2.3522;
+    await fetchWeatherData(lat, lon);
+};
+
+async function fetchWeatherData(lat, lon) {
+    const cityNameEl = document.getElementById('weatherCityName');
+    const iconEl = document.getElementById('weatherIcon');
+    const tempEl = document.getElementById('weatherTemp');
+    const condEl = document.getElementById('weatherCondition');
+    const forecastEl = document.getElementById('weatherForecast');
+
+    try {
+        const [weatherRes, geoRes] = await Promise.all([
+            fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`),
+            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+        ]);
+        const weatherData = await weatherRes.json();
+        const geoData = await geoRes.json();
+
+        const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.county || geoData.address?.state || 'UNKNOWN';
+        const country = geoData.address?.country_code?.toUpperCase() || '';
+        if(cityNameEl) cityNameEl.textContent = `${city}${country ? ', ' + country : ''}`;
+
+        const current = weatherData.current_weather;
+        const codeInfo = weatherCodes[current.weathercode] || { icon: '🌡️', desc: 'UNKNOWN' };
+        if(iconEl) iconEl.textContent = codeInfo.icon;
+        if(tempEl) tempEl.textContent = `${current.temperature.toFixed(1)}°C`;
+        if(condEl) condEl.textContent = codeInfo.desc;
+
+        if(forecastEl && weatherData.daily) {
+            forecastEl.innerHTML = '';
+            const d = weatherData.daily;
+            for(let i = 0; i < Math.min(5, d.time.length); i++) {
+                const date = new Date(d.time[i] + 'T00:00:00');
+                const dayName = i === 0 ? 'TODAY' : DAY_NAMES[date.getDay()];
+                const dayCode = weatherCodes[d.weathercode[i]] || { icon: '🌡️' };
+                const card = document.createElement('div');
+                card.style.cssText = 'text-align:center; min-width:42px; padding:3px; border-radius:4px; background:rgba(0,0,0,0.05); flex-shrink:0;';
+                card.innerHTML = `<div style="font-size:6px;font-weight:bold;">${dayName}</div><div style="font-size:14px;">${dayCode.icon}</div><div style="font-size:6px;">${d.temperature_2m_max[i].toFixed(0)}° / ${d.temperature_2m_min[i].toFixed(0)}°</div>`;
+                forecastEl.appendChild(card);
+            }
+        }
+
+        if(weatherData.hourly) {
+            drawWeatherChart(weatherData.hourly.temperature_2m);
+        }
+    } catch(e) {
+        if(cityNameEl) cityNameEl.textContent = 'API ERROR';
+    }
+}
+
+function drawWeatherChart(temps) {
+    const canvas = document.getElementById('weatherChart');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const hours = [];
+    for(let i = 0; i < 24; i++) {
+        hours.push({ temp: temps[(currentHour + i) % temps.length], label: i % 3 === 0 ? `${(currentHour + i) % 24}h` : '' });
+    }
+
+    const minT = Math.min(...hours.map(x => x.temp));
+    const maxT = Math.max(...hours.map(x => x.temp));
+    const range = maxT - minT || 1;
+    const pad = 14;
+
+    ctx.strokeStyle = '#0f380f';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    hours.forEach((hr, i) => {
+        const x = (i / (hours.length - 1)) * w;
+        const y = pad + (1 - (hr.temp - minT) / range) * (h - pad * 2);
+        if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = '#0f380f';
+    ctx.font = '7px monospace';
+    ctx.textAlign = 'center';
+    hours.forEach((hr, i) => {
+        if(hr.label) {
+            const x = (i / (hours.length - 1)) * w;
+            ctx.fillText(hr.label, x, h - 2);
+            const y = pad + (1 - (hr.temp - minT) / range) * (h - pad * 2);
+            ctx.fillText(`${hr.temp.toFixed(0)}°`, x, y - 4);
+        }
+    });
+}
 
 window.initFlashlight = function() {
     const screen = document.getElementById('flashlightScreen');
@@ -235,18 +318,23 @@ window.initFlashlight = function() {
 
 window.setNewsCategory = function(cat) {
     sounds.click();
+    document.querySelectorAll('.news-cat-btn').forEach(b => { b.style.background = ''; b.style.color = ''; });
+    const btns = document.querySelectorAll('.news-cat-btn');
+    const catMap = { space: 0, world: 1, technology: 2, science: 3 };
+    if(btns[catMap[cat]]) { btns[catMap[cat]].style.background = 'var(--gb-text)'; btns[catMap[cat]].style.color = 'var(--gb-bg)'; }
     window.initNews(cat);
 };
 
-// ========== GENERAL NEWS (SAURAV NEWS API) ==========
-window.initNews = async function(category = 'general') {
+// ========== NEWS (Algolia API) ==========
+window.initNews = async function(category = 'space') {
     const list = document.getElementById('newsList');
     const screen = document.getElementById('newsScreen');
     if(!list || !screen) return;
 
+    const catQueries = { space: 'space', world: 'world news', technology: 'technology', science: 'science' };
+    const query = catQueries[category] || 'technology';
+
     list.innerHTML = `<div style="text-align:center; padding: 40px; font-family: monospace; font-size: 8px;">UPLINKING [${category.toUpperCase()}]...</div>`;
-    
-    // Ensure list is visible and detail is hidden
     list.style.display = 'flex';
     const detail = document.getElementById('newsDetail');
     if(detail) detail.style.display = 'none';
@@ -254,14 +342,19 @@ window.initNews = async function(category = 'general') {
     if(catBar) catBar.style.display = 'flex';
 
     try {
-        const res = await fetch(`https://saurav.tech/NewsAPI/top-headlines/category/${category}/us.json`);
+        const res = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=15`);
         const data = await res.json();
-        const stories = data.articles || [];
+        const stories = (data.hits || []).map(h => ({
+            title: h.title || 'Untitled',
+            url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+            source: h.author || 'HN',
+            date: h.created_at,
+            points: h.points || 0
+        }));
 
-        window.newsItems = stories; // Cache for detail view
+        window.newsItems = stories;
         renderNewsList(stories);
 
-        // Update ticker with top headlines
         const ticker = document.getElementById('newsText');
         if (ticker && stories.length > 0) {
             ticker.textContent = 'LATEST: ' + stories.slice(0, 5).map(s => s.title.toUpperCase()).join(' ••• ');
@@ -277,21 +370,19 @@ window.renderNewsList = function(stories) {
     
     stories.forEach((s, i) => {
         const item = document.createElement('div');
-        item.style.cssText = "padding: 8px; border-bottom: 1px solid rgba(15,56,15,0.3); cursor: pointer; transition: background 0.2s; position: relative;";
+        item.style.cssText = "padding: 6px; border-bottom: 1px solid rgba(15,56,15,0.3); cursor: pointer; transition: background 0.2s; position: relative; border-left: 3px solid var(--gb-text);";
         item.onmouseover = () => item.style.background = 'rgba(15,56,15,0.1)';
         item.onmouseout = () => item.style.background = 'transparent';
         item.onclick = () => window.openNewsDetail(i);
         
-        const date = s.publishedAt ? new Date(s.publishedAt).toLocaleDateString() : '';
-        const sourceName = s.source?.name || 'UNKNOWN';
+        const date = s.date ? new Date(s.date).toLocaleDateString() : '';
+        const sourceName = s.source || 'UNKNOWN';
+        const points = s.points ? `⬆ ${s.points}` : '';
         
         item.innerHTML = `
             <div style="font-weight: bold; font-size: 7px; line-height: 1.2;">${s.title.toUpperCase()}</div>
-            <div style="font-size: 5px; opacity: 0.7; margin-top: 4px;">
-                📡 ${sourceName.toUpperCase()} | 📅 ${date}
-            </div>
-            <div style="font-size: 6px; margin-top: 5px; opacity: 0.6; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">
-                ${(s.description || '').toUpperCase()}
+            <div style="font-size: 5px; opacity: 0.7; margin-top: 3px;">
+                📡 ${sourceName.toUpperCase()} | 📅 ${date} ${points}
             </div>
         `;
         list.appendChild(item);
@@ -302,7 +393,6 @@ window.openNewsDetail = function(index) {
     const item = window.newsItems[index];
     if(!item) return;
     
-    // Hide list and category bar
     const list = document.getElementById('newsList');
     list.style.display = 'none';
     const catBar = document.getElementById('newsCategoryBar');
@@ -312,28 +402,26 @@ window.openNewsDetail = function(index) {
     if(!detail) {
         detail = document.createElement('div');
         detail.id = 'newsDetail';
-        detail.style.cssText = "position:absolute; top:35px; left:0; width:100%; height:calc(100% - 35px); background:#9bbc0f; color:#0f380f; padding:10px; overflow-y:auto; z-index:100; border-top: 1px solid #0f380f;";
+        detail.style.cssText = "position:absolute; top:35px; left:0; width:100%; height:calc(100% - 35px); background:var(--gb-bg); color:var(--gb-text); padding:10px; overflow-y:auto; z-index:100; border-top: 1px solid var(--gb-text);";
         document.getElementById('newsScreen').appendChild(detail);
     }
     
     detail.style.display = 'block';
-    const date = new Date(item.publishedAt).toLocaleString();
-    const sourceName = item.source?.name || 'UNKNOWN';
+    const date = item.date ? new Date(item.date).toLocaleString() : '';
+    const sourceName = item.source || 'UNKNOWN';
     
     detail.innerHTML = `
-        <div style="font-size: 8px; font-weight: bold; border-bottom: 2px solid #0f380f; padding-bottom: 8px; margin-bottom: 8px; line-height: 1.3;">
+        <div style="font-size: 8px; font-weight: bold; border-bottom: 2px solid var(--gb-text); padding-bottom: 6px; margin-bottom: 6px; line-height: 1.3;">
             ${item.title.toUpperCase()}
         </div>
-        <div style="font-size: 5px; margin-bottom: 10px; opacity: 0.8;">
+        <div style="font-size: 6px; margin-bottom: 10px; opacity: 0.8;">
             SOURCE: ${sourceName.toUpperCase()}<br>
             DATE: ${date.toUpperCase()}
-        </div>
-        <div style="font-size: 7px; line-height: 1.5; margin-bottom: 15px; background: rgba(0,0,0,0.03); padding: 8px; border-radius: 4px;">
-            ${(item.description || item.content || 'NO CONTENT AVAILABLE').toUpperCase()}
+            ${item.points ? `<br>SCORE: ${item.points} POINTS` : ''}
         </div>
         <div style="display: flex; gap: 5px;">
-            <button onclick="closeNewsDetail()" style="flex: 1; padding: 8px; background: #0f380f; color: #9bbc0f; font-family: 'Press Start 2P', monospace; font-size: 6px; cursor: pointer; border: none;">BACK</button>
-            <a href="${item.url}" target="_blank" style="flex: 1; padding: 8px; background: #0f380f; color: #9bbc0f; font-family: 'Press Start 2P', monospace; font-size: 6px; text-decoration: none; text-align: center; border: none;">FULL STORY</a>
+            <button onclick="closeNewsDetail()" style="flex: 1; padding: 8px; font-size: 6px;">BACK</button>
+            <a href="${item.url}" target="_blank" style="flex: 1; padding: 8px; background: var(--gb-text); color: var(--gb-bg); font-size: 6px; text-decoration: none; text-align: center;">FULL STORY</a>
         </div>
     `;
     sounds.click();
@@ -349,10 +437,24 @@ window.closeNewsDetail = function() {
     sounds.back();
 };
 
-window.initTranslate = function() { document.getElementById('transOutput').textContent = "READY..."; };
-async function translateText() {
+// ========== TRANSLATE (ENHANCED: SWAP + DROPDOWNS + HISTORY) ==========
+window.initTranslate = function() {
+    renderTransHistory();
+};
+
+window.swapLanguages = function() {
+    const fromEl = document.getElementById('transFrom');
+    const toEl = document.getElementById('transTo');
+    const temp = fromEl.value;
+    fromEl.value = toEl.value;
+    toEl.value = temp;
+    sounds.click();
+};
+
+window.translateText = async function() {
     const text = document.getElementById('transInput').value;
-    const lang = document.getElementById('transLang').value;
+    const from = document.getElementById('transFrom').value;
+    const to = document.getElementById('transTo').value;
     const output = document.getElementById('transOutput');
     
     if (!text) return;
@@ -362,18 +464,54 @@ async function translateText() {
     
     try {
         const encoded = encodeURIComponent(text);
-        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encoded}&langpair=en|${lang}`);
+        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encoded}&langpair=${from}|${to}`);
         const data = await res.json();
         
         if (data.responseData && data.responseData.translatedText) {
-            output.textContent = data.responseData.translatedText.toUpperCase();
+            const translated = data.responseData.translatedText.toUpperCase();
+            output.textContent = translated;
+            addTransHistory(text, translated, from, to);
             sounds.coin();
         } else {
             output.textContent = "[TRANSLATION FAILED]";
         }
     } catch(e) {
-        output.textContent = `[${lang.toUpperCase()}] OFFLINE`;
+        output.textContent = `[${to.toUpperCase()}] OFFLINE`;
     }
+}
+
+function addTransHistory(original, translated, from, to) {
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem('transHistory') || '[]'); } catch(e) { history = []; }
+    history.unshift({ original, translated, from, to, time: Date.now() });
+    if(history.length > 5) history = history.slice(0, 5);
+    localStorage.setItem('transHistory', JSON.stringify(history));
+    renderTransHistory();
+}
+
+function renderTransHistory() {
+    const el = document.getElementById('transHistory');
+    if(!el) return;
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem('transHistory') || '[]'); } catch(e) { history = []; }
+    
+    if(history.length === 0) {
+        el.innerHTML = '<div style="text-align: center; opacity: 0.5; margin-top: 10px;">NO TRANSLATIONS YET</div>';
+        return;
+    }
+    
+    el.innerHTML = '';
+    history.forEach(h => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding: 4px; border-bottom: 1px solid rgba(0,0,0,0.1); cursor: pointer;';
+        item.innerHTML = `<div style="font-size:5px; opacity:0.5;">${h.from.toUpperCase()} → ${h.to.toUpperCase()}</div><div style="font-size:6px;">${h.original.substring(0,30).toUpperCase()}</div><div style="font-size:6px; opacity:0.7;">→ ${h.translated.substring(0,30)}</div>`;
+        item.onclick = () => {
+            document.getElementById('transInput').value = h.original;
+            document.getElementById('transFrom').value = h.from;
+            document.getElementById('transTo').value = h.to;
+        };
+        el.appendChild(item);
+    });
 }
 function initStock() {
     const c = document.getElementById('stockCanvas'); if(!c) return; const ctx = c.getContext('2d');
@@ -387,11 +525,119 @@ async function refreshCrypto() {
         btc.textContent = `$${data.bitcoin.usd}`; document.getElementById('ethPrice').textContent = `$${data.ethereum.usd}`;
     } catch(e) { btc.textContent = "OFFLINE"; }
 }
+// ========== BREATHING APP ==========
 let breatheInterval = null;
-function initBreathe() {
-    const circle = document.getElementById('breatheCircle'); if (breatheInterval) clearInterval(breatheInterval);
-    let state = 0; breatheInterval = setInterval(() => { state = (state + 1) % 2; circle.style.transform = state === 0 ? 'scale(1.3)' : 'scale(0.7)'; document.getElementById('breatheText').textContent = state === 0 ? 'BREATHE OUT' : 'BREATHE IN'; }, 4000);
+let breatheRunning = false;
+let breatheMode = '478';
+let breatheSessionStart = 0;
+let breatheSessionTimer = null;
+const breatheModes = {
+    '478': { name: '4-7-8', phases: [
+        { label: 'BREATHE IN', duration: 4, scale: 1.4 },
+        { label: 'HOLD', duration: 7, scale: 1.4 },
+        { label: 'BREATHE OUT', duration: 8, scale: 0.6 }
+    ]},
+    'box': { name: 'BOX', phases: [
+        { label: 'BREATHE IN', duration: 4, scale: 1.4 },
+        { label: 'HOLD', duration: 4, scale: 1.4 },
+        { label: 'BREATHE OUT', duration: 4, scale: 0.6 },
+        { label: 'HOLD', duration: 4, scale: 0.6 }
+    ]},
+    'wim': { name: 'WIM HOF', phases: [
+        { label: 'INHALE FAST', duration: 2, scale: 1.2, repeat: 15 },
+        { label: 'HOLD', duration: 15, scale: 1.4 },
+        { label: 'RECOVER', duration: 15, scale: 0.8 }
+    ]}
+};
+
+window.setBreatheMode = function(mode) {
+    breatheMode = mode;
+    document.querySelectorAll('[id^="bm"]').forEach(b => { b.style.background = ''; b.style.color = ''; });
+    const activeBtn = document.getElementById('bm' + mode.charAt(0).toUpperCase() + mode.slice(1));
+    if(activeBtn) { activeBtn.style.background = 'var(--gb-text)'; activeBtn.style.color = 'var(--gb-bg)'; }
+    if(breatheRunning) { stopBreathe(); startBreathe(); }
+};
+
+window.toggleBreathe = function() {
+    if(breatheRunning) stopBreathe(); else startBreathe();
+};
+
+function startBreathe() {
+    breatheRunning = true;
+    breatheSessionStart = Date.now();
+    document.getElementById('breatheBtn').textContent = 'STOP';
+    document.getElementById('breathePhase').textContent = 'STARTING...';
+    breatheSessionTimer = setInterval(updateBreatheSession, 1000);
+    runBreatheCycle();
 }
+
+function stopBreathe() {
+    breatheRunning = false;
+    if(breatheInterval) { clearTimeout(breatheInterval); breatheInterval = null; }
+    if(breatheSessionTimer) { clearInterval(breatheSessionTimer); breatheSessionTimer = null; }
+    const circle = document.getElementById('breatheCircle');
+    const text = document.getElementById('breatheText');
+    if(circle) circle.style.transform = 'scale(1)';
+    if(text) text.textContent = 'READY';
+    document.getElementById('breatheBtn').textContent = 'START';
+    document.getElementById('breathePhase').textContent = '';
+    // Save session
+    const elapsed = Math.floor((Date.now() - breatheSessionStart) / 1000);
+    if(elapsed > 5) {
+        const prev = parseInt(localStorage.getItem('breatheTotal') || '0');
+        localStorage.setItem('breatheTotal', prev + elapsed);
+    }
+}
+
+function runBreatheCycle() {
+    if(!breatheRunning) return;
+    const mode = breatheModes[breatheMode];
+    let phaseIdx = 0;
+    function runPhase() {
+        if(!breatheRunning) return;
+        if(phaseIdx >= mode.phases.length) { phaseIdx = 0; }
+        const phase = mode.phases[phaseIdx];
+        const circle = document.getElementById('breatheCircle');
+        const text = document.getElementById('breatheText');
+        const phaseEl = document.getElementById('breathePhase');
+        if(text) text.textContent = phase.label;
+        if(phaseEl) phaseEl.textContent = `${phase.label} — ${phase.duration}s`;
+        if(circle) circle.style.transform = `scale(${phase.scale})`;
+        // Countdown
+        let remaining = phase.duration;
+        const countdown = setInterval(() => {
+            if(!breatheRunning) { clearInterval(countdown); return; }
+            remaining--;
+            if(remaining > 0 && phaseEl) phaseEl.textContent = `${phase.label} — ${remaining}s`;
+        }, 1000);
+        breatheInterval = setTimeout(() => {
+            clearInterval(countdown);
+            phaseIdx++;
+            runPhase();
+        }, phase.duration * 1000);
+    }
+    runPhase();
+}
+
+function updateBreatheSession() {
+    const el = document.getElementById('breatheTimer');
+    if(!el || !breatheSessionStart) return;
+    const elapsed = Math.floor((Date.now() - breatheSessionStart) / 1000);
+    const m = Math.floor(elapsed / 60);
+    const s = elapsed % 60;
+    el.textContent = `SESSION: ${m}:${s.toString().padStart(2, '0')}`;
+}
+
+window.initBreathe = function() {
+    if(breatheRunning) stopBreathe();
+    const total = parseInt(localStorage.getItem('breatheTotal') || '0');
+    const timerEl = document.getElementById('breatheTimer');
+    if(timerEl && total > 0) {
+        const tm = Math.floor(total / 60);
+        const ts = total % 60;
+        timerEl.textContent = `TOTAL: ${tm}m ${ts}s | SESSION: 0:00`;
+    }
+};
 // ========== MAPS ENHANCED ==========
 let mapX = 0, mapY = 0;
 let mapMarkers = [];
@@ -697,6 +943,116 @@ window.mineGem = function() {
     }
 };
 
+// ========== PERIODIC TABLE ==========
+let chemistryData = null;
+
+const categoryColors = {
+    'diatomic nonmetal': '#e85d75',
+    'noble gas': '#5dade2',
+    'alkali metal': '#e74c3c',
+    'alkaline earth metal': '#f39c12',
+    'metalloid': '#2ecc71',
+    'polyatomic nonmetal': '#e67e22',
+    'transition metal': '#95a5a6',
+    'post-transition metal': '#7f8c8d',
+    'lanthanide': '#9b59b6',
+    'actinide': '#8e44ad',
+    'unknown': '#bdc3c7'
+};
+
+window.initElem = async function() {
+    if(chemistryData) { buildPeriodicTable(); return; }
+    try {
+        const res = await fetch('chemistry.json');
+        chemistryData = await res.json();
+        buildPeriodicTable();
+    } catch(e) {
+        document.getElementById('elemGrid').innerHTML = '<div style="text-align:center; padding:20px; font-size:8px;">LOADING DATA...</div>';
+    }
+};
+
+function buildPeriodicTable() {
+    const grid = document.getElementById('elemGrid');
+    if(!grid || !chemistryData) return;
+    grid.innerHTML = '';
+    
+    const cells = {};
+    Object.values(chemistryData).forEach(el => {
+        const key = `${el.xpos}-${el.ypos}`;
+        cells[key] = el;
+    });
+    
+    for(let row = 1; row <= 7; row++) {
+        for(let col = 1; col <= 18; col++) {
+            const key = `${col}-${row}`;
+            const el = cells[key];
+            if(el) {
+                const color = categoryColors[el.category] || '#bdc3c7';
+                const box = document.createElement('div');
+                box.style.cssText = `background:${color}; color:#fff; padding:1px; text-align:center; cursor:pointer; border-radius:2px; min-height:18px; display:flex; flex-direction:column; justify-content:center; line-height:1.1;`;
+                box.innerHTML = `<div style="font-size:4px;">${el.number}</div><div style="font-size:6px; font-weight:bold;">${el.symbol}</div>`;
+                box.onclick = () => showElemDetail(el);
+                grid.appendChild(box);
+            } else {
+                grid.appendChild(document.createElement('div'));
+            }
+        }
+    }
+    
+    const lanthanides = Object.values(chemistryData).filter(el => el.number >= 57 && el.number <= 71);
+    lanthanides.forEach((el) => {
+        const color = categoryColors[el.category] || '#9b59b6';
+        const box = document.createElement('div');
+        box.style.cssText = `background:${color}; color:#fff; padding:1px; text-align:center; cursor:pointer; border-radius:2px; min-height:18px; display:flex; flex-direction:column; justify-content:center; line-height:1.1;`;
+        box.innerHTML = `<div style="font-size:4px;">${el.number}</div><div style="font-size:6px; font-weight:bold;">${el.symbol}</div>`;
+        box.onclick = () => showElemDetail(el);
+        grid.appendChild(box);
+    });
+}
+
+window.showElemDetail = function(el) {
+    const detail = document.getElementById('elemDetail');
+    const card = document.getElementById('elemDetailCard');
+    if(!detail || !card) return;
+    
+    const color = categoryColors[el.category] || '#bdc3c7';
+    card.innerHTML = `
+        <div style="text-align:center; margin-bottom:8px;">
+            <div style="display:inline-block; background:${color}; color:#fff; padding:8px 16px; border-radius:4px; font-size:30px; font-weight:bold; margin-bottom:6px;">${el.symbol}</div>
+            <div style="font-size:12px; font-weight:bold;">${el.name}</div>
+            <div style="font-size:7px; opacity:0.7;">#${el.number}</div>
+        </div>
+        <div style="font-size:7px; line-height:1.6;">
+            <div style="padding:4px; background:rgba(0,0,0,0.05); border-radius:3px; margin-bottom:4px;">
+                <b>CATEGORY:</b> ${el.category.toUpperCase()}<br>
+                <b>MASS:</b> ${el.atomic_mass} u<br>
+                <b>PHASE:</b> ${el.phase || 'N/A'}<br>
+                <b>ELECTRON CONFIG:</b> ${el.electron_configuration || 'N/A'}
+            </div>
+            <div style="padding:4px; background:rgba(0,0,0,0.05); border-radius:3px; margin-bottom:4px;">
+                <b>SHELLS:</b> ${el.shells ? el.shells.join(', ') : 'N/A'}<br>
+                <b>DENSITY:</b> ${el.density ? el.density + ' g/cm³' : 'N/A'}<br>
+                <b>MELT:</b> ${el.melt ? el.melt + ' K' : 'N/A'}<br>
+                <b>BOIL:</b> ${el.boil ? el.boil + ' K' : 'N/A'}
+            </div>
+            <div style="padding:4px; background:rgba(0,0,0,0.05); border-radius:3px; margin-bottom:4px;">
+                <b>ELECTRONEGATIVITY:</b> ${el.electronegativity_pauling || 'N/A'}<br>
+                <b>DISCOVERED BY:</b> ${el.discovered_by || 'N/A'}
+            </div>
+            <div style="padding:4px; background:rgba(0,0,0,0.05); border-radius:3px;">
+                <b>SUMMARY:</b><br>
+                <span style="font-size:6px; opacity:0.8;">${(el.summary || '').substring(0, 300)}...</span>
+            </div>
+        </div>
+    `;
+    detail.style.display = 'block';
+};
+
+window.closeElemDetail = function() {
+    const detail = document.getElementById('elemDetail');
+    if(detail) detail.style.display = 'none';
+};
+
 // ========== COIN FLIP ==========
 window.tossCoin = function() {
     const display = document.getElementById('coinDisplay');
@@ -756,23 +1112,67 @@ window.crackCookie = function() {
 
 // ========== MORSE CONVERTER ==========
 const morseCode = { 'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.', 'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---', 'K':'-.-', 'L':'.-..', 'M':'--', 'N':'-.', 'O':'---', 'P':'.--.', 'Q':'--.-', 'R':'.-.', 'S':'...', 'T':'-', 'U':'..-', 'V':'...-', 'W':'.--', 'X':'-..-', 'Y':'-.--', 'Z':'--..', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.', '0':'-----', ' ':' ' };
+const reverseMorse = {};
+Object.entries(morseCode).forEach(([k, v]) => { if(v !== ' ') reverseMorse[v] = k; });
+
+let morseMode = 'encode';
+
+window.setMorseMode = function(mode) {
+    morseMode = mode;
+    const encBtn = document.getElementById('morseEncodeBtn');
+    const decBtn = document.getElementById('morseDecodeBtn');
+    if(encBtn) { encBtn.style.background = mode === 'encode' ? 'var(--gb-text)' : ''; encBtn.style.color = mode === 'encode' ? 'var(--gb-bg)' : ''; }
+    if(decBtn) { decBtn.style.background = mode === 'decode' ? 'var(--gb-text)' : ''; decBtn.style.color = mode === 'decode' ? 'var(--gb-bg)' : ''; }
+    const input = document.getElementById('morseInput');
+    if(input) {
+        input.placeholder = mode === 'encode' ? 'ENTER TEXT...' : 'ENTER MORSE (use . and -)...';
+        input.value = '';
+    }
+    const output = document.getElementById('morseOutput');
+    if(output) output.textContent = '';
+};
 
 window.updateMorse = function() {
-    const input = document.getElementById('morseInput').value.toUpperCase();
-    let output = "";
-    for(let char of input) {
-        output += (morseCode[char] || char) + " ";
+    const input = document.getElementById('morseInput').value;
+    const output = document.getElementById('morseOutput');
+    if(!output) return;
+    
+    if(morseMode === 'encode') {
+        let result = '';
+        for(let char of input.toUpperCase()) {
+            result += (morseCode[char] || char) + ' ';
+        }
+        output.textContent = result.trim();
+    } else {
+        let result = '';
+        const words = input.split('  ');
+        words.forEach((word, wi) => {
+            const letters = word.split(' ');
+            letters.forEach(letter => {
+                if(letter && reverseMorse[letter]) {
+                    result += reverseMorse[letter];
+                } else if(letter) {
+                    result += '?';
+                }
+            });
+            if(wi < words.length - 1) result += ' ';
+        });
+        output.textContent = result;
     }
-    document.getElementById('morseOutput').textContent = output;
 };
 
 window.playMorse = function() {
     const text = document.getElementById('morseOutput').textContent;
+    if(!text) return;
     const ctx = window.audioCtx;
     if(ctx.state === 'suspended') ctx.resume();
     
     let time = ctx.currentTime + 0.1;
-    const dot = 0.08; // Duration of dot in seconds
+    const dot = 0.1;
+    const dash = 0.3;
+    const elementGap = 0.1;
+    const letterGap = 0.3;
+    const wordGap = 0.7;
     
     for(let char of text) {
         if(char === '.') {
@@ -784,7 +1184,7 @@ window.playMorse = function() {
             g.gain.setValueAtTime(0.1, time);
             g.gain.exponentialRampToValueAtTime(0.001, time + dot);
             o.start(time); o.stop(time + dot);
-            time += dot * 2; // dot (1) + gap (1)
+            time += dot + elementGap;
         } else if(char === '-') {
             const o = ctx.createOscillator();
             const g = ctx.createGain();
@@ -792,40 +1192,24 @@ window.playMorse = function() {
             o.type = 'sine';
             o.connect(g); g.connect(ctx.destination);
             g.gain.setValueAtTime(0.1, time);
-            g.gain.exponentialRampToValueAtTime(0.001, time + (dot * 3));
-            o.start(time); o.stop(time + (dot * 3));
-            time += dot * 4; // dash (3) + gap (1)
+            g.gain.exponentialRampToValueAtTime(0.001, time + dash);
+            o.start(time); o.stop(time + dash);
+            time += dash + elementGap;
+        } else if(char === ' ') {
+            time += wordGap;
         } else {
-            time += dot * 3; // space between chars (3)
+            time += letterGap;
         }
-    }
-    // Auto resume logic if needed
-};
-// Beat Boy implementation moved to beat-boy.js
-window.initPixel = function() {
-    const grid = document.getElementById('pixelGrid');
-    if(!grid) return;
-    grid.innerHTML = '';
-    // Increase size for better visibility
-    grid.style.width = "220px";
-    grid.style.height = "220px";
-    
-    for(let i=0; i<64; i++) {
-        const d = document.createElement('div');
-        d.style.cssText = "background: #fff; border: 1px solid #ccc; cursor: pointer;";
-        d.onclick = function() {
-            this.style.background = pixelColor;
-            sounds.click();
-        };
-        grid.appendChild(d);
     }
 };
 
-window.clearPixel = function() {
-    const grid = document.getElementById('pixelGrid');
-    if(grid) Array.from(grid.children).forEach(c => c.style.background = '#fff');
-    sounds.back();
+window.initMorse = function() {
+    const input = document.getElementById('morseInput');
+    const output = document.getElementById('morseOutput');
+    if(input) input.value = '';
+    if(output) output.textContent = '';
 };
+// Beat Boy implementation moved to beat-boy.js
 
 window.guessNumber = function() {
     const input = document.getElementById('guessInput');
@@ -880,16 +1264,7 @@ window.initGuess = function() {
 };
 
 // Initial calls that might be missing
-window.initMorse = () => {
-    const screen = document.getElementById('morseScreen');
-    if(screen) screen.innerHTML = `
-        <div style="text-align: center; padding: 10px;">
-            <input id="morseInput" oninput="updateMorse()" placeholder="TEXT..." style="width: 80%; margin-bottom: 5px;">
-            <div id="morseOutput" style="font-family: monospace; word-break: break-all; margin-bottom: 5px;"></div>
-            <button onclick="playMorse()">PLAY</button>
-        </div>
-    `;
-};
+// initMorse is now defined above with the morse module
 
 // ========== GUESS NUMBER GAME ==========
 window.changeGuess = function(delta) {
@@ -975,46 +1350,7 @@ window.initZodiac = function() {
 };
 
 // ========== STOPWATCH ==========
-let stopwatchInt = null;
-let stopwatchTime = 0;
-window.initStopwatch = function() {
-    const screen = document.getElementById('stopwatchScreen');
-    if(screen) {
-        screen.innerHTML = `
-            <div style="text-align: center; padding-top: 30px;">
-                <div id="swDisplay" style="font-size: 16px;">00:00.00</div>
-                <br>
-                <div style="display: flex; gap: 5px; justify-content: center;">
-                    <button onclick="toggleStopwatch()">START/STOP</button>
-                    <button onclick="resetStopwatch()">RESET</button>
-                </div>
-            </div>
-        `;
-    }
-};
-window.toggleStopwatch = function() {
-    if(stopwatchInt) {
-        clearInterval(stopwatchInt);
-        stopwatchInt = null;
-    } else {
-        const start = Date.now() - stopwatchTime;
-        stopwatchInt = setInterval(() => {
-            stopwatchTime = Date.now() - start;
-            const ms = Math.floor((stopwatchTime % 1000) / 10);
-            const s = Math.floor((stopwatchTime / 1000) % 60);
-            const m = Math.floor((stopwatchTime / 60000) % 60);
-            const d = document.getElementById('swDisplay');
-            if(d) d.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${ms.toString().padStart(2,'0')}`;
-        }, 10);
-    }
-};
-window.resetStopwatch = function() {
-    clearInterval(stopwatchInt);
-    stopwatchInt = null;
-    stopwatchTime = 0;
-    const d = document.getElementById('swDisplay');
-    if(d) d.textContent = "00:00.00";
-};
+// Moved to batch7.js — merged with Timer into tabbed screen
 
 // ========== STREAK ==========
 window.initStreak = function() {
@@ -1417,66 +1753,7 @@ window.playPet = () => {
 };
 
 // ========== TIMER ==========
-let timerInt = null;
-let timerTime = 0;
-window.initTimer = function() {
-    const screen = document.getElementById('timerScreen');
-    if(screen) {
-        screen.innerHTML = `
-            <div style="text-align: center; padding-top: 20px;">
-                <div id="timerDisplay" style="font-size: 24px;">00:00</div>
-                <div style="margin: 10px;">
-                    <button onclick="addTimer(1)">+1m</button>
-                    <button onclick="addTimer(5)">+5m</button>
-                    <button onclick="addTimer(-1)">-1m</button>
-                </div>
-                <button onclick="toggleTimer()">START/STOP</button>
-                <button onclick="resetTimer()">RESET</button>
-            </div>
-        `;
-    }
-};
-
-window.addTimer = function(min) {
-    timerTime += min * 60;
-    if(timerTime < 0) timerTime = 0;
-    updateTimerDisplay();
-};
-
-window.toggleTimer = function() {
-    if(timerInt) {
-        clearInterval(timerInt);
-        timerInt = null;
-    } else {
-        if(timerTime <= 0) return;
-        timerInt = setInterval(() => {
-            timerTime--;
-            if(timerTime <= 0) {
-                clearInterval(timerInt);
-                timerInt = null;
-                sounds.launch();
-                alert("TIMER DONE!");
-            }
-            updateTimerDisplay();
-        }, 1000);
-    }
-};
-
-window.resetTimer = function() {
-    clearInterval(timerInt);
-    timerInt = null;
-    timerTime = 0;
-    updateTimerDisplay();
-};
-
-function updateTimerDisplay() {
-    const d = document.getElementById('timerDisplay');
-    if(d) {
-        const m = Math.floor(timerTime / 60);
-        const s = timerTime % 60;
-        d.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-    }
-}
+// Merged into batch7.js — see merged timer+stopwatch screen
 
 // ========== CALENDAR ==========
 window.initCalendar = () => {
@@ -1593,14 +1870,45 @@ window.initCalc = function() {
 };
 
 let calcExpr = '';
+let calcSciMode = false;
 window.calcFunc = function(val) {
     const disp = document.getElementById('calcDisplay');
     if(!disp) return;
+    if(val === 'SCI') {
+        calcSciMode = !calcSciMode;
+        const row = document.getElementById('calcSciRow');
+        if(row) row.style.display = calcSciMode ? 'grid' : 'none';
+        return;
+    }
     if(val === 'C') { calcExpr = ''; disp.value = '0'; }
     else if(val === 'BSP') { calcExpr = calcExpr.slice(0, -1); disp.value = calcExpr || '0'; }
     else if(val === '=') { 
-        try { disp.value = eval(calcExpr) || '0'; calcExpr = disp.value; } 
+        try {
+            let expr = calcExpr.replace(/\^/g, '**');
+            disp.value = eval(expr) || '0'; calcExpr = disp.value;
+        } 
         catch { disp.value = 'ERR'; calcExpr = ''; }
+    }
+    else if(val === 'sin') {
+        try { const v = eval(calcExpr || '0'); calcExpr = String(Math.sin(v * Math.PI / 180)); disp.value = calcExpr; } catch { disp.value = 'ERR'; }
+    }
+    else if(val === 'cos') {
+        try { const v = eval(calcExpr || '0'); calcExpr = String(Math.cos(v * Math.PI / 180)); disp.value = calcExpr; } catch { disp.value = 'ERR'; }
+    }
+    else if(val === 'tan') {
+        try { const v = eval(calcExpr || '0'); calcExpr = String(Math.tan(v * Math.PI / 180)); disp.value = calcExpr; } catch { disp.value = 'ERR'; }
+    }
+    else if(val === 'sqrt') {
+        try { const v = eval(calcExpr || '0'); calcExpr = String(Math.sqrt(v)); disp.value = calcExpr; } catch { disp.value = 'ERR'; }
+    }
+    else if(val === 'pi') {
+        calcExpr += String(Math.PI); disp.value = calcExpr;
+    }
+    else if(val === 'log') {
+        try { const v = eval(calcExpr || '0'); calcExpr = String(Math.log10(v)); disp.value = calcExpr; } catch { disp.value = 'ERR'; }
+    }
+    else if(val === 'ln') {
+        try { const v = eval(calcExpr || '0'); calcExpr = String(Math.log(v)); disp.value = calcExpr; } catch { disp.value = 'ERR'; }
     }
     else {
         if(calcExpr.length < 15) {
@@ -1659,171 +1967,86 @@ window.getDog = async function() {
     }
 };
 
-// ========== BOOK READER (GUTENDEX) ==========
-window.initBook = function() {
-    const screen = document.getElementById('bookScreen');
-    if(!screen) return;
-    
-    screen.innerHTML = `
-        <div style="padding: 10px; height: 100%; display: flex; flex-direction: column; font-family: 'Courier New', monospace;">
-            <div style="font-size: 10px; text-align: center; border-bottom: 2px solid #0f380f; margin-bottom: 5px;">GUTENBERG READER</div>
-            
-            <!-- Search -->
-            <div id="bookSearchMode" style="display: block;">
-                <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                    <input type="text" id="bookInput" placeholder="TITLE/AUTHOR..." style="flex: 1; font-size: 8px; border: 1px solid #0f380f; background: rgba(0,0,0,0.05); padding: 4px;">
-                    <button onclick="searchBooks()" style="font-size: 8px;">🔍</button>
-                </div>
-                <div id="bookList" style="flex: 1; overflow-y: auto; font-size: 8px;">
-                    <div style="text-align: center; opacity: 0.6; margin-top: 20px;">SEARCH PUBLIC DOMAIN BOOKS</div>
-                </div>
-            </div>
+// ========== BOOK READER (OPENLIBRARY) ==========
+window.initBook = function() {};
 
-            <!-- Reader -->
-            <div id="bookReaderMode" style="display: none; height: 100%; flex-direction: column;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; border-bottom: 1px dashed #0f380f;">
-                    <button onclick="closeBook()" style="font-size: 8px;">🔙 BACK</button>
-                    <span id="bookTitle" style="font-weight: bold; font-size: 8px; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</span>
-                    <span id="bookPage" style="font-size: 8px;">0%</span>
-                </div>
-                <div id="bookContent" style="flex: 1; overflow-y: auto; background: #9bbc0f; color: #0f380f; font-size: 9px; line-height: 1.6; white-space: pre-wrap; padding: 5px;"></div>
-                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 5px;">
-                     <button onclick="scrollBook(-200)">⬆</button>
-                     <button onclick="scrollBook(200)">⬇</button>
-                </div>
-            </div>
-        </div>
-    `;
-};
-
-window.searchBooks = async function() {
-    const query = document.getElementById('bookInput').value;
-    const list = document.getElementById('bookList');
-    if(!query) return;
-    
-    list.innerHTML = 'SEARCHING SHELVES...';
-    try {
-        const res = await fetch(`https://gutendex.com/books?search=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        
-        list.innerHTML = '';
-        if(data.results.length === 0) {
-            list.innerHTML = 'NO BOOKS FOUND.';
-            return;
-        }
-
-        data.results.forEach(book => {
-            // Find text format
-            const textUrl = book.formats['text/plain; charset=utf-8'] || book.formats['text/plain'];
-            
-            if(textUrl) {
-                const item = document.createElement('div');
-                item.style.cssText = "padding: 8px; border-bottom: 1px solid rgba(15,56,15,0.3); cursor: pointer;";
-                item.innerHTML = `
-                    <div style="font-weight: bold;">${book.title.substring(0,40)}</div>
-                    <div style="font-size: 7px; opacity: 0.8;">${book.authors[0]?.name || 'Unknown'}</div>
-                `;
-                item.onclick = () => loadBook(book.title, textUrl);
-                list.appendChild(item);
-            }
-        });
-    } catch(e) {
-        list.innerHTML = 'LIBRARY CLOSED (API ERROR)';
-    }
-};
-
-window.loadBook = async function(title, url) {
-    document.getElementById('bookSearchMode').style.display = 'none';
-    document.getElementById('bookReaderMode').style.display = 'flex';
-    document.getElementById('bookTitle').textContent = title;
-    
-    const content = document.getElementById('bookContent');
-    content.innerHTML = 'FETCHING PARCHMENT...';
-    
-    try {
-        // Use AllOrigins proxy to bypass CORS
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-        const res = await fetch(proxyUrl);
-        const text = await res.text();
-        
-        // Cleanup Gutenberg Headers
-        const startIdx = text.indexOf('*** START OF');
-        const endIdx = text.indexOf('*** END OF');
-        
-        let cleanText = text;
-        if(startIdx !== -1) cleanText = cleanText.substring(startIdx + 40);
-        if(endIdx !== -1) cleanText = cleanText.substring(0, endIdx);
-        
-        // Strip HTML tags if present (Fix for "html file" issue)
-        cleanText = cleanText.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-                             .replace(/<br\s*\/?>/gi, '\n')
-                             .replace(/<[^>]+>/g, '');
-                             
-        // Decode HTML entities
-        const txt = document.createElement("textarea");
-        txt.innerHTML = cleanText;
-        cleanText = txt.value;
-        
-        content.textContent = cleanText;
-        content.scrollTop = 0;
-        
-        // Scroll listener
-        content.onscroll = () => {
-            const pct = Math.round((content.scrollTop / (content.scrollHeight - content.clientHeight)) * 100);
-            document.getElementById('bookPage').textContent = `${pct}%`;
-        };
-        
-    } catch(e) {
-        content.textContent = 'PAGES ARE STUCK TOGETHER (LOAD ERROR)';
-    }
-};
-
-window.closeBook = function() {
-    document.getElementById('bookReaderMode').style.display = 'none';
-    document.getElementById('bookSearchMode').style.display = 'block';
-};
-
-window.scrollBook = function(amt) {
-    const c = document.getElementById('bookContent');
-    if(c) c.scrollBy({top: amt, behavior: 'smooth'});
-};
 window.searchBook = async function() {
     const q = document.getElementById('bookSearch').value;
     const list = document.getElementById('bookList');
-    if(q && list) {
-        list.innerHTML = '<div style="padding:10px;text-align:center;">SEARCHING LIBRARY...</div>';
-        sounds.click();
-        try {
-            const res = await fetch(`https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&limit=15`);
-            const data = await res.json();
-            list.innerHTML = '';
-            
-            if(data.docs.length === 0) {
-                list.innerHTML = '<div style="padding:10px;text-align:center;">NO BOOKS FOUND</div>';
-                return;
-            }
+    if(!q || !list) return;
+    list.innerHTML = '<div style="padding:10px;text-align:center;">SEARCHING LIBRARY...</div>';
+    if(window.sounds) sounds.click();
 
-            data.docs.forEach(book => {
-                const d = document.createElement('div');
-                d.style.cssText = "padding: 8px; border-bottom: 1px dashed #444; margin-bottom: 2px; background: rgba(0,0,0,0.1);";
-                const title = book.title.toUpperCase();
-                const author = book.author_name ? book.author_name[0].toUpperCase() : 'UNKNOWN';
-                const year = book.first_publish_year || '????';
-                
-                d.innerHTML = `
-                    <div style="font-size: 8px; font-weight: bold; color: var(--gb-text); margin-bottom: 2px;">${title}</div>
-                    <div style="font-size: 6px; color: #555;">BY ${author} (${year})</div>
-                `;
-                d.onclick = () => {
-                    sounds.coin();
-                    alert(`${title}\n\nOriginally published in ${year}.\nWritten by ${author}.`);
-                };
-                list.appendChild(d);
-            });
-            sounds.launch();
-        } catch(e) { list.innerHTML = "LIBRARY CLOSED (ERROR)"; }
+    try {
+        const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=20`);
+        const data = await res.json();
+        list.innerHTML = '';
+
+        if(!data.docs || data.docs.length === 0) {
+            list.innerHTML = '<div style="padding:10px;text-align:center;">NO BOOKS FOUND</div>';
+            return;
+        }
+
+        data.docs.forEach(book => {
+            const d = document.createElement('div');
+            d.style.cssText = "padding: 6px; border-bottom: 1px dashed rgba(15,56,15,0.3); display: flex; gap: 6px; align-items: center; cursor: pointer;";
+            const coverId = book.cover_i;
+            const coverUrl = coverId ? `https://covers.openlibrary.org/b/id/${coverId}-S.jpg` : '';
+            const author = book.author_name ? book.author_name[0] : 'Unknown';
+            const year = book.first_publish_year || '????';
+
+            d.innerHTML = `
+                ${coverUrl ? `<img src="${coverUrl}" style="width:30px;height:42px;object-fit:cover;border:1px solid var(--gb-text);flex-shrink:0;">` : '<div style="width:30px;height:42px;background:rgba(15,56,15,0.15);border:1px solid var(--gb-text);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;">📖</div>'}
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size: 7px; font-weight: bold; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${book.title.toUpperCase()}</div>
+                    <div style="font-size: 5px; opacity: 0.7;">${author} (${year})</div>
+                </div>
+            `;
+            d.onclick = () => showBookDetail(book);
+            list.appendChild(d);
+        });
+        if(window.sounds) sounds.launch();
+    } catch(e) {
+        list.innerHTML = '<div style="padding:10px;text-align:center;">LIBRARY CLOSED (ERROR)</div>';
     }
 };
+
+window.showBookDetail = function(book) {
+    const detail = document.getElementById('bookDetail');
+    const cover = document.getElementById('bookCover');
+    const title = document.getElementById('bookTitle');
+    const author = document.getElementById('bookAuthor');
+    const year = document.getElementById('bookYear');
+    const desc = document.getElementById('bookDesc');
+    const link = document.getElementById('bookLink');
+    if(!detail) return;
+
+    const coverId = book.cover_i;
+    if(coverId) {
+        cover.src = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+        cover.style.display = 'block';
+    } else {
+        cover.style.display = 'none';
+    }
+    title.textContent = book.title ? book.title.toUpperCase() : 'UNKNOWN';
+    author.textContent = book.author_name ? 'BY ' + book.author_name.join(', ') : 'BY Unknown';
+    year.textContent = book.first_publish_year ? 'PUBLISHED ' + book.first_publish_year : '';
+    desc.textContent = book.first_sentence ? (Array.isArray(book.first_sentence) ? book.first_sentence[0] : book.first_sentence) : 'No description available.';
+    const key = book.key || '';
+    link.href = key ? `https://openlibrary.org${key}` : '#';
+    link.style.display = key ? 'inline-block' : 'none';
+    detail.style.display = 'block';
+    if(window.sounds) sounds.coin();
+};
+
+window.closeBookDetail = function() {
+    const detail = document.getElementById('bookDetail');
+    if(detail) detail.style.display = 'none';
+};
+
+document.getElementById('bookSearch')?.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') searchBook();
+});
 
 window.initIp = function() {};
 window.getIpInfo = async function() {
@@ -1843,46 +2066,131 @@ window.getIpInfo = async function() {
 };
 
 // ========== POKEDEX ==========
-window.initPokedex = function() {};
+const typeColors = {
+    normal:'#A8A878', fire:'#F08030', water:'#6890F0', electric:'#F8D030',
+    grass:'#78C850', ice:'#98D8D8', fighting:'#C03028', poison:'#A040A0',
+    ground:'#E0C068', flying:'#A890F0', psychic:'#F85888', bug:'#A8B820',
+    rock:'#B8A038', ghost:'#705898', dragon:'#7038F8', dark:'#705848',
+    steel:'#B8B8D0', fairy:'#EE99AC'
+};
+
+window.initPokedex = function() {
+    loadPokeTypeFilter();
+};
+
+async function loadPokeTypeFilter() {
+    const sel = document.getElementById('pokeTypeFilter');
+    if(!sel || sel.options.length > 1) return;
+    try {
+        const res = await fetch('https://pokeapi.co/api/v2/type');
+        const data = await res.json();
+        data.results.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.name;
+            opt.textContent = t.name.toUpperCase();
+            sel.appendChild(opt);
+        });
+    } catch(e) {}
+}
+
 window.searchPokemon = async function() {
     const q = document.getElementById('pokeSearch').value.toLowerCase().trim();
     if(!q) return;
-    
+
     document.getElementById('pokeName').textContent = "SEARCHING...";
-    document.getElementById('pokeType').textContent = "...";
+    document.getElementById('pokeTypeChips').innerHTML = '';
+    document.getElementById('pokeStats').innerHTML = '';
+    document.getElementById('pokeEvolution').innerHTML = '';
+    document.getElementById('pokeId').textContent = '';
     document.getElementById('pokeImg').style.display = 'none';
     document.getElementById('pokePlaceholder').style.display = 'block';
-    
+
     sounds.click();
-    
+
     try {
         const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${q}`);
         if(!res.ok) throw new Error("Not found");
         const data = await res.json();
-        
+
         document.getElementById('pokeName').textContent = data.name.toUpperCase();
-        const types = data.types.map(t => t.type.name.toUpperCase()).join('/');
-        document.getElementById('pokeType').textContent = `TYPE: ${types}`;
-        
+        document.getElementById('pokeId').textContent = '#' + String(data.id).padStart(3, '0');
+
+        // Type chips
+        const chipsEl = document.getElementById('pokeTypeChips');
+        chipsEl.innerHTML = '';
+        data.types.forEach(t => {
+            const chip = document.createElement('span');
+            const typeName = t.type.name;
+            chip.textContent = typeName.toUpperCase();
+            chip.style.cssText = 'background:' + (typeColors[typeName]||'#888') + ';color:#fff;padding:1px 5px;border-radius:3px;font-size:5px;font-weight:bold;';
+            chipsEl.appendChild(chip);
+        });
+
+        // Stats
+        const statsEl = document.getElementById('pokeStats');
+        statsEl.innerHTML = '';
+        data.stats.forEach(s => {
+            const statName = s.stat.name.replace('-',' ').toUpperCase();
+            const val = s.base_stat;
+            const pct = Math.min(val / 255 * 100, 100);
+            const barColor = val >= 100 ? '#0f0' : val >= 60 ? '#ff0' : '#f00';
+            statsEl.innerHTML += '<div style="padding:2px;display:flex;align-items:center;gap:3px;"><span style="width:50px;text-align:right;">' + statName + '</span><div style="flex:1;height:4px;background:#333;border-radius:2px;"><div style="width:' + pct + '%;height:100%;background:' + barColor + ';"></div></div><span>' + val + '</span></div>';
+        });
+
+        // Artwork sprite
         const img = document.getElementById('pokeImg');
-        img.src = data.sprites.front_default || data.sprites.front_shiny;
-        img.onload = () => {
+        const artUrl = data.sprites.other && data.sprites.other['official-artwork'] && data.sprites.other['official-artwork'].front_default;
+        img.src = artUrl || data.sprites.front_default || data.sprites.front_shiny;
+        img.onload = function() {
              document.getElementById('pokePlaceholder').style.display = 'none';
              img.style.display = 'block';
              sounds.launch();
         };
-        
+
         // Setup Battle
         const battleBtn = document.getElementById('pokeBattleBtn');
         if(battleBtn) {
             battleBtn.style.display = 'block';
-            battleBtn.onclick = () => startPokeBattle(data);
+            battleBtn.onclick = function() { startPokeBattle(data); };
         }
+
+        // Fetch evolution chain
+        fetchEvolutionChain(data.species.url);
     } catch(e) {
         document.getElementById('pokeName').textContent = "MISSINGNO";
-        document.getElementById('pokeType').textContent = "TYPE: GLITCH";
+        document.getElementById('pokeTypeChips').innerHTML = '<span style="background:#888;color:#fff;padding:1px 5px;border-radius:3px;font-size:5px;">GLITCH</span>';
     }
 };
+
+async function fetchEvolutionChain(speciesUrl) {
+    const evoEl = document.getElementById('pokeEvolution');
+    if(!evoEl) return;
+    try {
+        const specRes = await fetch(speciesUrl);
+        const specData = await specRes.json();
+        const chainUrl = specData.evolution_chain && specData.evolution_chain.url;
+        if(!chainUrl) { evoEl.innerHTML = '<div style="opacity:0.5;">NO EVOLUTION DATA</div>'; return; }
+
+        const chainRes = await fetch(chainUrl);
+        const chainData = await chainRes.json();
+
+        const chain = [];
+        function traverse(node) {
+            chain.push(node.species.name);
+            if(node.evolves_to && node.evolves_to.length > 0) {
+                node.evolves_to.forEach(function(e) { traverse(e); });
+            }
+        }
+        traverse(chainData.chain);
+
+        evoEl.innerHTML = '<div style="font-weight:bold;margin-bottom:2px;">EVOLUTION:</div>' +
+            chain.map(function(n) {
+                return '<span style="background:var(--gb-text);color:var(--gb-bg);padding:1px 4px;border-radius:2px;margin-right:2px;">' + n.toUpperCase() + '</span>';
+            }).join('<span style="margin:0 1px;">→</span>');
+    } catch(e) {
+        evoEl.innerHTML = '<div style="opacity:0.5;">EVO UNAVAILABLE</div>';
+    }
+}
 
 let playerMon = null;
 let enemyMon = null;
@@ -1893,19 +2201,18 @@ window.startPokeBattle = async function(p1) {
     if(battleScreen) {
         battleScreen.style.display = 'flex';
         document.getElementById('pokedexMain').style.display = 'none';
-        
-        // Fetch random enemy
-        const id = Math.floor(Math.random() * 898) + 1;
+
+        const id = Math.floor(Math.random() * 1010) + 1;
         try {
-            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+            const res = await fetch('https://pokeapi.co/api/v2/pokemon/' + id);
             enemyMon = await res.json();
-            
+
             document.getElementById('battleEnemyName').textContent = enemyMon.name.toUpperCase();
             document.getElementById('battleEnemyImg').src = enemyMon.sprites.front_default;
             document.getElementById('battlePlayerName').textContent = playerMon.name.toUpperCase();
             document.getElementById('battlePlayerImg').src = playerMon.sprites.back_default || playerMon.sprites.front_default;
-            
-            document.getElementById('battleLog').textContent = `A wild ${enemyMon.name.toUpperCase()} appeared!`;
+
+            document.getElementById('battleLog').textContent = 'A wild ' + enemyMon.name.toUpperCase() + ' appeared!';
         } catch(e) {
             cancelBattle();
         }
@@ -1916,12 +2223,12 @@ window.pokeAttack = function() {
     const log = document.getElementById('battleLog');
     const pDmg = Math.floor(Math.random() * 20) + 10;
     const eDmg = Math.floor(Math.random() * 20) + 10;
-    
-    log.innerHTML = `${playerMon.name.toUpperCase()} used TACKLE!<br>Dealt ${pDmg} damage!`;
+
+    log.innerHTML = playerMon.name.toUpperCase() + ' used TACKLE!<br>Dealt ' + pDmg + ' damage!';
     sounds.launch();
-    
-    setTimeout(() => {
-        log.innerHTML += `<br>${enemyMon.name.toUpperCase()} used SCRATCH!<br>Took ${eDmg} damage!`;
+
+    setTimeout(function() {
+        log.innerHTML += '<br>' + enemyMon.name.toUpperCase() + ' used SCRATCH!<br>Took ' + eDmg + ' damage!';
         sounds.click();
     }, 1000);
 };
@@ -1933,37 +2240,81 @@ window.cancelBattle = function() {
 
 // ========== TRIVIA ==========
 let triviaCorrectAnswer = "";
-window.initTrivia = function() {};
+let triviaLives = 3;
+let triviaStreak = 0;
+let triviaTotalScore = 0;
+let triviaAnswered = false;
+
+window.initTrivia = function() {
+    updateTriviaUI();
+};
+
+function updateTriviaUI() {
+    const livesEl = document.getElementById('triviaLives');
+    const streakEl = document.getElementById('triviaStreak');
+    const scoreEl = document.getElementById('triviaScore');
+    if(livesEl) livesEl.textContent = '\u2764\uFE0F'.repeat(triviaLives) + '\u2661'.repeat(3 - triviaLives);
+    if(streakEl) streakEl.textContent = '\uD83D\uDD25 ' + triviaStreak;
+    if(scoreEl) scoreEl.textContent = '\uD83D\uDC8E ' + triviaTotalScore;
+}
+
+window.resetTrivia = function() {
+    triviaLives = 3;
+    triviaStreak = 0;
+    triviaTotalScore = 0;
+    triviaAnswered = false;
+    document.getElementById('triviaQuestion').textContent = 'SELECT OPTIONS & PRESS START';
+    document.getElementById('triviaOptions').innerHTML = '';
+    document.getElementById('triviaResult').textContent = '';
+    document.getElementById('triviaCategory').textContent = 'CATEGORY';
+    updateTriviaUI();
+};
+
 window.getTrivia = async function() {
+    if(triviaLives <= 0) { resetTrivia(); return; }
+
     const qEl = document.getElementById('triviaQuestion');
     const optEl = document.getElementById('triviaOptions');
     const catEl = document.getElementById('triviaCategory');
     const resEl = document.getElementById('triviaResult');
-    
+
     qEl.textContent = "LOADING...";
     optEl.innerHTML = '';
     resEl.textContent = '';
+    triviaAnswered = false;
     sounds.click();
-    
+
+    const catSel = document.getElementById('triviaCatSelect');
+    const diffSel = document.getElementById('triviaDiffSelect');
+    const cat = catSel ? catSel.value : '';
+    const diff = diffSel ? diffSel.value : '';
+
+    let url = 'https://opentdb.com/api.php?amount=1&type=multiple';
+    if(cat) url += '&category=' + cat;
+    if(diff) url += '&difficulty=' + diff;
+
     try {
-        const res = await fetch('https://opentdb.com/api.php?amount=1&type=multiple');
+        const res = await fetch(url);
         const data = await res.json();
+        if(data.response_code !== 0 || !data.results || data.results.length === 0) {
+            qEl.textContent = "NO QUESTIONS AVAILABLE";
+            return;
+        }
         const q = data.results[0];
-        
-        catEl.textContent = q.category.toUpperCase();
-        // Decode simple entities
-        const decode = str => { const txt = document.createElement('textarea'); txt.innerHTML = str; return txt.value; };
+
+        catEl.textContent = q.category.toUpperCase() + ' (' + q.difficulty.toUpperCase() + ')';
+        const decode = function(str) { var txt = document.createElement('textarea'); txt.innerHTML = str; return txt.value; };
         qEl.textContent = decode(q.question);
         triviaCorrectAnswer = q.correct_answer;
-        
-        const answers = [...q.incorrect_answers, q.correct_answer];
-        answers.sort(() => Math.random() - 0.5);
-        
-        answers.forEach(ans => {
+
+        const answers = [q.correct_answer].concat(q.incorrect_answers);
+        answers.sort(function() { return Math.random() - 0.5; });
+
+        answers.forEach(function(ans) {
             const btn = document.createElement('button');
             btn.textContent = decode(ans);
-            btn.style.cssText = "padding: 5px; font-size: 6px; text-align: left; width: 100%; margin-bottom: 2px;";
-            btn.onclick = () => checkTrivia(ans);
+            btn.style.cssText = 'padding:5px;font-size:6px;text-align:left;width:100%;margin-bottom:2px;';
+            btn.onclick = function() { checkTrivia(ans); };
             optEl.appendChild(btn);
         });
         sounds.coin();
@@ -1971,33 +2322,43 @@ window.getTrivia = async function() {
 };
 
 window.checkTrivia = function(ans) {
+    if(triviaAnswered) return;
+    triviaAnswered = true;
+
     const resEl = document.getElementById('triviaResult');
-    const decode = str => { const txt = document.createElement('textarea'); txt.innerHTML = str; return txt.value; };
+    const decode = function(str) { var txt = document.createElement('textarea'); txt.innerHTML = str; return txt.value; };
     const correctDecoded = decode(triviaCorrectAnswer);
 
     if(ans === triviaCorrectAnswer) {
-        resEl.textContent = "✅ CORRECT! +5 GEMS";
-        resEl.style.color = "#006400";
+        triviaStreak++;
+        const bonus = triviaStreak >= 3 ? 5 : 0;
+        const pts = 5 + bonus;
+        triviaTotalScore += pts;
+        resEl.textContent = 'CORRECT! +' + pts + ' GEMS' + (bonus ? ' (STREAK BONUS!)' : '');
+        resEl.style.color = '#006400';
         sounds.launch();
-        addGems(5);
+        addGems(pts);
     } else {
-        resEl.textContent = "❌ WRONG!";
-        resEl.style.color = "#8b0000";
+        triviaStreak = 0;
+        triviaLives--;
+        resEl.textContent = 'WRONG! (-1 LIFE)';
+        resEl.style.color = '#8b0000';
         sounds.click();
-    }
-
-    // Disable all buttons and highlight the correct answer green
-    const btns = document.querySelectorAll('#triviaOptions button');
-    btns.forEach(b => {
-        b.disabled = true;
-        if(b.textContent === correctDecoded) {
-            b.style.background = '#006400';
-            b.style.color = '#fff';
-            b.style.border = '2px solid #00aa00';
-        } else if(b.textContent !== decode(ans) && ans !== triviaCorrectAnswer) {
-            b.style.opacity = '0.5';
+        if(triviaLives <= 0) {
+            resEl.textContent = 'GAME OVER! FINAL SCORE: ' + triviaTotalScore;
         }
-    });
+    }
+    updateTriviaUI();
+
+    var btns = document.querySelectorAll('#triviaOptions button');
+    for(var i = 0; i < btns.length; i++) {
+        btns[i].disabled = true;
+        if(btns[i].textContent === correctDecoded) {
+            btns[i].style.background = '#006400';
+            btns[i].style.color = '#fff';
+            btns[i].style.border = '2px solid #00aa00';
+        }
+    }
 };
 
 // ========== ADVICE ==========
@@ -2092,45 +2453,57 @@ window.makeRobo = function() {
 };
 
 // ========== WEATHER ==========
-window.initWeather = function() {};
-window.getWeather = async function() {
-    const input = document.getElementById('weatherInput').value.split(',');
-    const lat = input[0] || '48.8566';
-    const lon = input[1] || '2.3522';
-    const display = document.getElementById('weatherDisplay');
-    
-    display.textContent = "SCANNING SKIES...";
-    sounds.click();
-    
-    try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-        const data = await res.json();
-        
-        display.textContent = `TEMP: ${data.current_weather.temperature}°C\nWIND: ${data.current_weather.windspeed} km/h\nCODE: ${data.current_weather.weathercode}`;
-        sounds.coin();
-    } catch(e) { display.textContent = "RADAR FAILURE"; }
-};
+window.initWeather = window.initWeather || function() {};
+window.getWeather = window.getWeather || async function() {};
 
-// ========== DICT ==========
+// ========== DICT (ENHANCED: PHONETICS + POS + EXAMPLES + WORD OF DAY) ==========
+const wordOfDayList = [
+    'ephemeral','loquacious','serendipity','mellifluous','petrichor',
+    'vellichor','sonder','psithurism','apricity','clinomania',
+    'eudaimonia','hiraeth','saudade','fugacious','redamancy',
+    'philophobia','astrophile','vellichor','syzygy','calliope'
+];
+
 window.initDict = function() {};
 window.getDefinition = async function() {
     const word = document.getElementById('dictInput').value.toLowerCase().trim();
     const display = document.getElementById('dictDisplay');
     if(!word) return;
     
-    display.textContent = "LOOKING UP...";
+    display.innerHTML = '<div style="text-align:center; opacity:0.5;">LOOKING UP...</div>';
     sounds.click();
     
     try {
         const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
         const data = await res.json();
-        
         if(!Array.isArray(data)) throw new Error();
         
-        const def = data[0].meanings[0].definitions[0].definition;
-        display.innerHTML = `<strong>${word.toUpperCase()}</strong>:<br>${def.toUpperCase()}`;
+        const entry = data[0];
+        const phonetic = entry.phonetic || entry.phonetics?.find(p => p.text)?.text || '';
+        
+        let html = `<div style="font-weight:bold; font-size:10px; margin-bottom:2px;">${entry.word.toUpperCase()}</div>`;
+        if(phonetic) html += `<div style="font-size:7px; opacity:0.7; margin-bottom:6px; font-style:italic;">${phonetic}</div>`;
+        
+        entry.meanings.forEach(meaning => {
+            html += `<div style="font-weight:bold; font-size:7px; color:#555; margin-top:6px; border-bottom:1px solid rgba(0,0,0,0.1); padding-bottom:2px;">${meaning.partOfSpeech.toUpperCase()}</div>`;
+            meaning.definitions.slice(0, 3).forEach((def, i) => {
+                html += `<div style="margin-bottom:4px;"><span style="font-weight:bold;">${i+1}.</span> ${def.definition}`;
+                if(def.example) html += `<div style="font-size:6px; opacity:0.6; margin-left:10px; margin-top:2px; font-style:italic;">"${def.example}"</div>`;
+                html += '</div>';
+            });
+        });
+        
+        display.innerHTML = html;
         sounds.coin();
-    } catch(e) { display.textContent = "UNKNOWN WORD"; }
+    } catch(e) { 
+        display.innerHTML = `<div style="text-align:center; opacity:0.5; margin-top:20px;">WORD "${word.toUpperCase()}" NOT FOUND</div>`; 
+    }
+};
+
+window.getWordOfDay = function() {
+    const word = wordOfDayList[Math.floor(Math.random() * wordOfDayList.length)];
+    document.getElementById('dictInput').value = word;
+    getDefinition();
 };
 
 // ========== QUOTE ==========
@@ -2531,99 +2904,8 @@ window.trackQuest = function(type, amount = 1) {
     }
 };
 
-// ========== STOPWATCH ==========
-let swTime = 0;
-let swInterval = null;
-let swRunning = false;
-window.initStopwatch = function() {
-    updateStopwatchDisplay();
-};
-window.toggleStopwatch = function() {
-    const btn = document.getElementById('swBtn');
-    if(swRunning) {
-        clearInterval(swInterval);
-        swRunning = false;
-        btn.textContent = "START";
-    } else {
-        const start = Date.now() - swTime;
-        swInterval = setInterval(() => {
-            swTime = Date.now() - start;
-            updateStopwatchDisplay();
-        }, 30);
-        swRunning = true;
-        btn.textContent = "STOP";
-    }
-    sounds.click();
-};
-window.resetStopwatch = function() {
-    clearInterval(swInterval);
-    swRunning = false;
-    swTime = 0;
-    updateStopwatchDisplay();
-    document.getElementById('swBtn').textContent = "START";
-    sounds.back();
-};
-function updateStopwatchDisplay() {
-    const el = document.getElementById('swDisplay');
-    if(!el) return;
-    const ms = Math.floor((swTime % 1000) / 10);
-    const s = Math.floor((swTime / 1000) % 60);
-    const m = Math.floor((swTime / 60000) % 60);
-    el.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${ms.toString().padStart(2,'0')}`;
-}
-
-// ========== TIMER ==========
-let tmTime = 0;
-let tmInterval = null;
-window.initTimer = function() {
-    updateTimerDisplay();
-};
-window.setTimer = function(m) {
-    if(tmInterval) return;
-    tmTime += m * 60;
-    updateTimerDisplay();
-    sounds.click();
-};
-window.startTimer = function() {
-    if(tmInterval) {
-        clearInterval(tmInterval);
-        tmInterval = null;
-        document.getElementById('tmBtn').textContent = "RESUME";
-        return;
-    }
-    if(tmTime <= 0) return;
-    
-    document.getElementById('tmBtn').textContent = "PAUSE";
-    tmInterval = setInterval(() => {
-        tmTime--;
-        updateTimerDisplay();
-        if(tmTime <= 0) {
-            clearInterval(tmInterval);
-            tmInterval = null;
-            document.getElementById('tmBtn').textContent = "START";
-            sounds.launch();
-            alert("TIME UP!");
-        }
-    }, 1000);
-    sounds.coin();  //SOUNDS
-};
-
-
-window.resetTimer = function() {
-    clearInterval(tmInterval);
-    tmInterval = null;
-    tmTime = 0;
-    updateTimerDisplay();
-    document.getElementById('tmBtn').textContent = "START";
-    sounds.back();
-};
-function updateTimerDisplay() {
-    const el = document.getElementById('tmDisplay');
-    if(!el) return;
-    const m = Math.floor(tmTime / 60);
-    const s = tmTime % 60;
-    el.textContent = `${pad(m)}:${pad(s)}`;
-}
+// ========== STOPWATCH + TIMER ==========
+// Merged into batch7.js — see merged timer+stopwatch screen
 
 // ========== COUNTER ==========
 let countVal = 0;
@@ -2642,13 +2924,87 @@ function updateCounterDisplay() {
 
 // ========== PIXEL ART ==========
 let pixelColor = '#000';
+let pixelSize = 8;
+let pixelUndoStack = [];
+const PIXEL_MAX_UNDO = 10;
 
 window.setPixelColor = function(c) {
     pixelColor = c;
-    sounds.click();
+    const el = document.getElementById('pixelCustomColor');
+    if(el) el.value = c;
+    if(window.sounds) sounds.click();
 };
 
-// ========== CAT FACTS ==========
+window.setPixelZoom = function(size) {
+    pixelSize = size;
+    pixelUndoStack = [];
+    document.querySelectorAll('[id^="pz"]').forEach(b => {
+        b.style.background = b.id === 'pz' + size ? 'var(--gb-text)' : 'transparent';
+        b.style.color = b.id === 'pz' + size ? 'var(--gb-bg)' : 'var(--gb-text)';
+    });
+    initPixel();
+};
+
+window.pixelUndo = function() {
+    if(pixelUndoStack.length === 0) return;
+    const grid = document.getElementById('pixelGrid');
+    if(!grid) return;
+    const colors = pixelUndoStack.pop();
+    const cells = grid.children;
+    for(let i = 0; i < cells.length && i < colors.length; i++) {
+        cells[i].style.background = colors[i];
+    }
+    if(window.sounds) sounds.click();
+};
+
+function savePixelState() {
+    const grid = document.getElementById('pixelGrid');
+    if(!grid) return;
+    const colors = Array.from(grid.children).map(c => c.style.background || '#fff');
+    pixelUndoStack.push(colors);
+    if(pixelUndoStack.length > PIXEL_MAX_UNDO) pixelUndoStack.shift();
+}
+
+window.initPixel = function() {
+    const grid = document.getElementById('pixelGrid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    grid.style.display = 'grid';
+    grid.style.gridTemplateColumns = `repeat(${pixelSize}, 1fr)`;
+    const cellSize = Math.floor(220 / pixelSize);
+    grid.style.width = (cellSize * pixelSize) + 'px';
+    grid.style.height = (cellSize * pixelSize) + 'px';
+    pixelUndoStack = [];
+
+    const totalCells = pixelSize * pixelSize;
+    for(let i = 0; i < totalCells; i++) {
+        const d = document.createElement('div');
+        d.style.cssText = `background: #fff; cursor: pointer; aspect-ratio: 1; border: 0.5px solid #ccc;`;
+        d.onclick = function() {
+            savePixelState();
+            this.style.background = pixelColor;
+            if(window.sounds) sounds.click();
+        };
+        d.onmouseenter = function(e) {
+            const coordEl = document.getElementById('pixelCoord');
+            if(coordEl) {
+                const col = i % pixelSize;
+                const row = Math.floor(i / pixelSize);
+                coordEl.textContent = `X: ${col} Y: ${row}`;
+            }
+        };
+        grid.appendChild(d);
+    }
+};
+
+window.clearPixel = function() {
+    const grid = document.getElementById('pixelGrid');
+    if(grid) {
+        savePixelState();
+        Array.from(grid.children).forEach(c => c.style.background = '#fff');
+    }
+    if(window.sounds) sounds.back();
+};
 window.initCatfact = function() {};
 window.getCatFact = async function() {
     const txt = document.getElementById('catfactText');
@@ -3480,6 +3836,19 @@ window.initChat = function() {
     const idEl = document.getElementById('chatMyId');
     if(idEl) idEl.textContent = `MY FREQ: ${myFreq}`;
     
+    // Load saved room name
+    const savedRoom = localStorage.getItem('gb_chatRoom') || '';
+    const roomInput = document.getElementById('chatRoom');
+    if(roomInput && savedRoom) roomInput.value = savedRoom;
+    if(roomInput) {
+        roomInput.oninput = () => {
+            localStorage.setItem('gb_chatRoom', roomInput.value);
+        };
+    }
+    
+    // Update status dot
+    updateChatStatus('offline');
+    
     // If peer already exists, don't re-init
     if(window.gbPeer) return;
     
@@ -3490,14 +3859,15 @@ window.initChat = function() {
     window.gbPeer = new Peer(myFreq, {
         config: {
             'iceServers': [
-                { url: 'stun:stun.l.google.com:19302' },
-                { url: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
             ]
         }
     }); 
     
     window.gbPeer.on('open', (id) => {
         document.getElementById('chatStatusLabel').textContent = "ONLINE";
+        updateChatStatus('online');
         updateSignalBars(3);
         console.log("Link Tower Open:", id);
     });
@@ -3508,11 +3878,35 @@ window.initChat = function() {
     
     window.gbPeer.on('error', (err) => {
         updateSignalBars(0);
+        updateChatStatus('error');
         document.getElementById('chatStatusLabel').textContent = "LINK ERR";
         console.error("PeerJS Error:", err);
-        // If ID is taken, we might need to change it, but for simplicity we keep it
     });
 };
+
+function updateChatStatus(state) {
+    const dot = document.getElementById('chatStatusDot');
+    if(!dot) return;
+    const room = document.getElementById('chatRoom');
+    const roomName = (room && room.value.trim()) || 'PUBLIC';
+    switch(state) {
+        case 'online':
+            dot.textContent = `● ONLINE — ${roomName.toUpperCase()}`;
+            dot.style.color = '#0f0';
+            break;
+        case 'connected':
+            dot.textContent = `● CONNECTED — ${roomName.toUpperCase()}`;
+            dot.style.color = '#0ff';
+            break;
+        case 'error':
+            dot.textContent = '● LINK ERROR';
+            dot.style.color = '#f00';
+            break;
+        default:
+            dot.textContent = `● OFFLINE — ${roomName.toUpperCase()}`;
+            dot.style.color = '#555';
+    }
+}
 
 function updateSignalBars(count) {
     const bars = document.getElementById('chatSignal')?.children;
@@ -3675,6 +4069,7 @@ function setupChatConnection(targetConn) {
     targetConn.on('open', () => {
         showChatStartAnim();
         updateSignalBars(4);
+        updateChatStatus('connected');
         document.getElementById('chatConnect').style.display = 'none';
         document.getElementById('chatMain').style.display = 'flex';
         appendChat('SYSTEM', 'ENCRYPTED LINK ESTABLISHED.');
@@ -3704,6 +4099,7 @@ function setupChatConnection(targetConn) {
         window.gbConns = window.gbConns.filter(c => c.peer !== targetConn.peer);
         if(window.gbConns.length === 0) {
             updateSignalBars(3);
+            updateChatStatus('online');
             document.getElementById('chatStatusLabel').textContent = "ONLINE";
             appendChat('SYSTEM', 'ALL PEERS DISCONNECTED.');
         } else {
@@ -3731,10 +4127,15 @@ window.sendChatMessage = function() {
     const input = document.getElementById('chatInput');
     const msg = input.value.trim();
     const myNick = document.getElementById('chatNick').value || 'ME';
+    const roomEl = document.getElementById('chatRoom');
+    const roomName = (roomEl && roomEl.value.trim()) || '';
     if(!msg || window.gbConns.length === 0) return;
     
+    const payload = { type: 'msg', content: msg, nick: myNick };
+    if(roomName) payload.room = roomName;
+    
     window.gbConns.forEach(c => {
-        if(c.open) c.send({ type: 'msg', content: msg, nick: myNick });
+        if(c.open) c.send(payload);
     });
     appendChat('ME', msg);
     input.value = '';
@@ -3763,10 +4164,12 @@ function handleChatBuzz() {
 function appendChat(who, text) {
     const log = document.getElementById('chatLog');
     if(!log) return;
+    const now = new Date();
+    const ts = pad(now.getHours()) + ':' + pad(now.getMinutes());
     const msg = document.createElement('div');
     msg.style.cssText = "padding: 6px 10px; border-radius: 6px; background: rgba(0,255,0,0.1); border-left: 3px solid #0f0; margin-bottom: 2px;";
     const color = who === 'ME' ? '#cfc' : (who === 'SYSTEM' ? '#ffa' : '#0f0');
-    msg.innerHTML = `<span style="color:${color}; font-size: 8px; font-weight:bold;">${who}:</span><br>${text.toUpperCase()}`;
+    msg.innerHTML = `<span style="color:${color}; font-size: 8px; font-weight:bold;">${who}</span><span style="color:#555; font-size: 6px; margin-left: 4px;">${ts}</span><br><span style="font-size: 10px;">${text.toUpperCase()}</span>`;
     log.appendChild(msg);
     log.scrollTop = log.scrollHeight;
 }
@@ -3794,6 +4197,7 @@ window.cancelChatLink = function() {
     if(manualZone) manualZone.style.display = 'none';
     if(main) main.style.display = 'none';
     if(log) log.innerHTML = '<div style="opacity: 0.5;">> LINK READY.</div>';
+    updateChatStatus('online');
     sounds.back();
 };
 
@@ -4008,42 +4412,106 @@ window.playDrum = function(type) {
 // ========== GB WIKI (Encyclopedia) ==========
 window.searchWiki = async function() {
     const query = document.getElementById('wikiSearch').value;
+    if(!query) return;
+    await fetchWikiArticle(query);
+};
+
+window.randomWiki = async function() {
     const status = document.getElementById('wikiStatus');
     const result = document.getElementById('wikiResult');
-    const title = document.getElementById('wikiTitle');
-    const summary = document.getElementById('wikiSummary');
-    
-    if(!query) return;
-    
     status.style.display = 'block';
-    status.textContent = 'FETCHING KNOWLEDGE...';
+    status.textContent = 'FETCHING RANDOM ARTICLE...';
     result.style.display = 'none';
-    sounds.launch();
+    if(window.sounds) sounds.launch();
 
     try {
-        // Fetch article summary from Wikipedia API
-        const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.replace(/ /g, '_'))}`);
-        
-        if(!response.ok) {
-            if(response.status === 404) throw new Error("TOPIC NOT FOUND");
-            else throw new Error("CONNECTION ERROR");
-        }
-
-        const data = await response.json();
-        
-        status.style.display = 'none';
-        result.style.display = 'block';
-        title.textContent = data.title.toUpperCase();
-        summary.textContent = data.extract;
-        
-        sounds.coin();
-    } catch (err) {
-        status.textContent = `!! ${err.message.toUpperCase()} !!`;
-        sounds.back();
+        const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary');
+        if(!res.ok) throw new Error('CONNECTION ERROR');
+        const data = await res.json();
+        document.getElementById('wikiSearch').value = data.title;
+        displayWikiResult(data);
+    } catch(err) {
+        status.textContent = '!! ' + err.message.toUpperCase() + ' !!';
+        if(window.sounds) sounds.back();
     }
 };
 
-// Add enter listener to wiki search input
+async function fetchWikiArticle(query) {
+    const status = document.getElementById('wikiStatus');
+    const result = document.getElementById('wikiResult');
+    status.style.display = 'block';
+    status.textContent = 'FETCHING KNOWLEDGE...';
+    result.style.display = 'none';
+    if(window.sounds) sounds.launch();
+
+    try {
+        const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.replace(/ /g, '_'))}`);
+        if(!response.ok) {
+            if(response.status === 404) throw new Error('TOPIC NOT FOUND');
+            else throw new Error('CONNECTION ERROR');
+        }
+        const data = await response.json();
+        displayWikiResult(data);
+    } catch(err) {
+        status.textContent = '!! ' + err.message.toUpperCase() + ' !!';
+        if(window.sounds) sounds.back();
+    }
+}
+
+function displayWikiResult(data) {
+    const status = document.getElementById('wikiStatus');
+    const result = document.getElementById('wikiResult');
+    const thumbWrap = document.getElementById('wikiThumb');
+    const thumbImg = document.getElementById('wikiThumbImg');
+
+    status.style.display = 'none';
+    result.style.display = 'block';
+
+    document.getElementById('wikiTitle').textContent = data.title.toUpperCase();
+    document.getElementById('wikiSummary').textContent = data.extract;
+
+    if(data.thumbnail && data.thumbnail.source) {
+        thumbImg.src = data.thumbnail.source;
+        thumbWrap.style.display = 'block';
+    } else {
+        thumbWrap.style.display = 'none';
+    }
+
+    const sectionsEl = document.getElementById('wikiSections');
+    sectionsEl.innerHTML = '';
+
+    if(data.sections) {
+        data.sections.slice(0, 5).forEach(sec => {
+            const div = document.createElement('div');
+            div.style.cssText = 'margin-top: 6px; border: 1px solid rgba(15,56,15,0.3); border-radius: 3px;';
+            div.innerHTML = `
+                <div onclick="toggleWikiSection(this)" style="font-size: 8px; font-weight: bold; padding: 4px; cursor: pointer; background: rgba(15,56,15,0.08);">
+                    ${sec.line.toUpperCase()} <span style="font-size: 6px; opacity: 0.6;">▼</span>
+                </div>
+                <div class="wiki-section-body" style="display: none; padding: 4px; font-size: 7px;">
+                    ${sec.snippet || 'No content available.'}
+                </div>
+            `;
+            sectionsEl.appendChild(div);
+        });
+    }
+
+    if(window.sounds) sounds.coin();
+}
+
+window.toggleWikiSection = function(headerEl) {
+    const body = headerEl.nextElementSibling;
+    if(!body) return;
+    const arrow = headerEl.querySelector('span');
+    if(body.style.display === 'none') {
+        body.style.display = 'block';
+        if(arrow) arrow.textContent = '▲';
+    } else {
+        body.style.display = 'none';
+        if(arrow) arrow.textContent = '▼';
+    }
+};
+
 document.getElementById('wikiSearch')?.addEventListener('keydown', (e) => {
     if(e.key === 'Enter') searchWiki();
 });

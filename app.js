@@ -18,7 +18,6 @@ const apps = [
     { id: 'notes', name: 'NOTES', icon: '📒' },
     { id: 'calc', name: 'CALC', icon: '🔢' },
     { id: 'timer', name: 'TIMER', icon: '⏲️' },
-    { id: 'stopwatch', name: 'CHRONO', icon: '⏱️' },
     { id: 'pomo', name: 'POMO', icon: '🍅' },
     { id: 'habit', name: 'HABIT', icon: '✅' },
     { id: 'workout', name: 'WORKOUT', icon: '💪' },
@@ -295,9 +294,10 @@ function goBack() {
         if (typeof vinylInterval !== 'undefined') { clearInterval(vinylInterval); vinylRotation = 0; }
         if (typeof radioPlayer !== 'undefined' && radioPlayer.pause) { radioPlayer.pause(); isRadioPlaying = false; }
         if (document.getElementById('musicAudio')) { const ma = document.getElementById('musicAudio'); ma.pause(); ma.src = ""; }
-        if (typeof timerInt !== 'undefined') clearInterval(timerInt);
-        if (typeof stopInt !== 'undefined') clearInterval(stopInt);
+        if (typeof _tmInterval !== 'undefined' && _tmInterval) { clearInterval(_tmInterval); _tmInterval = null; }
+        if (typeof _swInterval !== 'undefined' && _swInterval) { intervalManager.clear(_swInterval); _swInterval = null; }
         if (typeof stopCamera === 'function') stopCamera();
+        if (typeof qrStopScan === 'function') qrStopScan();
         // Stop speed reader if running
         if (typeof _speedInterval !== 'undefined' && _speedInterval) { clearInterval(_speedInterval); _speedInterval = null; }
         
@@ -368,7 +368,7 @@ if(abBtns.length >= 2) {
         }
         
         // Define apps that use B for gameplay instead of Back
-        const gameModeApps = ['adventure', 'troll', 'racer', 'duel', 'brawl', 'void'];
+        const gameModeApps = ['adventure', 'troll', 'racer', 'duel', 'brawl', 'void', 'chess', 'sync'];
         
         if (gameModeApps.includes(currentScreen)) {
             document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));

@@ -191,17 +191,29 @@ window.startDuel = function() {
 
     const handleInput = (e) => {
         if(currentScreen !== 'duel') return;
+        if(e.target.tagName === 'INPUT') return;
+        // D-pad: aim (left/right) and move forward (up)
         if(e.key === 'ArrowLeft') ship.rot -= 15;
         if(e.key === 'ArrowRight') ship.rot += 15;
         if(e.key === 'ArrowUp') {
             ship.x += Math.cos(ship.rot * Math.PI/180) * 5;
             ship.y += Math.sin(ship.rot * Math.PI/180) * 5;
         }
-        if(e.target.tagName !== 'INPUT' && (e.key === 'z' || e.key === 'x' || e.key === ' ' || e.key === 'Enter')) {
+        // A button = fire
+        if(e.key === 'z' || e.key === 'a' || e.key === ' ' || e.key === 'Enter') {
             spawnBullet(ship.x, ship.y, ship.rot, true);
             if(!P2PGameEngine.isSolo) {
                 P2PGameEngine.send({ x: ship.x, y: ship.y, rot: ship.rot, hp: ship.hp, fire: true });
             }
+        }
+        // B button = dodge (quick teleport forward)
+        if(e.key === 'x' || e.key === 'b') {
+            ship.x += Math.cos(ship.rot * Math.PI/180) * 30;
+            ship.y += Math.sin(ship.rot * Math.PI/180) * 30;
+            // Clamp to canvas
+            ship.x = Math.max(10, Math.min(310, ship.x));
+            ship.y = Math.max(10, Math.min(278, ship.y));
+            if(window.sounds && window.sounds.click) window.sounds.click();
         }
     };
 
