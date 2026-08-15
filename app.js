@@ -21,7 +21,6 @@ const apps = [
     { id: 'stopwatch', name: 'CHRONO', icon: '⏱️' },
     { id: 'pomo', name: 'POMO', icon: '🍅' },
     { id: 'habit', name: 'HABIT', icon: '✅' },
-    { id: 'speed', name: 'SPEED', icon: '⏩' },
     { id: 'workout', name: 'WORKOUT', icon: '💪' },
     { id: 'study', name: 'STUDY', icon: '🎓' },
     { id: 'budget', name: 'BUDGET', icon: '💰' },
