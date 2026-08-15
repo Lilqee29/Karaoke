@@ -1508,6 +1508,13 @@ Type 'help' for commands.
                                 </div>
 
                                 <div id="chatManualZone" style="display: none; width: 100%; text-align: center;">
+                                    <div style="font-size: 10px; margin-bottom: 10px; opacity: 0.7;">ENTER PEER FREQUENCY</div>
+                                    <input id="chatTargetId" placeholder="FREQ CODE..." style="width: 80%; background: #000; color: #0f0; border: 2px solid #0f0; padding: 10px; text-align: center; font-family: 'VT323'; font-size: 14px; margin-bottom: 10px; text-transform: uppercase;">
+                                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                                        <button onclick="chatManualConnect()" style="width: 100%; padding: 15px; background: #0f0; color: #000; font-weight: bold; font-family: 'VT323'; border: none;">CONNECT</button>
+                                        <button onclick="chatJoin()" style="width: 100%; padding: 15px; background: transparent; color: #0f0; border: 2px solid #0f0; font-family: 'VT323';">📷 SCAN QR CODE</button>
+                                        <button onclick="document.getElementById('chatManualZone').style.display='none'; document.getElementById('chatLanding').style.display='flex';" style="width: 100%; padding: 10px; color: #f00; background: none; border: none; font-family: 'VT323';">[ BACK ]</button>
+                                    </div>
                                 </div>
 
                                 <div id="chatQrZone" style="display: none; text-align: center;">
