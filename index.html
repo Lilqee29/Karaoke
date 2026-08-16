@@ -1291,6 +1291,14 @@
                             </div>
 
                             <div id="chatMain" style="display: none; flex: 1; flex-direction: column;">
+                                <!-- GAME LOBBY BAR -->
+                                <div id="chatGameLobby" style="display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid #0f03; overflow-x: auto; flex-shrink: 0;">
+                                    <div style="font-size: 6px; color: #0f0; opacity: 0.5; align-self: center; white-space: nowrap;">🎮 PLAY:</div>
+                                    <button onclick="launchP2PGame('chess')" style="font-size: 5px; padding: 3px 6px; background: transparent; color: #0f0; border: 1px solid #0f04; white-space: nowrap;">♟ CHESS</button>
+                                    <button onclick="launchP2PGame('void')" style="font-size: 5px; padding: 3px 6px; background: transparent; color: #0f0; border: 1px solid #0f04; white-space: nowrap;">🔍 MYSTERY</button>
+                                    <button onclick="launchP2PGame('duel')" style="font-size: 5px; padding: 3px 6px; background: transparent; color: #0f0; border: 1px solid #0f04; white-space: nowrap;">🚀 DUEL</button>
+                                    <button onclick="launchP2PGame('troll')" style="font-size: 5px; padding: 3px 6px; background: transparent; color: #0f0; border: 1px solid #0f04; white-space: nowrap;">👺 TROLL</button>
+                                </div>
                                 <div id="chatLog" style="flex: 1; background: rgba(0,20,0,0.9); border: 2px solid #0f0; border-radius: 8px; padding: 10px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
                                 <div id="chatEmojiBar" style="display: flex; gap: 10px; justify-content: center; padding: 8px 0; border-bottom: 1px dashed rgba(0,255,0,0.3);">
                                     <span onclick="addChatEmoji('🚀')" style="cursor:pointer">🚀</span>

@@ -4244,7 +4244,34 @@ window.initChat = function() {
             localStorage.setItem('gb_chatRoom', roomInput.value);
         };
     }
-    
+};
+
+// Handle incoming game invites
+window.onP2PGameData = window.onP2PGameData || function(payload) {
+    if(payload && payload.type === 'game-invite') {
+        launchApp(payload.game);
+    }
+};
+
+// ── Launch P2P game from chat lobby ─────────────────────────────────────
+window.launchP2PGame = function(gameId) {
+    const connected = (window.gbConn && window.gbConn.open) || (window.gbConns && window.gbConns.some(c => c.open));
+    if(!connected) {
+        alert('CONNECT TO A PEER FIRST!\n\nUse BROADCAST or TUNE to link devices.');
+        return;
+    }
+    const payload = { type: 'game-invite', game: gameId };
+    if(window.gbConns && window.gbConns.length > 0) {
+        window.gbConns.forEach(c => { if(c.open) c.send({ type: 'p2p-game', payload }); });
+    } else if(window.gbConn && window.gbConn.open) {
+        window.gbConn.send({ type: 'p2p-game', payload });
+    }
+    launchApp(gameId);
+};
+
+// ── Chat Host Function ──────────────────────────────────────────────────
+window.chatHost = function() {
+    const myFreq = localStorage.getItem('gb_freq');
     // Update status dot
     updateChatStatus('offline');
     

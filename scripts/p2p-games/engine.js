@@ -7,6 +7,12 @@ window.P2PGameEngine = {
     
     init: function() {
         window.onP2PGameData = (payload) => {
+            // Handle game invites from chat lobby
+            if(payload && payload.type === 'game-invite') {
+                launchApp(payload.game);
+                return;
+            }
+            // Forward to active game sync
             if(this.activeGame && this.activeGame.onSync) {
                 this.activeGame.onSync(payload);
             }
