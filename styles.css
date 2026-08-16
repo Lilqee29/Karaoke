@@ -897,8 +897,9 @@ select:focus {
   /* ═══════════════════════════════════════════
      LANDSCAPE — Horizontal PSP-Style Layout
      D-Pad on left | Screen in center | A+B on right
+     Only on touch devices (phones/tablets) so desktop stays vertical
   ═══════════════════════════════════════════ */
-  @media (orientation: landscape) {
+  @media (orientation: landscape) and (pointer: coarse) {
     .gameboy {
       flex-direction: row;
       padding: 12px 10px 10px;
