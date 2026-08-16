@@ -13,74 +13,12 @@ const CURRENCIES = [
 ];
 
 window.initCurrency = function() {
-    populateCurrencyDropdowns();
-    document.getElementById('amountInput').value = '1';
-    convertCurrency();
+    const amountEl = document.getElementById('currencyAmount');
+    if(amountEl) amountEl.value = '1';
+    if(typeof updateCurrency === 'function') updateCurrency();
 };
 
-function populateCurrencyDropdowns() {
-    const fromSlot = document.getElementById('fromSlot');
-    const toSlot = document.getElementById('toSlot');
-    if (!fromSlot || !toSlot) return;
-
-    if(fromSlot) fromSlot.textContent = '';
-    if(toSlot) toSlot.textContent = '';
-
-    CURRENCIES.forEach(currency => {
-        const fromOpt = document.createElement('div');
-        fromOpt.className = 'currency-slot' + (currency.code === 'USD' ? ' flag' : '');
-        fromOpt.textContent = currency.flag + ' ' + currency.code;
-        fromOpt.onclick = () => { if(fromSlot) fromSlot.textContent = currency.flag + ' ' + currency.code; convertCurrency(); };
-        fromSlot.appendChild(fromOpt);
-
-        const toOpt = document.createElement('div');
-        toOpt.className = 'currency-slot';
-        toOpt.textContent = currency.flag + ' ' + currency.code;
-        toOpt.onclick = () => { if(toSlot) toSlot.textContent = currency.flag + ' ' + currency.code; convertCurrency(); };
-        toSlot.appendChild(toOpt);
-    });
-
-    // Set defaults
-    if(fromSlot) fromSlot.textContent = 'USD🇺🇸';
-    if(toSlot) toSlot.textContent = 'EUR🇪🇬';
-}
-
-function convertCurrency() {
-    const amount = parseFloat(document.getElementById('amountInput').value) || 1;
-    const fromCode = document.getElementById('fromSlot').textContent.split(' ')[1];
-    const toCode = document.getElementById('toSlot').textContent.split(' ')[1];
-
-    fetch('https://open.er-api.com/v6/latest/USD')
-        .then(res => res.json())
-        .then(data => {
-            if (data.result !== 'success') throw new Error('API error');
-            const rates = data.rates;
-
-            const fromRate = rates[fromCode] || 1;
-            const toRate = rates[toCode] || 1;
-
-            const converted = (amount / fromRate) * toRate;
-            _el = document.getElementById('result'); if(_el) if(_el) _el.textContent = converted.toFixed(2);
-
-            // Highlight the result
-            const resultEl = document.getElementById('result');
-            resultEl.style.color = '#0f380f';
-            setTimeout(() => resultEl.style.color = '', 1500);
-        })
-        .catch(err => {
-            _el = document.getElementById('result'); if(_el) if(_el) _el.textContent = 'ERROR';
-            console.error(err);
-        });
-}
-
-window.swapCurrency = function() {
-    const fromSlot = document.getElementById('fromSlot');
-    const toSlot = document.getElementById('toSlot');
-    const temp = fromSlot.textContent;
-    if(fromSlot) fromSlot.textContent = toSlot.textContent;
-    if(toSlot) toSlot.textContent = temp;
-    convertCurrency();
-};
+// Currency converter functions are in newapps.js (updateCurrency, swapCurrencies, updateCurrencyDisplay)
 
 // ========== IP SCANNER ==========
 window.initIp = function() {
@@ -99,19 +37,7 @@ window.getIpInfo = function() {
         });
 };
 
-window.runSpeedTest = function() {
-    const startTime = performance.now();
-    const speedImg = new Image();
-    speedImg.onload = function() {
-        const endTime = performance.now();
-        const durationSec = (endTime - startTime) / 1000000;
-        const bytes = 10000000;
-        const mbps = (bytes * 8) / (durationSec * 1000000);
-        _el = document.getElementById('speedMbps'); if(_el) if(_el) _el.textContent = mbps.toFixed(2);
-        document.getElementById('speedResult').style.display = 'block';
-    };
-    speedImg.src = 'https://speed.cloudflare.com/__down?bytes=10000000';
-};
+// Speed test is defined in newapps.js (correct async fetch version)
 
 // ========== WATER TRACKER ==========
 let waterData = { count: 0, goal: 8, lastDate: '' };

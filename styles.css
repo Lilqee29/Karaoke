@@ -1122,7 +1122,7 @@ select:focus {
 
 :root {
   --mobile-shell-pad: clamp(10px, 2.6vw, 18px);
-  --mobile-control-h: clamp(190px, 36dvh, 300px);
+  --mobile-control-h: clamp(160px, 30dvh, 260px);
 }
 
 @media (min-width: 769px) {
@@ -1170,9 +1170,9 @@ select:focus {
   .screen-bezel {
     flex: 1 1 auto;
     min-height: 0;
-    max-height: calc(100dvh - var(--mobile-control-h) - 54px);
-    margin: 0 0 clamp(10px, 2.4dvh, 18px);
-    padding: clamp(8px, 2.4vw, 13px);
+    max-height: calc(100dvh - var(--mobile-control-h) - 30px);
+    margin: 0 0 clamp(6px, 1.5dvh, 12px);
+    padding: clamp(6px, 2vw, 10px);
     border-radius: 10px;
     background: #2a2a2a;
   }
@@ -1344,6 +1344,12 @@ select:focus {
 
   .app-name {
     font-size: 6px;
+  }
+
+  /* ── Paint palette touch scroll ──────────────────────────────── */
+  #paintPalette {
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* ── Canvas elements fit screen ─────────────────────────────── */

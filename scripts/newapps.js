@@ -811,25 +811,7 @@ window.initBreathe = function() {
 let mapX = 0, mapY = 0;
 let mapMarkers = [];
 
-function initMap() { 
-    mapX = 0; mapY = 0; 
-    const map = document.getElementById('mapContent');
-    if(!map) return;
-    
-    map.style.transform = `translate(0,0)`; 
-    
-    // Add Click Listener if not present
-    if (!map.onclick) {
-        map.onclick = function(e) {
-            const rect = map.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            addMapMarker(x, y);
-        };
-    }
-    
-    renderMapMarkers();
-}
+// Old SVG map removed — Leaflet-based initMap is at line 1641
 
 function mapMove(dir) { 
     const map = document.getElementById('mapContent'); 
@@ -1184,39 +1166,25 @@ function buildPeriodicTable() {
 
 window.showElemDetail = function(el) {
     const detail = document.getElementById('elemDetail');
-    const card = document.getElementById('elemDetailCard');
-    if(!detail || !card) return;
+    if(!detail) return;
     
     const color = categoryColors[el.category] || '#bdc3c7';
-    card.innerHTML = `
-        <div style="text-align:center; margin-bottom:8px;">
-            <div style="display:inline-block; background:${color}; color:#fff; padding:8px 16px; border-radius:4px; font-size:30px; font-weight:bold; margin-bottom:6px;">${el.symbol}</div>
-            <div style="font-size:12px; font-weight:bold;">${el.name}</div>
-            <div style="font-size:7px; opacity:0.7;">#${el.number}</div>
-        </div>
-        <div style="font-size:7px; line-height:1.6;">
-            <div style="padding:4px; background:rgba(0,0,0,0.05); border-radius:3px; margin-bottom:4px;">
-                <b>CATEGORY:</b> ${el.category.toUpperCase()}<br>
-                <b>MASS:</b> ${el.atomic_mass} u<br>
-                <b>PHASE:</b> ${el.phase || 'N/A'}<br>
-                <b>ELECTRON CONFIG:</b> ${el.electron_configuration || 'N/A'}
-            </div>
-            <div style="padding:4px; background:rgba(0,0,0,0.05); border-radius:3px; margin-bottom:4px;">
-                <b>SHELLS:</b> ${el.shells ? el.shells.join(', ') : 'N/A'}<br>
-                <b>DENSITY:</b> ${el.density ? el.density + ' g/cm³' : 'N/A'}<br>
-                <b>MELT:</b> ${el.melt ? el.melt + ' K' : 'N/A'}<br>
-                <b>BOIL:</b> ${el.boil ? el.boil + ' K' : 'N/A'}
-            </div>
-            <div style="padding:4px; background:rgba(0,0,0,0.05); border-radius:3px; margin-bottom:4px;">
-                <b>ELECTRONEGATIVITY:</b> ${el.electronegativity_pauling || 'N/A'}<br>
-                <b>DISCOVERED BY:</b> ${el.discovered_by || 'N/A'}
-            </div>
-            <div style="padding:4px; background:rgba(0,0,0,0.05); border-radius:3px;">
-                <b>SUMMARY:</b><br>
-                <span style="font-size:6px; opacity:0.8;">${(el.summary || '').substring(0, 300)}...</span>
-            </div>
-        </div>
-    `;
+    
+    // Fill the individual HTML elements
+    const header = document.getElementById('elemDetailHeader');
+    const number = document.getElementById('elemNumber');
+    const mass = document.getElementById('elemMass');
+    const symbol = document.getElementById('elemSymbol');
+    const config = document.getElementById('elemConfig');
+    const category = document.getElementById('elemCategory');
+    
+    if(header) header.innerHTML = `<div style="text-align:center;"><div style="display:inline-block; background:${color}; color:#fff; padding:8px 16px; border-radius:4px; font-size:30px; font-weight:bold; margin-bottom:6px;">${el.symbol}</div><div style="font-size:12px; font-weight:bold;">${el.name}</div></div>`;
+    if(number) number.textContent = el.number;
+    if(mass) mass.textContent = el.atomic_mass;
+    if(symbol) symbol.textContent = el.symbol;
+    if(config) config.textContent = el.electron_configuration || 'N/A';
+    if(category) category.textContent = el.category ? el.category.toUpperCase() : 'N/A';
+    
     detail.style.display = 'block';
 };
 

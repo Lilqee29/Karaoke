@@ -450,16 +450,19 @@ window.initDaily = function() {
 };
 
 // ── VIBES HUB (Quotes, Jokes, Facts, Riddles with Copy) ───────────────────
+let currentVibeType = 'quote';
 window.initVibes = function(type = 'quote') {
+    currentVibeType = type;
     window.fetchVibes(type);
 };
 
 window.fetchVibes = async function(type) {
+    currentVibeType = type || currentVibeType;
     const display = document.getElementById('vibesText');
     const typeLabel = document.getElementById('vibesTypeLabel');
     if(!display) return;
     display.textContent = 'FETCHING VIBES... 🌀';
-    if(typeLabel) typeLabel.textContent = type.toUpperCase();
+    if(typeLabel) typeLabel.textContent = currentVibeType.toUpperCase();
 
     try {
         let text = '';
