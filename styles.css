@@ -144,7 +144,8 @@ body {
 #calcScreen.active,
 #paintScreen.active,
 #timerScreen.active,
-#qrScreen.active {
+#qrScreen.active,
+#pokedexScreen.active {
   display: flex;
 }
 
