@@ -88,6 +88,7 @@ const apps = [
     { id: 'duel', name: 'DUEL', icon: '🚀' },
     { id: 'void', name: 'MYSTERY', icon: '🔍' },
     { id: 'troll', name: 'TROLL', icon: '👺' },
+    { id: 'chameleon', name: 'CHAMELEON', icon: '🦎' },
 
     // ── PUZZLE ────────────────────────────────────────────────────────────
     { id: 'adventure', name: 'PHYSICS', icon: '🧩' },
@@ -366,7 +367,7 @@ if(abBtns.length >= 2) {
         }
         
         // Define apps that use B for gameplay instead of Back
-        const gameModeApps = ['adventure', 'troll', 'racer', 'duel', 'brawl', 'void', 'chess', 'sync'];
+        const gameModeApps = ['adventure', 'troll', 'racer', 'duel', 'brawl', 'void', 'chess', 'sync', 'chameleon'];
         
         if (gameModeApps.includes(currentScreen)) {
             document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));

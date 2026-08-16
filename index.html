@@ -1298,6 +1298,7 @@
                                     <button onclick="launchP2PGame('void')" style="font-size: 5px; padding: 3px 6px; background: transparent; color: #0f0; border: 1px solid #0f04; white-space: nowrap;">🔍 MYSTERY</button>
                                     <button onclick="launchP2PGame('duel')" style="font-size: 5px; padding: 3px 6px; background: transparent; color: #0f0; border: 1px solid #0f04; white-space: nowrap;">🚀 DUEL</button>
                                     <button onclick="launchP2PGame('troll')" style="font-size: 5px; padding: 3px 6px; background: transparent; color: #0f0; border: 1px solid #0f04; white-space: nowrap;">👺 TROLL</button>
+                                    <button onclick="launchP2PGame('chameleon')" style="font-size: 5px; padding: 3px 6px; background: transparent; color: #0f0; border: 1px solid #0f04; white-space: nowrap;">🦎 CHAMELEON</button>
                                 </div>
                                 <div id="chatLog" style="flex: 1; background: rgba(0,20,0,0.9); border: 2px solid #0f0; border-radius: 8px; padding: 10px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
                                 <div id="chatEmojiBar" style="display: flex; gap: 10px; justify-content: center; padding: 8px 0; border-bottom: 1px dashed rgba(0,255,0,0.3);">
@@ -1483,6 +1484,16 @@
                             <button onclick="physPlay()" style="font-size:5px; padding:3px 5px; background:#0f380f; color:#9bbc0f;">▶ GO</button>
                             <button onclick="physReset()" style="font-size:5px; padding:3px 5px;">↺ RESET</button>
                             <button onclick="pMode='menu';physDrawMenu();" style="font-size:5px; padding:3px 5px;">☰ MENU</button>
+                        </div>
+                    </div>
+
+                    <!-- Chameleon Game Screen -->
+                    <div id="chameleonScreen" class="game-screen" style="background:#0f380f; padding:0; overflow:hidden; position:relative;">
+                        <canvas id="chameleonCanvas" width="320" height="240" style="display:block; width:100%; flex:1; image-rendering:pixelated;"></canvas>
+                        <div id="chameleonHUD" style="display:none; position:absolute; top:0; left:0; right:0; padding:4px 8px; font-size:7px; color:#9bbc0f; display:flex; justify-content:space-between; z-index:10;">
+                            <span>⏱ <span id="chmTimer">2:00</span></span>
+                            <span>🎨 <span id="chmPaint">0</span></span>
+                            <span>⭐ <span id="chmStars">0</span></span>
                         </div>
                     </div>
 
@@ -1819,6 +1830,10 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="scripts/games.js"></script>
     <script src="scripts/physics_puzzle.js"></script>
+    <script src="scripts/chameleon_scenes.js"></script>
+    <script src="scripts/chameleon_paint.js"></script>
+    <script src="scripts/chameleon_sync.js"></script>
+    <script src="scripts/chameleon.js"></script>
     <script src="scripts/newapps.js"></script>
     <script src="scripts/newapps_batch5.js"></script>
     <script src="scripts/newapps_utility.js"></script>

@@ -149,7 +149,8 @@ body {
 #timerScreen.active,
 #qrScreen.active,
 #pokedexScreen.active,
-#termScreen.active {
+#termScreen.active,
+#chameleonScreen.active {
   display: flex;
 }
 
@@ -1396,4 +1397,122 @@ select:focus {
     margin-top: -2px;
     font-size: 6px;
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CHAMELEON GAME STYLES
+   ══════════════════════════════════════════════════════════════════════ */
+
+#chameleonScreen {
+  background: #0f380f;
+  position: relative;
+}
+
+#chameleonCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Chameleon HUD */
+#chameleonHUD {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 8px;
+  font-size: 7px;
+  color: #9bbc0f;
+  display: flex;
+  justify-content: space-between;
+  z-index: 10;
+  background: rgba(15, 56, 15, 0.8);
+  font-family: "Press Start 2P", monospace;
+}
+
+/* Minimap */
+.chm-minimap {
+  position: absolute;
+  right: 10px;
+  bottom: 50px;
+  width: 70px;
+  height: 50px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid #9bbc0f;
+  z-index: 10;
+  image-rendering: pixelated;
+}
+
+/* Paint menu overlay */
+.chm-paint-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.chm-paint-title {
+  font-size: 8px;
+  color: #c9a84c;
+  margin-bottom: 10px;
+  font-family: "Press Start 2P", monospace;
+}
+
+.chm-color-palette {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.chm-color-swatch {
+  width: 18px;
+  height: 14px;
+  border: 1px solid #fff;
+  cursor: pointer;
+}
+
+.chm-color-swatch.selected {
+  border-color: #ffdd00;
+  box-shadow: 0 0 4px #ffdd00;
+}
+
+.chm-pattern-select,
+.chm-pose-select {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.chm-pattern-btn,
+.chm-pose-btn {
+  font-size: 5px;
+  padding: 4px 6px;
+  background: #306230;
+  color: #9bbc0f;
+  border: 1px solid #0f04;
+  font-family: "Press Start 2P", monospace;
+  cursor: pointer;
+}
+
+.chm-pattern-btn.selected,
+.chm-pose-btn.selected {
+  background: #9bbc0f;
+  color: #0f380f;
+}
+
+.chm-paint-instructions {
+  font-size: 4px;
+  color: #666;
+  margin-top: 8px;
+  font-family: "Press Start 2P", monospace;
 }
