@@ -1477,19 +1477,12 @@
                     </div>
 
                     <div id="adventureScreen" class="game-screen" style="background:#0f380f; padding:0; overflow:hidden;">
-                        <div style="display:flex; justify-content:space-between; padding:4px 8px; font-size:7px; color:#9bbc0f; flex-shrink:0;">
-                            <span>LEVEL <span id="physLevel">1</span>/12</span>
-                            <span>MOVES: <span id="physMoves">0</span></span>
-                            <span>⭐ <span id="physStars">0</span></span>
-                        </div>
                         <canvas id="physCanvas" width="300" height="240" style="display:block; width:100%; flex:1; image-rendering:pixelated;"></canvas>
-                        <div style="display:flex; gap:4px; padding:4px; flex-shrink:0; justify-content:center;" id="physToolbar">
-                            <button onclick="physSelectTool('ball')" id="physBtnBall" style="font-size:6px; padding:4px 8px; background:#306230;">⚽ BALL</button>
-                            <button onclick="physSelectTool('box')" id="physBtnBox" style="font-size:6px; padding:4px 8px;">📦 BOX</button>
-                            <button onclick="physSelectTool('ramp')" id="physBtnRamp" style="font-size:6px; padding:4px 8px;">📐 RAMP</button>
-                            <button onclick="physSelectTool('trampoline')" id="physBtnTrampoline" style="font-size:6px; padding:4px 8px;">🟩 BOUNCE</button>
-                            <button onclick="physPlay()" style="font-size:6px; padding:4px 8px; background:#0f380f; color:#9bbc0f;">▶ GO</button>
-                            <button onclick="physReset()" style="font-size:6px; padding:4px 8px;">↺</button>
+                        <div style="display:flex; gap:3px; padding:3px; flex-shrink:0; justify-content:center; flex-wrap:wrap;" id="physToolbar">
+                            <button onclick="physBtnSelect()" style="font-size:5px; padding:3px 5px;">SELECT:CYCLE</button>
+                            <button onclick="physPlay()" style="font-size:5px; padding:3px 5px; background:#0f380f; color:#9bbc0f;">▶ GO</button>
+                            <button onclick="physReset()" style="font-size:5px; padding:3px 5px;">↺ RESET</button>
+                            <button onclick="pMode='menu';physDrawMenu();" style="font-size:5px; padding:3px 5px;">☰ MENU</button>
                         </div>
                     </div>
 
