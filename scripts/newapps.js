@@ -1099,11 +1099,14 @@ window.karaoke = karaoke;
 
 // ========== MINER APP ==========
 window.mineGem = function() {
-    addGems(1);
-    sounds.coin();
-    const btn = document.querySelector('#minerScreen button');
-    btn.style.transform = 'scale(0.9)';
-    setTimeout(() => btn.style.transform = 'scale(1)', 100);
+    addGems(1 + idleUpgradeLevel);
+    updateIdleDisplay();
+    if(window.sounds && sounds.coin) sounds.coin();
+    const btn = document.querySelector('#minerScreen button, #idleScreen button[onclick=\"mineGem()\"]');
+    if(btn) {
+        btn.style.transform = 'scale(0.9)';
+        setTimeout(() => { btn.style.transform = 'scale(1)'; }, 100);
+    }
     
     // Random bonus
     if(Math.random() > 0.95) {
@@ -1472,6 +1475,34 @@ window.initGuess = function() {
 };
 
 // ========== IDLE MINER ==========
+
+let idleUpgradeLevel = parseInt(localStorage.getItem('gbIdleLevel')) || 0;
+
+window.buyIdleUpgrade = function() {
+    const cost = 50 + idleUpgradeLevel * 25;
+    if(!window.state || state.gems < cost) {
+        alert('NEED ' + cost + ' GEMS FOR NEXT UPGRADE!');
+        if(window.sounds && sounds.back) sounds.back();
+        return;
+    }
+    state.gems -= cost;
+    idleUpgradeLevel += 1;
+    localStorage.setItem('gbIdleLevel', idleUpgradeLevel);
+    saveState();
+    updateIdleDisplay();
+    if(window.sounds && sounds.coin) sounds.coin();
+};
+
+function updateIdleDisplay() {
+    const gemsEl = document.getElementById('idleGems');
+    const rateEl = document.getElementById('idleRate');
+    const btn = document.getElementById('idleUpgradeBtn');
+    const nextCost = 50 + idleUpgradeLevel * 25;
+    if(gemsEl && window.state) gemsEl.textContent = 'GEMS: ' + state.gems;
+    if(rateEl) rateEl.textContent = 'LEVEL: ' + idleUpgradeLevel + ' | BONUS: +' + idleUpgradeLevel + '/MINE';
+    if(btn) btn.textContent = 'UPGRADE (' + nextCost + ' GEMS)';
+}
+
 window.initIdle = function() {
     const screen = document.getElementById('idleScreen');
     if(screen) {
@@ -1480,9 +1511,12 @@ window.initIdle = function() {
                 TAP TO MINE GEMS!<br><br>
                 <button onclick="mineGem()" style="padding: 10px; font-size: 10px; margin-bottom: 10px;">⛏️ MINE</button>
                 <br>
-                (Uses same Gem logic)
+                <div id="idleGems" style="font-size: 10px; margin: 8px 0;">GEMS: 0</div>
+                <div id="idleRate" style="font-size: 6px; margin-bottom: 10px;">LEVEL: 0 | BONUS: +0/MINE</div>
+                <button onclick="buyIdleUpgrade()" id="idleUpgradeBtn" style="width: 100%; padding: 8px;">UPGRADE (50 GEMS)</button>
             </div>
         `;
+        updateIdleDisplay();
     }
 };
 
@@ -4804,9 +4838,20 @@ window.playDrum = function(type) {
     }
 };
 
+
+window.initGroove = function() {
+    const pads = document.querySelectorAll('#grooveScreen .drum-pad');
+    pads.forEach((pad) => {
+        pad.style.cursor = 'pointer';
+        pad.setAttribute('role', 'button');
+        pad.setAttribute('tabindex', '0');
+    });
+};
+
 // ========== GB WIKI (Encyclopedia) ==========
 window.searchWiki = async function() {
-    const query = document.getElementById('wikiSearch').value;
+    const search = document.getElementById('wikiSearch');
+    const query = search ? search.value.trim() : '';
     if(!query) return;
     await fetchWikiArticle(query);
 };
@@ -4814,16 +4859,19 @@ window.searchWiki = async function() {
 window.randomWiki = async function() {
     const status = document.getElementById('wikiStatus');
     const result = document.getElementById('wikiResult');
-    status.style.display = 'block';
-    if(status) status.textContent = 'FETCHING RANDOM ARTICLE...';
-    result.style.display = 'none';
+    if(status) {
+        status.style.display = 'block';
+        status.textContent = 'FETCHING RANDOM ARTICLE...';
+    }
+    if(result) result.style.display = 'none';
     if(window.sounds) sounds.launch();
 
     try {
         const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary');
         if(!res.ok) throw new Error('CONNECTION ERROR');
         const data = await res.json();
-        document.getElementById('wikiSearch').value = data.title;
+        const search = document.getElementById('wikiSearch');
+        if(search) search.value = data.title;
         displayWikiResult(data);
     } catch(err) {
         if(status) status.textContent = '!! ' + err.message.toUpperCase() + ' !!';
@@ -4834,9 +4882,11 @@ window.randomWiki = async function() {
 async function fetchWikiArticle(query) {
     const status = document.getElementById('wikiStatus');
     const result = document.getElementById('wikiResult');
-    status.style.display = 'block';
-    if(status) status.textContent = 'FETCHING KNOWLEDGE...';
-    result.style.display = 'none';
+    if(status) {
+        status.style.display = 'block';
+        status.textContent = 'FETCHING KNOWLEDGE...';
+    }
+    if(result) result.style.display = 'none';
     if(window.sounds) sounds.launch();
 
     try {
@@ -4859,21 +4909,24 @@ function displayWikiResult(data) {
     const thumbWrap = document.getElementById('wikiThumb');
     const thumbImg = document.getElementById('wikiThumbImg');
 
-    status.style.display = 'none';
-    result.style.display = 'block';
+    if(status) status.style.display = 'none';
+    if(result) {
+        result.style.display = 'block';
+        result.dataset.loaded = 'true';
+    }
 
     _el = document.getElementById('wikiTitle'); if(_el) _el.textContent = data.title.toUpperCase();
     _el = document.getElementById('wikiSummary'); if(_el) _el.textContent = data.extract;
 
     if(data.thumbnail && data.thumbnail.source) {
-        thumbImg.src = data.thumbnail.source;
-        thumbWrap.style.display = 'block';
-    } else {
+        if(thumbImg) thumbImg.src = data.thumbnail.source;
+        if(thumbWrap) thumbWrap.style.display = 'block';
+    } else if(thumbWrap) {
         thumbWrap.style.display = 'none';
     }
 
     const sectionsEl = document.getElementById('wikiSections');
-    sectionsEl.innerHTML = '';
+    if(sectionsEl) sectionsEl.innerHTML = '';
 
     if(data.sections) {
         data.sections.slice(0, 5).forEach(sec => {
@@ -4887,7 +4940,7 @@ function displayWikiResult(data) {
                     ${sec.snippet || 'No content available.'}
                 </div>
             `;
-            sectionsEl.appendChild(div);
+            if(sectionsEl) sectionsEl.appendChild(div);
         });
     }
 
@@ -4907,6 +4960,37 @@ window.toggleWikiSection = function(headerEl) {
     }
 };
 
+
+window.initWiki = function() {
+    const search = document.getElementById('wikiSearch');
+    const status = document.getElementById('wikiStatus');
+    const result = document.getElementById('wikiResult');
+    const thumb = document.getElementById('wikiThumb');
+    if(search) {
+        search.onkeydown = (e) => { if(e.key === 'Enter') window.searchWiki(); };
+        search.focus();
+    }
+    if(status && (!result || result.style.display !== 'block')) {
+        status.style.display = 'block';
+        status.textContent = 'ENTER A TOPIC OR TAP 🎲 FOR RANDOM';
+    }
+    if(result && !result.dataset.loaded) result.style.display = 'none';
+    if(thumb && (!result || result.style.display !== 'block')) thumb.style.display = 'none';
+};
+
+window.initHealth = function() {
+    const bmi = document.getElementById('hcBmiResult');
+    const tip = document.getElementById('hcTipResult');
+    if(bmi && !bmi.textContent) bmi.textContent = 'ENTER KG + CM TO CALCULATE BMI';
+    if(tip && !tip.textContent) tip.textContent = 'ENTER BILL + TIP %';
+};
+
+window.initSettings = function() {
+    const themeSelect = document.getElementById('themeSelect');
+    if(themeSelect && window.state) themeSelect.value = state.theme || 'classic';
+    const soundToggle = document.getElementById('soundToggle');
+    if(soundToggle) soundToggle.textContent = window.soundEnabled === false ? 'OFF' : 'ON';
+};
 document.getElementById('wikiSearch')?.addEventListener('keydown', (e) => {
     if(e.key === 'Enter') searchWiki();
 });

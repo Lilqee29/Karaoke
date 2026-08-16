@@ -63,6 +63,15 @@ window.debounce = function(func, wait) {
     };
 };
 
+
+window.closeModal = function() {
+    const modal = document.getElementById('customModal');
+    if(modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('active');
+    }
+};
+
 // Safe HTML sanitizer (basic)
 window.sanitizeHTML = function(str) {
     const div = document.createElement('div');
