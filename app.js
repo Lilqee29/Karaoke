@@ -85,15 +85,12 @@ const apps = [
 
     // ── P2P MULTIPLAYER GAMES ─────────────────────────────────────────────
     { id: 'chess', name: 'TACTIC', icon: '♟️' },
-    { id: 'brawl', name: 'BRAWL', icon: '🥋' },
-    { id: 'racer', name: 'RACER', icon: '🏁' },
     { id: 'duel', name: 'DUEL', icon: '🚀' },
-    { id: 'sync', name: 'PULSE', icon: '⚡' },
     { id: 'void', name: 'MYSTERY', icon: '🔍' },
     { id: 'troll', name: 'TROLL', icon: '👺' },
 
-    // ── ADVENTURE ─────────────────────────────────────────────────────────
-    { id: 'adventure', name: 'QUEST', icon: '⚔️' },
+    // ── PUZZLE ────────────────────────────────────────────────────────────
+    { id: 'adventure', name: 'PHYSICS', icon: '🧩' },
 
     // ── SYSTEM ────────────────────────────────────────────────────────────
     { id: 'help', name: 'HELP', icon: '❓' },

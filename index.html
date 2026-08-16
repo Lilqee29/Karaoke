@@ -533,7 +533,7 @@
                     </div>
 
                     <!-- QR GENERATOR + SCANNER (MERGED) -->
-                    <div id="qrScreen" class="game-screen" style="display:none; flex-direction:column; height:100%;">
+                    <div id="qrScreen" class="game-screen" style="flex-direction:column; height:100%;">
                         <div style="display:flex; border-bottom:2px solid var(--gb-text); flex-shrink:0;">
                             <button onclick="switchQrTab('generate')" id="qrGenTabBtn" style="flex:1; padding:6px; font-size:7px; border:none; background:var(--gb-text); color:var(--gb-bg); font-weight:bold;">GENERATE</button>
                             <button onclick="switchQrTab('scan')" id="qrScanTabBtn" style="flex:1; padding:6px; font-size:7px; border:none; background:transparent; color:var(--gb-text); font-weight:bold;">SCAN</button>
@@ -1328,10 +1328,6 @@
                     </div>
                             
                             <!-- P2P GAMES (Unified Layouts) -->
-                            <div id="brawlScreen" class="game-screen" style="background: #111;">
-                                <canvas id="brawlCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
-                                <div style="background: rgba(0,255,0,0.1); padding: 5px; font-size: 10px; color: #0f0; text-align: center; font-family: 'VT323';">D-PAD=MOVE | A=PUNCH | B=BLOCK</div>
-                            </div>
                     <div id="chessScreen" class="game-screen">
 
                         <!-- MODE SELECT SCREEN -->
@@ -1406,18 +1402,9 @@
 
                     </div>
 
-                    <div id="racerScreen" class="game-screen" style="background: #000;">
-                        <canvas id="racerCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
-                        <div style="background: rgba(0,255,0,0.1); padding: 5px; font-size: 10px; color: #0f0; text-align: center; font-family: 'VT323';">D-PAD L/R=STEER | A=ACCEL | B=BRAKE</div>
-                    </div>
-
                     <div id="duelScreen" class="game-screen" style="background: #000;">
                         <canvas id="duelCanvas" width="320" height="288" style="width: 100%; image-rendering: pixelated;"></canvas>
                         <div style="background: rgba(0,255,0,0.1); padding: 5px; font-size: 10px; color: #0f0; text-align: center; font-family: 'VT323';">D-PAD=AIM/MOVE | A=FIRE | B=DODGE</div>
-                    </div>
-
-                    <div id="syncScreen" class="game-screen" style="background: #000;">
-                        <!-- Content generated dynamically by startSync -->
                     </div>
 
                     <div id="voidScreen" class="game-screen" style="background: #000; font-family: 'VT323', monospace;">
@@ -1481,15 +1468,21 @@
                         </div>
                     </div>
 
-                    <div id="adventureScreen" class="game-screen" style="background:#000; padding:0; overflow:hidden;">
-                        <canvas id="advCanvas" width="300" height="280" style="display: block; margin: 0 auto;"></canvas>
-                        <div style="position: absolute; top: 0; left: 0; right: 0; padding: 8px; pointer-events: none;">
-                            <div style="position: absolute; top: 8px; left: 8px; color: #0f0; font-size: 8px; font-family: monospace;">LEVEL <span id="advLevel">1</span>/10</div>
-                            <div style="position: absolute; top: 8px; right: 8px; color: #0f0; font-size: 8px; font-family: monospace;">GOLD: <span id="advGold">0</span></div>
-                            <div style="position: absolute; bottom: 8px; left: 8px; color: #0f0; font-size: 8px; font-family: monospace;">ATTACK: A button</div>
-                            <div id="advNpcDialog" style="position: absolute; bottom: 30px; left: 8px; right: 8px; background: rgba(0,0,0,0.5); color: #0f0; padding: 6px; font-size: 7px; display: none; min-height: 30px; text-align: center;">"></div>
+                    <div id="adventureScreen" class="game-screen" style="background:#0f380f; padding:0; overflow:hidden;">
+                        <div style="display:flex; justify-content:space-between; padding:4px 8px; font-size:7px; color:#9bbc0f; flex-shrink:0;">
+                            <span>LEVEL <span id="physLevel">1</span>/12</span>
+                            <span>MOVES: <span id="physMoves">0</span></span>
+                            <span>⭐ <span id="physStars">0</span></span>
                         </div>
-                        <!-- iframe for BigAdventureGame removed - using RetroQuest directly -->
+                        <canvas id="physCanvas" width="300" height="240" style="display:block; width:100%; flex:1; image-rendering:pixelated;"></canvas>
+                        <div style="display:flex; gap:4px; padding:4px; flex-shrink:0; justify-content:center;" id="physToolbar">
+                            <button onclick="physSelectTool('ball')" id="physBtnBall" style="font-size:6px; padding:4px 8px; background:#306230;">⚽ BALL</button>
+                            <button onclick="physSelectTool('box')" id="physBtnBox" style="font-size:6px; padding:4px 8px;">📦 BOX</button>
+                            <button onclick="physSelectTool('ramp')" id="physBtnRamp" style="font-size:6px; padding:4px 8px;">📐 RAMP</button>
+                            <button onclick="physSelectTool('trampoline')" id="physBtnTrampoline" style="font-size:6px; padding:4px 8px;">🟩 BOUNCE</button>
+                            <button onclick="physPlay()" style="font-size:6px; padding:4px 8px; background:#0f380f; color:#9bbc0f;">▶ GO</button>
+                            <button onclick="physReset()" style="font-size:6px; padding:4px 8px;">↺</button>
+                        </div>
                     </div>
 
                     <div id="trollScreen" class="game-screen" style="position: relative;">
@@ -1824,19 +1817,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="scripts/games.js"></script>
-    <script src="beat-boy.js"></script>
+    <script src="scripts/physics_puzzle.js"></script>
     <script src="scripts/newapps.js"></script>
     <script src="scripts/newapps_batch5.js"></script>
     <script src="scripts/newapps_utility.js"></script>
     <script src="scripts/productivity_apps.js"></script>
-    <script src="scripts/retro_quest.js"></script>
-    <!-- P2P GAMES -->
     <script src="scripts/p2p-games/engine.js"></script>
-    <script src="scripts/p2p-games/brawl.js"></script>
     <script src="scripts/p2p-games/chess.js"></script>
-    <script src="scripts/p2p-games/racer.js"></script>
     <script src="scripts/p2p-games/duel.js"></script>
-    <script src="scripts/p2p-games/sync.js"></script>
     <script src="scripts/p2p-games/void.js"></script>
     <script src="scripts/batch6.js"></script>
     <script src="scripts/batch7.js"></script>

@@ -1660,30 +1660,32 @@ window.initMap = function() {
 function setupNavMap() {
     if(navMap) navMap.remove();
     
+    function createMap(lat, lng, zoom) {
+        navMap = L.map('navMapLeaflet').setView([lat, lng], zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(navMap);
+        L.marker([lat, lng]).addTo(navMap).bindPopup('YOU').openPopup();
+        
+        const home = JSON.parse(localStorage.getItem('gbHome'));
+        if(home) {
+            const dist = calculateDistance(lat, lng, home.lat, home.lng);
+            _el = document.getElementById('mapHomeDist'); if(_el) _el.textContent = dist.toFixed(2) + ' KM';
+            L.marker([home.lat, home.lng], {
+                icon: L.divIcon({className: 'home-icon', html: '🏠', iconSize: [20, 20]})
+            }).addTo(navMap).bindPopup('HOUSE');
+            L.polyline([[lat, lng], [home.lat, home.lng]], {color: 'blue', weight: 2}).addTo(navMap);
+            const bounds = L.latLngBounds([[lat, lng], [home.lat, home.lng]]);
+            navMap.fitBounds(bounds, {padding: [30, 30]});
+        }
+    }
+    
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            const home = JSON.parse(localStorage.getItem('gbHome'));
-            
-            navMap = L.map('navMapLeaflet').setView([lat, lng], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(navMap);
-            
-            L.marker([lat, lng]).addTo(navMap).bindPopup('YOU').openPopup();
-            
-            if(home) {
-                const dist = calculateDistance(lat, lng, home.lat, home.lng);
-                _el = document.getElementById('mapHomeDist'); if(_el) _el.textContent = dist.toFixed(2) + ' KM';
-                L.marker([home.lat, home.lng], {
-                    icon: L.divIcon({className: 'home-icon', html: '🏠', iconSize: [20, 20]})
-                }).addTo(navMap).bindPopup('HOUSE');
-                L.polyline([[lat, lng], [home.lat, home.lng]], {color: 'blue', weight: 2}).addTo(navMap);
-                
-                // Adjust view to fit both
-                const bounds = L.latLngBounds([[lat, lng], [home.lat, home.lng]]);
-                navMap.fitBounds(bounds, {padding: [30, 30]});
-            }
-        });
+        navigator.geolocation.getCurrentPosition(
+            (pos) => createMap(pos.coords.latitude, pos.coords.longitude, 15),
+            () => createMap(40.7128, -74.0060, 2), // Fallback: NYC, world view
+            { timeout: 5000 }
+        );
+    } else {
+        createMap(40.7128, -74.0060, 2);
     }
 }
 
@@ -5104,9 +5106,10 @@ window.sendQuickEmoji = function(emoji) {
 // ========== FIGLET ASCII ART ==========
 window.genAscii = function(text) {
     if(!text) return;
+    if(typeof figlet === 'undefined') { const artDiv = document.getElementById('asciiArt'); if(artDiv) artDiv.textContent = 'Loading font... try again in a moment'; return; }
     const art = figlet.textSync(text, { font: 'Standard', horizontalLayout: 'default' });
     const artDiv = document.getElementById('asciiArt');
-    if(artDiv) if(artDiv) artDiv.textContent = art.replace(/\n/g, '<br>');
+    if(artDiv) artDiv.textContent = art.replace(/\n/g, '<br>');
 };
 
 window.genRandomAscii = function() {
