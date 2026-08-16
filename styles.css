@@ -895,37 +895,35 @@ select:focus {
   }
 
   /* ═══════════════════════════════════════════
-     LANDSCAPE — Horizontal PSP-Style Layout
+     LANDSCAPE — Horizontal GameBoy
      D-Pad on left | Screen in center | A+B on right
-     Only on touch devices (phones/tablets) so desktop stays vertical
   ═══════════════════════════════════════════ */
-  @media (orientation: landscape) and (pointer: coarse) {
+  @media (orientation: landscape) {
     .gameboy {
       flex-direction: row;
-      padding: 12px 10px 10px;
+      padding: 0;
       align-items: stretch;
+      justify-content: stretch;
       height: 100dvh;
       width: 100dvw;
-      border-radius: 24px;
-      max-width: none;
+      border-radius: 0;
     }
 
-    /* LEFT COLUMN — D-pad + SELECT/START
-       position: static so .ab-buttons (inside) can escape via position:absolute to .gameboy */
+    /* LEFT COLUMN — D-pad + SELECT/START */
     .controls-physical {
       order: 1;
-      position: static;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 14px;
+      gap: 16px;
+      height: 100dvh;
       width: 130px;
       flex-shrink: 0;
       padding: 16px 10px;
       background: linear-gradient(180deg, var(--gb-shell-dark) 0%, var(--gb-shell) 100%);
-      border-radius: 16px 0 0 16px;
       box-shadow: 2px 0 8px rgba(0,0,0,0.4);
       box-sizing: border-box;
+      /* no position:fixed — part of normal flow */
     }
 
     /* CENTER — Screen */
@@ -933,35 +931,34 @@ select:focus {
       order: 2;
       flex: 1 1 0;
       min-width: 0;
-      height: 100%;
+      height: 100dvh;
       margin: 0;
-      border-radius: 12px;
-      padding: 10px;
+      border-radius: 0;
+      padding: 8px;
       box-sizing: border-box;
     }
 
     .screen {
-      border-radius: 6px;
+      border-radius: 4px;
       height: 100%;
     }
 
-    /* RIGHT — A+B buttons (escape .controls-physical, anchor to .gameboy) */
+    /* RIGHT COLUMN — A+B buttons */
     .ab-buttons {
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%) rotate(-20deg);
+      order: 3;
+      position: static;
+      transform: rotate(-20deg);
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 14px;
-      width: auto;
-      padding: 20px 14px;
+      width: 110px;
+      flex-shrink: 0;
+      height: 100dvh;
+      padding: 20px 10px;
       background: linear-gradient(180deg, var(--gb-shell) 0%, var(--gb-shell-dark) 100%);
-      border-radius: 0 16px 16px 0;
       box-shadow: -2px 0 8px rgba(0,0,0,0.4);
       box-sizing: border-box;
-      z-index: 5;
     }
 
     .ab-btn {
@@ -1000,24 +997,6 @@ select:focus {
       gap: 8px;
     }
 
-    /* Speaker — bottom right below A/B */
-    .speaker {
-      position: absolute;
-      bottom: 16px;
-      right: 16px;
-      display: grid;
-      grid-template-columns: repeat(4, 6px);
-      grid-template-rows: repeat(3, 6px);
-      gap: 4px;
-      margin-top: 0;
-      justify-content: center;
-    }
-
-    .speaker-hole {
-      width: 6px;
-      height: 6px;
-    }
-
     /* Header is compact in landscape */
     header {
       margin-bottom: 6px;
@@ -1028,7 +1007,7 @@ select:focus {
       line-height: 1.3;
     }
 
-    .power-led, .label { display: none; }
+    .speaker, .label, .power-led { display: none; }
   }
 }
 
