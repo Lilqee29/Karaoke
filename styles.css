@@ -137,10 +137,13 @@ body {
 }
 
 .game-screen.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
-/* Screens that need flex layout when active */
+/* Screens that need flex layout when active (already flex via .game-screen.active) */
 #calcScreen.active,
 #paintScreen.active,
 #timerScreen.active,
@@ -1272,6 +1275,105 @@ select:focus {
   .statusBar    { font-size: 5px; }
   .header-title { font-size: 8px; }
 
+  /* ── Screen Content fills available space ────────────────────── */
+  .screen-content {
+    overflow: hidden;
+  }
+
+  /* ── Game Screens fill the screen properly on mobile ────────── */
+  .game-screen {
+    padding-bottom: 0;
+  }
+
+  .game-screen.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Header compact on mobile ───────────────────────────────── */
+  header {
+    margin-bottom: 4px;
+    padding: 0 2px;
+    flex-shrink: 0;
+  }
+
+  .battery {
+    font-size: 6px;
+    padding: 0 4px;
+    gap: 6px;
+  }
+
+  #screenTitle {
+    font-size: 8px;
+    margin-bottom: 2px;
+  }
+
+  /* ── Search input compact ───────────────────────────────────── */
+  #homeSearch {
+    width: 100%;
+    padding: 5px 6px;
+    font-size: 7px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+
+  /* ── App Grid fills remaining space ─────────────────────────── */
+  .app-grid {
+    gap: 8px;
+    padding: 4px 0 8px;
+    flex: 1;
+    align-content: start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .app-icon {
+    padding: 6px 4px;
+    border-radius: 6px;
+  }
+
+  .app-emoji {
+    font-size: 22px;
+    margin-bottom: 4px;
+  }
+
+  .app-name {
+    font-size: 6px;
+  }
+
+  /* ── Canvas elements fit screen ─────────────────────────────── */
+  canvas {
+    max-width: 100%;
+    max-height: 60vh;
+    width: auto;
+    height: auto;
+  }
+
+  /* ── Buttons & Inputs scale down ────────────────────────────── */
+  button {
+    padding: 5px 8px;
+    font-size: 6px;
+  }
+
+  input, textarea, select {
+    padding: 5px;
+    font-size: 6px;
+  }
+
+  /* ── Text content apps ──────────────────────────────────────── */
+  .app-text-content {
+    font-size: 14px;
+    padding: 6px;
+    min-height: 80px;
+    margin-bottom: 8px;
+  }
+
+  /* ── Speaker, label, power-led ──────────────────────────────── */
   .speaker,
   .label,
   .power-led {
