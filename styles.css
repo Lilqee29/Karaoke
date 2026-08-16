@@ -1371,3 +1371,273 @@ select:focus {
   background: var(--gb-text);
   color: var(--gb-bg);
 }
+/* ================================================================
+   RESPONSIVE DEVICE SHELL v4 — requested Game Boy layouts
+   Desktop: vertical only. Mobile portrait: vertical shell. Mobile landscape:
+   horizontal shell with D-pad left, screen center, A/B right.
+   ================================================================ */
+
+:root {
+  --mobile-shell-pad: clamp(10px, 2.6vw, 18px);
+  --mobile-control-h: clamp(190px, 36dvh, 300px);
+  --mobile-land-side: clamp(112px, 20dvw, 170px);
+}
+
+@media (min-width: 769px) {
+  .gameboy {
+    flex-direction: column !important;
+    width: min(95vw, 440px);
+    height: min(94vh, 850px);
+    border-radius: var(--shell-radius);
+  }
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    background: radial-gradient(circle at center, #2c2c2c 0%, #111 100%);
+    justify-content: center;
+    align-items: center;
+  }
+
+  .gameboy {
+    background: linear-gradient(145deg, var(--gb-shell), var(--gb-shell-dark));
+    box-shadow:
+      0 18px 36px rgba(0, 0, 0, 0.75),
+      inset 0 2px 5px rgba(255, 255, 255, 0.3),
+      inset 0 -2px 5px rgba(0, 0, 0, 0.35);
+  }
+
+  .screen-bezel {
+    background: #2a2a2a;
+  }
+
+  .speaker,
+  .label,
+  .power-led {
+    display: block;
+  }
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+  .gameboy {
+    width: min(100vw, 430px);
+    height: 100dvh;
+    max-height: 920px;
+    padding: calc(env(safe-area-inset-top) + var(--mobile-shell-pad))
+             var(--mobile-shell-pad)
+             calc(env(safe-area-inset-bottom) + var(--mobile-shell-pad));
+    border-radius: clamp(18px, 6vw, 28px) clamp(18px, 6vw, 28px) clamp(48px, 14vw, 72px) clamp(18px, 6vw, 28px);
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .screen-bezel {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100dvh - var(--mobile-control-h) - 54px);
+    margin: 0 0 clamp(10px, 2.4dvh, 18px);
+    padding: clamp(8px, 2.4vw, 13px);
+    border-radius: 10px;
+  }
+
+  .screen {
+    border-radius: 5px;
+  }
+
+  .controls-physical {
+    height: var(--mobile-control-h);
+    padding: clamp(8px, 2.2vw, 14px) clamp(8px, 3vw, 18px) clamp(14px, 4dvh, 28px);
+    display: grid;
+    grid-template-columns: minmax(112px, 1fr) minmax(66px, 0.7fr) minmax(106px, 1fr);
+    align-items: center;
+    justify-items: center;
+    column-gap: clamp(6px, 2vw, 14px);
+    width: 100%;
+    background: transparent;
+  }
+
+  .controls-physical::before {
+    left: 10%;
+    right: 10%;
+  }
+
+  .dpad {
+    width: clamp(106px, 32vw, 136px);
+    height: clamp(106px, 32vw, 136px);
+    justify-self: start;
+  }
+
+  .system-controls {
+    flex-direction: column;
+    gap: clamp(10px, 2dvh, 18px);
+    justify-self: center;
+  }
+
+  .select-btn,
+  .start-btn {
+    width: clamp(44px, 12vw, 58px);
+    height: clamp(13px, 3vw, 17px);
+  }
+
+  .ab-buttons {
+    width: clamp(98px, 28vw, 128px);
+    max-width: none;
+    justify-content: center;
+    justify-self: end;
+    gap: clamp(8px, 2.5vw, 13px);
+  }
+
+  .ab-btn {
+    width: clamp(48px, 14vw, 60px);
+    height: clamp(48px, 14vw, 60px);
+  }
+
+  .ab-btn:first-child {
+    width: clamp(41px, 12vw, 52px);
+    height: clamp(41px, 12vw, 52px);
+  }
+
+  .speaker {
+    margin-top: 0;
+    padding-right: clamp(12px, 5vw, 24px);
+    transform: translateY(-8px);
+  }
+
+  .label {
+    margin-top: -2px;
+    font-size: 6px;
+  }
+}
+
+@media (max-width: 1024px) and (orientation: landscape) and (pointer: coarse) {
+  .gameboy {
+    width: 100dvw;
+    height: 100dvh;
+    max-width: none;
+    display: grid;
+    grid-template-columns: var(--mobile-land-side) minmax(240px, 1fr) var(--mobile-land-side);
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+      "left screen right"
+      "left label  right";
+    gap: clamp(6px, 1.5dvw, 14px);
+    padding: calc(env(safe-area-inset-top) + clamp(8px, 2dvh, 14px))
+             calc(env(safe-area-inset-right) + clamp(8px, 2dvw, 14px))
+             calc(env(safe-area-inset-bottom) + clamp(8px, 2dvh, 14px))
+             calc(env(safe-area-inset-left) + clamp(8px, 2dvw, 14px));
+    border-radius: clamp(18px, 4dvh, 28px);
+    overflow: hidden;
+  }
+
+  .controls-physical {
+    display: contents;
+    padding: 0;
+    width: auto;
+    height: auto;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .controls-physical::before {
+    content: none;
+  }
+
+  .screen-bezel {
+    grid-area: screen;
+    align-self: stretch;
+    justify-self: stretch;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    padding: clamp(7px, 1.7dvh, 12px);
+    border-radius: 12px;
+  }
+
+  .screen {
+    height: 100%;
+    border-radius: 6px;
+  }
+
+  .dpad {
+    grid-area: left;
+    align-self: center;
+    justify-self: center;
+    width: clamp(88px, 22dvh, 126px);
+    height: clamp(88px, 22dvh, 126px);
+  }
+
+  .system-controls {
+    grid-area: right;
+    align-self: end;
+    justify-self: center;
+    flex-direction: row;
+    gap: clamp(8px, 2dvw, 14px);
+    margin-bottom: clamp(8px, 4dvh, 24px);
+    transform: rotate(-18deg);
+  }
+
+  .ab-buttons {
+    grid-area: right;
+    position: static;
+    align-self: center;
+    justify-self: center;
+    width: auto;
+    max-width: none;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    flex-direction: column-reverse;
+    gap: clamp(10px, 3dvh, 18px);
+    transform: rotate(-18deg);
+  }
+
+  .ab-btn {
+    width: clamp(48px, 13dvh, 62px);
+    height: clamp(48px, 13dvh, 62px);
+  }
+
+  .ab-btn:first-child {
+    width: clamp(42px, 11dvh, 54px);
+    height: clamp(42px, 11dvh, 54px);
+    margin-bottom: 0;
+    margin-right: clamp(16px, 4dvw, 30px);
+  }
+
+  .speaker {
+    grid-area: right;
+    align-self: end;
+    justify-self: end;
+    display: grid;
+    margin: 0 clamp(8px, 2dvw, 16px) 0 0;
+    padding: 0;
+    transform: none;
+  }
+
+  .label {
+    grid-area: label;
+    align-self: center;
+    justify-self: center;
+    display: block;
+    margin: 0;
+    font-size: clamp(5px, 1.4dvh, 7px);
+    letter-spacing: clamp(2px, 0.6dvw, 5px);
+    opacity: 0.55;
+  }
+
+  .power-led {
+    top: clamp(10px, 3dvh, 16px);
+    left: clamp(10px, 3dvw, 18px);
+  }
+
+  header {
+    margin-bottom: clamp(4px, 1dvh, 8px);
+  }
+
+  .header-title {
+    font-size: clamp(6px, 1.8dvh, 8px);
+    line-height: 1.25;
+  }
+}

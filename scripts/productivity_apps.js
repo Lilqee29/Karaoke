@@ -616,6 +616,7 @@ window.copyPassHub = function() {
 // ── PAINT APP UNDO & CLEAR LOGIC ──────────────────────────────────────────
 let paintHistory = [];
 let paintErasing = false;
+let paintIsPainting = false;
 window.initPaint = function() {
     const canvas = document.getElementById('paintCanvas');
     if(!canvas) return;
@@ -629,18 +630,18 @@ window.initPaint = function() {
 
     canvas.onmousedown = canvas.ontouchstart = (e) => {
         e.preventDefault();
-        isPainting = true;
+        paintIsPainting = true;
         drawPaint(e.touches ? e.touches[0] : e);
     };
     canvas.onmouseup = canvas.ontouchend = () => {
-        if(isPainting) {
-            isPainting = false;
+        if(paintIsPainting) {
+            paintIsPainting = false;
             if(paintHistory.length >= 20) paintHistory.shift();
             paintHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
         }
     };
     canvas.onmousemove = canvas.ontouchmove = (e) => {
-        if(!isPainting) return;
+        if(!paintIsPainting) return;
         e.preventDefault();
         drawPaint(e.touches ? e.touches[0] : e);
     };

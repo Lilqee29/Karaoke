@@ -1,6 +1,41 @@
 // ========== SIGNAL ZERO: A MURDER IN THE DEAD CHANNELS (v7.0 STORY TREE) ==========
 // Full Detective Case Files: Suspects, Forensics, P2P Co-Op Clue Sync & Accusations!
 
+
+// Compatibility shims for the legacy tactical Void markup in index.html.
+// initVoid() replaces that shell with the mystery UI, but these handlers keep
+// direct button taps from throwing if the static markup is exercised first.
+window.hideVoidIntro = function() {
+    const intro = document.getElementById('voidIntro');
+    if(intro) intro.style.display = 'none';
+    if(typeof window.startMystery === 'function') window.startMystery();
+};
+
+window.voidDoTask = function() {
+    const log = document.getElementById('voidLog');
+    if(log) log.textContent = 'TASK COMPLETE: SIGNAL STABILIZED';
+    if(window.sounds && sounds.coin) sounds.coin();
+};
+
+window.voidReport = function() {
+    const debate = document.getElementById('voidDebate');
+    if(debate) debate.style.display = 'flex';
+};
+
+window.voidKill = function() {
+    const log = document.getElementById('voidLog');
+    if(log) log.textContent = 'INFECT ACTION IS ONLY AVAILABLE IN MULTIPLAYER.';
+    if(window.sounds && sounds.back) sounds.back();
+};
+
+window.voidSendDebate = function() {
+    const input = document.getElementById('voidDebateInput');
+    const log = document.getElementById('voidDebateLog');
+    const msg = input && input.value ? input.value.trim() : '';
+    if(log && msg) log.innerHTML += '<div><b>YOU:</b> ' + sanitizeHTML(msg) + '</div>';
+    if(input) input.value = '';
+};
+
 const MYSTERY_SUSPECTS = {
     aris: {
         name: "DR. ARIS",
