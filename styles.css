@@ -769,133 +769,7 @@ select:focus {
    MOBILE — RESPONSIVE LAYOUT
    ================================================================ */
 
-@media (max-width: 768px) {
-  html,
-  body {
-    padding: 0;
-    height: 100dvh;
-    overflow: hidden;
-    align-items: center;
-    background: #000;
-  }
-
-  .gameboy {
-    border-radius: 0;
-    max-width: none;
-    width: 100vw;
-    height: 100dvh;
-    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
-    box-shadow: none;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  /* ═══════════════════════════════════════════
-     MOBILE — All orientations (portrait + landscape)
-     Same vertical layout as desktop, just sized for phones
-  ═══════════════════════════════════════════ */
-    .screen-bezel {
-      flex: 1 1 0;
-      min-height: 0;
-      margin-bottom: 0;
-      padding: 4px;
-      /* never let screen grow beyond ~57% of height */
-      max-height: 57dvh;
-    }
-
-    .screen {
-      flex: 1;
-      border-radius: 0;
-    }
-
-    /* Controls zone takes the rest */
-    .controls-physical {
-      flex: 0 0 auto;
-      height: 43dvh;
-      padding: 8px 10px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0;
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    /* Enlarged D-Pad */
-    .dpad {
-      width: 130px;
-      height: 130px;
-      flex-shrink: 0;
-    }
-
-    .dpad::after {
-      width: 38px;
-      height: 38px;
-    }
-
-    .dpad-up::after    { border-bottom-width: 9px; border-left-width: 6px;  border-right-width: 6px; }
-    .dpad-down::after  { border-top-width: 9px;    border-left-width: 6px;  border-right-width: 6px; }
-    .dpad-left::after  { border-right-width: 9px;  border-top-width: 6px;   border-bottom-width: 6px; }
-    .dpad-right::after { border-left-width: 9px;   border-top-width: 6px;   border-bottom-width: 6px; }
-
-    /* System controls — centered between dpad and ab */
-    .system-controls {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 0;
-      flex-shrink: 0;
-    }
-
-    .select-btn,
-    .start-btn {
-      width: 46px;
-      height: 14px;
-    }
-
-    /* A/B buttons — contained in a 110px wide box, no overflow */
-    .ab-buttons {
-      display: flex;
-      flex-direction: row;
-      gap: 10px;
-      transform: rotate(-20deg);
-      flex-shrink: 0;
-      align-items: flex-end;
-      width: 110px;
-      justify-content: flex-end;
-    }
-
-    .ab-btn {
-      width: 54px;
-      height: 54px;
-      font-size: 13px;
-      box-shadow:
-        0 7px 0 #2a0440,
-        0 9px 18px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25),
-        inset 0 -2px 0 rgba(0, 0, 0, 0.3);
-    }
-
-    .ab-btn:first-child {
-      width: 46px;
-      height: 46px;
-      font-size: 11px;
-    }
-
-    .ab-btn:active,
-    .ab-btn.pressed {
-      transform: translateY(6px);
-    }
-
-    .statusBar    { font-size: 5px; }
-    .header-title { font-size: 8px; }
-    .speaker, .label, .power-led { display: none; }
-
-  /* No separate landscape query — same vertical layout on all mobile
-     orientations. Screen on top, controls below, just like desktop. */
-}
+/* Mobile styles consolidated below into a single @media (max-width: 768px) block. */
 
 /* Touch targets — no highlight flash */
 .dpad-btn,
@@ -1245,47 +1119,33 @@ select:focus {
 :root {
   --mobile-shell-pad: clamp(10px, 2.6vw, 18px);
   --mobile-control-h: clamp(190px, 36dvh, 300px);
-  --mobile-land-side: clamp(112px, 20dvw, 170px);
 }
 
 @media (min-width: 769px) {
   .gameboy {
-    flex-direction: column !important;
+    flex-direction: column;
     width: min(95vw, 440px);
     height: min(94vh, 850px);
     border-radius: var(--shell-radius);
   }
 }
 
+/* ================================================================
+   MOBILE — single consolidated block, same layout on every orientation
+   ================================================================ */
 @media (max-width: 768px) {
   html,
   body {
+    padding: 0;
+    height: 100dvh;
+    overflow: hidden;
     background: radial-gradient(circle at center, #2c2c2c 0%, #111 100%);
     justify-content: center;
     align-items: center;
   }
 
   .gameboy {
-    background: linear-gradient(145deg, var(--gb-shell), var(--gb-shell-dark));
-    box-shadow:
-      0 18px 36px rgba(0, 0, 0, 0.75),
-      inset 0 2px 5px rgba(255, 255, 255, 0.3),
-      inset 0 -2px 5px rgba(0, 0, 0, 0.35);
-  }
-
-  .screen-bezel {
-    background: #2a2a2a;
-  }
-
-  .speaker,
-  .label,
-  .power-led {
-    display: block;
-  }
-}
-
-@media (max-width: 768px) and (orientation: portrait) {
-  .gameboy {
+    max-width: none;
     width: min(100vw, 430px);
     height: 100dvh;
     max-height: 920px;
@@ -1293,8 +1153,14 @@ select:focus {
              var(--mobile-shell-pad)
              calc(env(safe-area-inset-bottom) + var(--mobile-shell-pad));
     border-radius: clamp(18px, 6vw, 28px) clamp(18px, 6vw, 28px) clamp(48px, 14vw, 72px) clamp(18px, 6vw, 28px);
+    display: flex;
     flex-direction: column;
     overflow: hidden;
+    background: linear-gradient(145deg, var(--gb-shell), var(--gb-shell-dark));
+    box-shadow:
+      0 18px 36px rgba(0, 0, 0, 0.75),
+      inset 0 2px 5px rgba(255, 255, 255, 0.3),
+      inset 0 -2px 5px rgba(0, 0, 0, 0.35);
   }
 
   .screen-bezel {
@@ -1304,13 +1170,17 @@ select:focus {
     margin: 0 0 clamp(10px, 2.4dvh, 18px);
     padding: clamp(8px, 2.4vw, 13px);
     border-radius: 10px;
+    background: #2a2a2a;
   }
 
   .screen {
+    flex: 1;
     border-radius: 5px;
   }
 
+  /* Controls zone takes the rest */
   .controls-physical {
+    flex: 0 0 auto;
     height: var(--mobile-control-h);
     padding: clamp(8px, 2.2vw, 14px) clamp(8px, 3vw, 18px) clamp(14px, 4dvh, 28px);
     display: grid;
@@ -1319,6 +1189,7 @@ select:focus {
     justify-items: center;
     column-gap: clamp(6px, 2vw, 14px);
     width: 100%;
+    box-sizing: border-box;
     background: transparent;
   }
 
@@ -1327,16 +1198,32 @@ select:focus {
     right: 10%;
   }
 
+  /* Enlarged D-Pad */
   .dpad {
     width: clamp(106px, 32vw, 136px);
     height: clamp(106px, 32vw, 136px);
     justify-self: start;
+    flex-shrink: 0;
   }
 
+  .dpad::after {
+    width: 38px;
+    height: 38px;
+  }
+
+  .dpad-up::after    { border-bottom-width: 9px; border-left-width: 6px;  border-right-width: 6px; }
+  .dpad-down::after  { border-top-width: 9px;    border-left-width: 6px;  border-right-width: 6px; }
+  .dpad-left::after  { border-right-width: 9px;  border-top-width: 6px;   border-bottom-width: 6px; }
+  .dpad-right::after { border-left-width: 9px;   border-top-width: 6px;   border-bottom-width: 6px; }
+
+  /* System controls — centered between dpad and ab */
   .system-controls {
+    display: flex;
     flex-direction: column;
+    align-items: center;
     gap: clamp(10px, 2dvh, 18px);
     justify-self: center;
+    flex-shrink: 0;
   }
 
   .select-btn,
@@ -1345,22 +1232,49 @@ select:focus {
     height: clamp(13px, 3vw, 17px);
   }
 
+  /* A/B buttons */
   .ab-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: clamp(8px, 2.5vw, 13px);
+    transform: rotate(-20deg);
+    flex-shrink: 0;
+    align-items: flex-end;
     width: clamp(98px, 28vw, 128px);
     max-width: none;
     justify-content: center;
     justify-self: end;
-    gap: clamp(8px, 2.5vw, 13px);
   }
 
   .ab-btn {
     width: clamp(48px, 14vw, 60px);
     height: clamp(48px, 14vw, 60px);
+    font-size: 13px;
+    box-shadow:
+      0 7px 0 #2a0440,
+      0 9px 18px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.3);
   }
 
   .ab-btn:first-child {
     width: clamp(41px, 12vw, 52px);
     height: clamp(41px, 12vw, 52px);
+    font-size: 11px;
+  }
+
+  .ab-btn:active,
+  .ab-btn.pressed {
+    transform: translateY(6px);
+  }
+
+  .statusBar    { font-size: 5px; }
+  .header-title { font-size: 8px; }
+
+  .speaker,
+  .label,
+  .power-led {
+    display: block;
   }
 
   .speaker {
@@ -1374,5 +1288,3 @@ select:focus {
     font-size: 6px;
   }
 }
-
-/* Landscape layout removed — vertical layout on all viewports */
