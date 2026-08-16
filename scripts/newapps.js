@@ -47,7 +47,7 @@ async function searchMusic() {
     const query = document.getElementById('musicSearch').value;
     if (!query) return;
     const musicTitle = document.getElementById('musicTitle');
-    if (musicTitle) musicTitle.textContent = "SEARCHING...";
+    if (musicTitle) if(musicTitle) musicTitle.textContent = "SEARCHING...";
     try {
         const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=${JAMENDO_CLIENT_ID}&format=jsonflat&limit=10&search=${encodeURIComponent(query)}`);
         const data = await res.json();
@@ -55,8 +55,8 @@ async function searchMusic() {
         currentMusicIdx = 0;
         renderQueue();
         if (musicQueue.length > 0) playMusic(0);
-        else { const mt = document.getElementById('musicTitle'); if(mt) mt.textContent = "NO RESULTS"; }
-    } catch (e) { const mt = document.getElementById('musicTitle'); if(mt) mt.textContent = "API ERROR"; }
+        else { const mt = document.getElementById('musicTitle'); if(mt) if(mt) mt.textContent = "NO RESULTS"; }
+    } catch (e) { const mt = document.getElementById('musicTitle'); if(mt) if(mt) mt.textContent = "API ERROR"; }
 }
 
 function playMusic(idx) {
@@ -68,11 +68,11 @@ function playMusic(idx) {
     audio.play();
     isMusicPlaying = true;
     const mt = document.getElementById('musicTitle');
-    if(mt) mt.textContent = track.name.toUpperCase();
+    if(mt) if(mt) mt.textContent = track.name.toUpperCase();
     const ma = document.getElementById('musicArtist');
-    if(ma) ma.textContent = track.artist_name.toUpperCase();
+    if(ma) if(ma) ma.textContent = track.artist_name.toUpperCase();
     const mp = document.getElementById('musicPlayBtn');
-    if(mp) mp.textContent = "⏸";
+    if(mp) if(mp) mp.textContent = "⏸";
     startVinyl();
     document.getElementById('vinylNeedle').style.transform = "rotate(0deg)";
 }
@@ -83,11 +83,11 @@ function toggleMusicPlay() {
     if (!audio.src) return;
     if (isMusicPlaying) {
         audio.pause(); stopVinyl();
-        document.getElementById('musicPlayBtn').textContent = "▶";
+        _el = document.getElementById('musicPlayBtn'); if(_el) _el.textContent = "▶";
         document.getElementById('vinylNeedle').style.transform = "rotate(30deg)";
     } else {
         audio.play(); startVinyl();
-        document.getElementById('musicPlayBtn').textContent = "⏸";
+        _el = document.getElementById('musicPlayBtn'); if(_el) _el.textContent = "⏸";
         document.getElementById('vinylNeedle').style.transform = "rotate(0deg)";
     }
     isMusicPlaying = !isMusicPlaying;
@@ -115,7 +115,7 @@ function stopVinyl() { clearInterval(vinylInterval); vinylInterval = null; }
 let spiritPingInterval = null;
 function initSpirit() {
     const status = document.getElementById('radarStatus');
-    status.textContent = "SCANNING FIELDS...";
+    if(status) status.textContent = "SCANNING FIELDS...";
     if (spiritPingInterval) clearInterval(spiritPingInterval);
     spiritPingInterval = setInterval(() => { if (Math.random() > 0.85) triggerGhostSignal(); }, 3000);
 }
@@ -123,10 +123,10 @@ function triggerGhostSignal() {
     const dot = document.getElementById('spiritDot'); const pulse = document.getElementById('spiritPulse'); const status = document.getElementById('radarStatus');
     const x = 40 + Math.random() * 140; const y = 40 + Math.random() * 140;
     dot.style.left = x + 'px'; dot.style.top = y + 'px'; dot.style.display = 'block';
-    status.textContent = "!! ENTITY !!"; status.style.color = "#f00";
+    if(status) status.textContent = "!! ENTITY !!"; status.style.color = "#f00";
     playBeep(800, 0.1);
     pulse.style.animation = 'none'; setTimeout(() => { pulse.style.animation = 'radar-pulse 1s ease-out'; }, 10);
-    setTimeout(() => { dot.style.display = 'none'; status.textContent = "SEARCHING..."; status.style.color = "#0f0"; }, 2000);
+    setTimeout(() => { dot.style.display = 'none'; if(status) status.textContent = "SEARCHING..."; status.style.color = "#0f0"; }, 2000);
 }
 let _beepCtx = null;
 function playBeep(freq, dur) { if(!_beepCtx) _beepCtx = new (window.AudioContext || window.webkitAudioContext)(); const o = _beepCtx.createOscillator(); const g = _beepCtx.createGain(); o.frequency.value = freq; g.gain.value = 0.1; o.connect(g); g.connect(_beepCtx.destination); o.start(); o.stop(_beepCtx.currentTime + dur); }
@@ -150,8 +150,8 @@ async function searchRadio() {
                 radioPlayer.src = station.url_resolved; 
                 radioPlayer.play(); 
                 isRadioPlaying = true; 
-                const rpb = document.getElementById('radioPlayBtn'); if(rpb) rpb.textContent = "STOP"; 
-                const rft = document.getElementById('radioFreqText'); if(rft) rft.textContent = station.name.substring(0,8); 
+                const rpb = document.getElementById('radioPlayBtn'); if(rpb) if(rpb) rpb.textContent = "STOP"; 
+                const rft = document.getElementById('radioFreqText'); if(rft) if(rft) rft.textContent = station.name.substring(0,8); 
                 startRadioVisual(); 
 
                 // Background Audio Support for Radio
@@ -170,7 +170,7 @@ async function searchRadio() {
         });
     } catch (e) { list.innerHTML = 'ERROR'; }
 }
-function toggleRadio() { if (isRadioPlaying) { radioPlayer.pause(); isRadioPlaying = false; const rpb = document.getElementById('radioPlayBtn'); if(rpb) rpb.textContent = "START"; } else if (radioPlayer.src) { radioPlayer.play(); isRadioPlaying = true; const rpb = document.getElementById('radioPlayBtn'); if(rpb) rpb.textContent = "STOP"; } }
+function toggleRadio() { if (isRadioPlaying) { radioPlayer.pause(); isRadioPlaying = false; const rpb = document.getElementById('radioPlayBtn'); if(rpb) if(rpb) rpb.textContent = "START"; } else if (radioPlayer.src) { radioPlayer.play(); isRadioPlaying = true; const rpb = document.getElementById('radioPlayBtn'); if(rpb) if(rpb) rpb.textContent = "STOP"; } }
 function startRadioVisual() {
     const c = document.getElementById('radioCanvas'); if(!c) return; const ctx = c.getContext('2d');
     const draw = () => { if (!isRadioPlaying) return; const data = ctx.createImageData(c.width, c.height); for (let i = 0; i < data.data.length; i += 4) { const v = Math.random() * 255; data.data[i] = data.data[i+1] = data.data[i+2] = v; data.data[i+3] = 255; } ctx.putImageData(data, 0, 0); requestAnimationFrame(draw); };
@@ -200,7 +200,7 @@ const DAY_NAMES = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
 
 window.initWeather = async function() {
     const cityName = document.getElementById('weatherCityName');
-    if(cityName) cityName.textContent = 'LOCATING...';
+    if(cityName) if(cityName) cityName.textContent = 'LOCATING...';
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const lat = pos.coords.latitude;
@@ -208,7 +208,7 @@ window.initWeather = async function() {
             await fetchWeatherData(lat, lon);
         }, () => {
             const cn = document.getElementById('weatherCityName');
-            if(cn) cn.textContent = 'GPS UNAVAILABLE';
+            if(cn) if(cn) cn.textContent = 'GPS UNAVAILABLE';
         });
     }
 };
@@ -239,13 +239,13 @@ async function fetchWeatherData(lat, lon) {
 
         const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.county || geoData.address?.state || 'UNKNOWN';
         const country = geoData.address?.country_code?.toUpperCase() || '';
-        if(cityNameEl) cityNameEl.textContent = `${city}${country ? ', ' + country : ''}`;
+        if(cityNameEl) if(cityNameEl) cityNameEl.textContent = `${city}${country ? ', ' + country : ''}`;
 
         const current = weatherData.current_weather;
         const codeInfo = weatherCodes[current.weathercode] || { icon: '🌡️', desc: 'UNKNOWN' };
-        if(iconEl) iconEl.textContent = codeInfo.icon;
-        if(tempEl) tempEl.textContent = `${current.temperature.toFixed(1)}°C`;
-        if(condEl) condEl.textContent = codeInfo.desc;
+        if(iconEl) if(iconEl) iconEl.textContent = codeInfo.icon;
+        if(tempEl) if(tempEl) tempEl.textContent = `${current.temperature.toFixed(1)}°C`;
+        if(condEl) if(condEl) condEl.textContent = codeInfo.desc;
 
         if(forecastEl && weatherData.daily) {
             forecastEl.innerHTML = '';
@@ -265,7 +265,7 @@ async function fetchWeatherData(lat, lon) {
             drawWeatherChart(weatherData.hourly.temperature_2m);
         }
     } catch(e) {
-        if(cityNameEl) cityNameEl.textContent = 'API ERROR';
+        if(cityNameEl) if(cityNameEl) cityNameEl.textContent = 'API ERROR';
     }
 }
 
@@ -361,7 +361,7 @@ window.initNews = async function(category = 'space') {
 
         const ticker = document.getElementById('newsText');
         if (ticker && stories.length > 0) {
-            ticker.textContent = 'LATEST: ' + stories.slice(0, 5).map(s => s.title.toUpperCase()).join(' ••• ');
+            if(ticker) ticker.textContent = 'LATEST: ' + stories.slice(0, 5).map(s => s.title.toUpperCase()).join(' ••• ');
         }
     } catch(e) {
         list.innerHTML = '<div style="text-align:center; padding: 40px; color: #8b0000; font-size: 8px;">UPLINK FAILED</div>';
@@ -463,7 +463,7 @@ window.translateText = async function() {
     
     if (!text) return;
     
-    output.textContent = "TRANSLATING...";
+    if(output) output.textContent = "TRANSLATING...";
     sounds.click();
     
     try {
@@ -473,14 +473,14 @@ window.translateText = async function() {
         
         if (data.responseData && data.responseData.translatedText) {
             const translated = data.responseData.translatedText.toUpperCase();
-            output.textContent = translated;
+            if(output) output.textContent = translated;
             addTransHistory(text, translated, from, to);
             sounds.coin();
         } else {
-            output.textContent = "[TRANSLATION FAILED]";
+            if(output) output.textContent = "[TRANSLATION FAILED]";
         }
     } catch(e) {
-        output.textContent = `[${to.toUpperCase()}] OFFLINE`;
+        if(output) output.textContent = `[${to.toUpperCase()}] OFFLINE`;
     }
 }
 
@@ -533,8 +533,8 @@ window.fetchStock = async function(ticker = 'AAPL') {
     const canvas = document.getElementById('stockCanvas');
     if(!currEl || !companyEl || !canvas) return;
     
-    currEl.textContent = "LOADING...";
-    companyEl.textContent = "";
+    if(currEl) currEl.textContent = "LOADING...";
+    if(companyEl) companyEl.textContent = "";
     currEl.style.display = 'block';
     companyEl.style.display = 'block';
     
@@ -549,19 +549,19 @@ window.fetchStock = async function(ticker = 'AAPL') {
             const lastClose = quotes[quotes.length - 1].close;
             const lastIdx = quotes.length - 1;
             
-            currEl.textContent = lastClose !== undefined && lastClose !== null ? `$${lastClose.toFixed(2)}` : "N/A";
+            if(currEl) currEl.textContent = lastClose !== undefined && lastClose !== null ? `$${lastClose.toFixed(2)}` : "N/A";
             
             // Get company name from summary detail if available
             const meta = chart?.result?.[0]?.meta || {};
-            companyEl.textContent = meta?.shortName || meta?.longName || ticker;
+            if(companyEl) companyEl.textContent = meta?.shortName || meta?.longName || ticker;
             
             drawSparkline(ctx, closes, c.width, c.height);
         } else {
-            currEl.textContent = "NO DATA";
+            if(currEl) currEl.textContent = "NO DATA";
         }
     } catch(e) {
-        currEl.textContent = "ERROR";
-        companyEl.textContent = "";
+        if(currEl) currEl.textContent = "ERROR";
+        if(companyEl) companyEl.textContent = "";
     }
 };
 
@@ -619,8 +619,8 @@ window.fetchStockPrice = async function() {
     const canvas = document.getElementById('stockCanvas');
     const ctx = canvas.getContext('2d');
     
-    priceEl.textContent = 'LOADING...';
-    companyEl.textContent = 'COMPANY NAME';
+    if(priceEl) priceEl.textContent = 'LOADING...';
+    if(companyEl) companyEl.textContent = 'COMPANY NAME';
     companyEl.style.display = 'block';
     
     try {
@@ -631,23 +631,23 @@ window.fetchStockPrice = async function() {
         const timestamps = chart.timestamp || [];
         
         if (closes.length === 0) {
-            priceEl.textContent = 'NO DATA';
+            if(priceEl) priceEl.textContent = 'NO DATA';
             return;
         }
         
         // Get current price (last close)
         const currentPrice = closes[closes.length - 1];
-        priceEl.textContent = `$${currentPrice.toFixed(2)}`;
+        if(priceEl) priceEl.textContent = `$${currentPrice.toFixed(2)}`;
         
         // Get company name from summary detail
         const name = chart.meta.summary ? chart.meta.summary : ticker;
-        companyEl.textContent = name;
+        if(companyEl) companyEl.textContent = name;
         
         // Draw sparkline
         drawSparkline(ctx, closes, canvas.width, canvas.height);
         
     } catch(e) {
-        priceEl.textContent = 'ERROR';
+        if(priceEl) priceEl.textContent = 'ERROR';
         console.error(e);
     }
 };
@@ -688,11 +688,11 @@ function drawSparkline(ctx, closes, width, height) {
 }
 async function initCrypto() { refreshCrypto(); }
 async function refreshCrypto() {
-    const btc = document.getElementById('btcPrice'); btc.textContent = "...";
+    const btc = document.getElementById('btcPrice'); if(btc) btc.textContent = "...";
     try {
         const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd'); const data = await res.json();
-        btc.textContent = `$${data.bitcoin.usd}`; document.getElementById('ethPrice').textContent = `$${data.ethereum.usd}`;
-    } catch(e) { btc.textContent = "OFFLINE"; }
+        if(btc) btc.textContent = `$${data.bitcoin.usd}`; _el = document.getElementById('ethPrice'); if(_el) _el.textContent = `$${data.ethereum.usd}`;
+    } catch(e) { if(btc) btc.textContent = "OFFLINE"; }
 }
 // ========== BREATHING APP ==========
 let breatheInterval = null;
@@ -734,8 +734,8 @@ window.toggleBreathe = function() {
 function startBreathe() {
     breatheRunning = true;
     breatheSessionStart = Date.now();
-    document.getElementById('breatheBtn').textContent = 'STOP';
-    document.getElementById('breathePhase').textContent = 'STARTING...';
+    _el = document.getElementById('breatheBtn'); if(_el) _el.textContent = 'STOP';
+    _el = document.getElementById('breathePhase'); if(_el) _el.textContent = 'STARTING...';
     breatheSessionTimer = setInterval(updateBreatheSession, 1000);
     runBreatheCycle();
 }
@@ -747,9 +747,9 @@ function stopBreathe() {
     const circle = document.getElementById('breatheCircle');
     const text = document.getElementById('breatheText');
     if(circle) circle.style.transform = 'scale(1)';
-    if(text) text.textContent = 'READY';
-    document.getElementById('breatheBtn').textContent = 'START';
-    document.getElementById('breathePhase').textContent = '';
+    if(text) if(text) text.textContent = 'READY';
+    _el = document.getElementById('breatheBtn'); if(_el) _el.textContent = 'START';
+    _el = document.getElementById('breathePhase'); if(_el) _el.textContent = '';
     // Save session
     const elapsed = Math.floor((Date.now() - breatheSessionStart) / 1000);
     if(elapsed > 5) {
@@ -769,15 +769,15 @@ function runBreatheCycle() {
         const circle = document.getElementById('breatheCircle');
         const text = document.getElementById('breatheText');
         const phaseEl = document.getElementById('breathePhase');
-        if(text) text.textContent = phase.label;
-        if(phaseEl) phaseEl.textContent = `${phase.label} — ${phase.duration}s`;
+        if(text) if(text) text.textContent = phase.label;
+        if(phaseEl) if(phaseEl) phaseEl.textContent = `${phase.label} — ${phase.duration}s`;
         if(circle) circle.style.transform = `scale(${phase.scale})`;
         // Countdown
         let remaining = phase.duration;
         const countdown = setInterval(() => {
             if(!breatheRunning) { clearInterval(countdown); return; }
             remaining--;
-            if(remaining > 0 && phaseEl) phaseEl.textContent = `${phase.label} — ${remaining}s`;
+            if(remaining > 0 && phaseEl) if(phaseEl) phaseEl.textContent = `${phase.label} — ${remaining}s`;
         }, 1000);
         breatheInterval = setTimeout(() => {
             clearInterval(countdown);
@@ -794,7 +794,7 @@ function updateBreatheSession() {
     const elapsed = Math.floor((Date.now() - breatheSessionStart) / 1000);
     const m = Math.floor(elapsed / 60);
     const s = elapsed % 60;
-    el.textContent = `SESSION: ${m}:${s.toString().padStart(2, '0')}`;
+    if(el) el.textContent = `SESSION: ${m}:${s.toString().padStart(2, '0')}`;
 }
 
 window.initBreathe = function() {
@@ -804,7 +804,7 @@ window.initBreathe = function() {
     if(timerEl && total > 0) {
         const tm = Math.floor(total / 60);
         const ts = total % 60;
-        timerEl.textContent = `TOTAL: ${tm}m ${ts}s | SESSION: 0:00`;
+        if(timerEl) timerEl.textContent = `TOTAL: ${tm}m ${ts}s | SESSION: 0:00`;
     }
 };
 // ========== MAPS ENHANCED ==========
@@ -862,7 +862,7 @@ function renderMapMarkers() {
     mapMarkers.forEach(m => {
         const el = document.createElement('div');
         el.className = 'user-marker';
-        el.textContent = m.icon;
+        if(el) el.textContent = m.icon;
         el.style.position = 'absolute';
         el.style.left = (m.x - 5) + 'px';
         el.style.top = (m.y - 10) + 'px'; // Center base
@@ -885,12 +885,12 @@ function generateQR() {
     const placeholder = document.getElementById('qrPlaceholder');
     
     if (!input) {
-        placeholder.textContent = 'ENTER TEXT FIRST!';
+        if(placeholder) placeholder.textContent = 'ENTER TEXT FIRST!';
         return;
     }
     
     if (input.length > 500) {
-        placeholder.textContent = 'TEXT TOO LONG!';
+        if(placeholder) placeholder.textContent = 'TEXT TOO LONG!';
         return;
     }
     
@@ -902,16 +902,16 @@ function generateQR() {
     img.style.width = '100%';
     img.alt = 'QR Code';
     img.onerror = () => {
-        placeholder.textContent = 'QR GENERATION FAILED!';
+        if(placeholder) placeholder.textContent = 'QR GENERATION FAILED!';
     };
     placeholder.appendChild(img);
     sounds.click();
 }
 let alarmTimeStr = "07:00";
-function initAlerts() { document.getElementById('alarmTime').textContent = alarmTimeStr; }
-function adjAlarm(amt) { let [h, m] = alarmTimeStr.split(':').map(Number); h = (h + amt + 24) % 24; alarmTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`; document.getElementById('alarmTime').textContent = alarmTimeStr; }
-function adjAlarmMin(amt) { let [h, m] = alarmTimeStr.split(':').map(Number); m = (m + amt + 60) % 60; alarmTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`; document.getElementById('alarmTime').textContent = alarmTimeStr; }
-function toggleAlarm() { const btn = document.getElementById('alarmBtn'); btn.textContent = btn.textContent === 'SET ALARM' ? 'ALARM ACTIVE' : 'SET ALARM'; btn.style.background = btn.textContent === 'ALARM ACTIVE' ? '#f00' : '#33aa33'; }
+function initAlerts() { _el = document.getElementById('alarmTime'); if(_el) _el.textContent = alarmTimeStr; }
+function adjAlarm(amt) { let [h, m] = alarmTimeStr.split(':').map(Number); h = (h + amt + 24) % 24; alarmTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`; _el = document.getElementById('alarmTime'); if(_el) _el.textContent = alarmTimeStr; }
+function adjAlarmMin(amt) { let [h, m] = alarmTimeStr.split(':').map(Number); m = (m + amt + 60) % 60; alarmTimeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`; _el = document.getElementById('alarmTime'); if(_el) _el.textContent = alarmTimeStr; }
+function toggleAlarm() { const btn = document.getElementById('alarmBtn'); if(btn) { btn.textContent = btn.textContent === 'SET ALARM' ? 'ALARM ACTIVE' : 'SET ALARM'; btn.style.background = btn.textContent === 'ALARM ACTIVE' ? '#f00' : '#33aa33'; } }
 function initCredits() { sounds.launch(); }
 
 // ========== PREVIOUS LOGIC ==========
@@ -938,7 +938,7 @@ let vaultInput = "";
 window.initVault = function() {
     vaultInput = "";
     const disp = document.getElementById('vaultPinDisplay');
-    if(disp) disp.textContent = "____";
+    if(disp) if(disp) disp.textContent = "____";
     const lock = document.getElementById('vaultLock');
     if(lock) lock.style.display='flex';
     const content = document.getElementById('vaultContent');
@@ -952,7 +952,7 @@ window.handleVaultInput = function(dir) {
     vaultInput += code;
     
     const len = vaultInput.length;
-    document.getElementById('vaultPinDisplay').textContent = "*".repeat(len) + "_".repeat(Math.max(0, 4-len));
+    _el = document.getElementById('vaultPinDisplay'); if(_el) _el.textContent = "*".repeat(len) + "_".repeat(Math.max(0, 4-len));
     
     sounds.click();
     
@@ -962,7 +962,7 @@ window.handleVaultInput = function(dir) {
             document.getElementById('vaultLock').style.display='none';
             document.getElementById('vaultContent').style.display='block';
         } else {
-            document.getElementById('vaultPinDisplay').textContent = "WRONG";
+            _el = document.getElementById('vaultPinDisplay'); if(_el) _el.textContent = "WRONG";
             setTimeout(window.initVault, 1000);
         }
     }
@@ -1061,17 +1061,17 @@ const karaoke = {
                 });
                 ctrls.style.display = 'flex';
             } else {
-                lyricDiv.textContent = 'NO LYRICS FOUND :(';
+                if(lyricDiv) lyricDiv.textContent = 'NO LYRICS FOUND :(';
                 // Still allow manual search or back
             }
-        } catch(e) { lyricDiv.textContent = 'ERROR LOADING LYRICS'; }
+        } catch(e) { if(lyricDiv) lyricDiv.textContent = 'ERROR LOADING LYRICS'; }
     },
     back: () => {
         document.getElementById('kResults').style.display = 'block';
         document.getElementById('kLyrics').style.display = 'none';
         document.getElementById('kControls').style.display = 'none';
         document.getElementById('kBackBtn').style.display = 'none';
-        document.getElementById('kLyrics').textContent = '';
+        _el = document.getElementById('kLyrics'); if(_el) _el.textContent = '';
         karaoke.stopAutoScroll();
     },
     // Simple auto-scroller
@@ -1080,13 +1080,13 @@ const karaoke = {
         const btn = document.getElementById('kPlayBtn');
         if(karaoke.scrollTimer) {
             karaoke.stopAutoScroll();
-            btn.textContent = "▶ START";
+            if(btn) btn.textContent = "▶ START";
         } else {
             const div = document.getElementById('kLyrics');
             karaoke.scrollTimer = setInterval(() => {
                 div.scrollTop += 1;
             }, 50);
-            btn.textContent = "⏸ PAUSE";
+            if(btn) btn.textContent = "⏸ PAUSE";
         }
     },
     stopAutoScroll: () => {
@@ -1227,14 +1227,14 @@ window.tossCoin = function() {
     const display = document.getElementById('coinDisplay');
     const result = document.getElementById('coinResult');
     display.style.animation = 'spin 0.5s infinite linear';
-    result.textContent = "FLIPPING...";
+    if(result) result.textContent = "FLIPPING...";
     sounds.launch();
     
     setTimeout(() => {
         display.style.animation = 'none';
         const isHeads = Math.random() > 0.5;
-        display.textContent = isHeads ? '🪙' : '🦅';
-        result.textContent = isHeads ? 'HEADS' : 'TAILS';
+        if(display) display.textContent = isHeads ? '🪙' : '🦅';
+        if(result) result.textContent = isHeads ? 'HEADS' : 'TAILS';
         sounds.coin();
     }, 1000);
 };
@@ -1244,20 +1244,20 @@ window.rollDice = function() {
     const display = document.getElementById('diceDisplay');
     const result = document.getElementById('diceResult');
     display.style.animation = 'shake 0.3s infinite';
-    result.textContent = "ROLLING...";
+    if(result) result.textContent = "ROLLING...";
     sounds.launch();
     
     setTimeout(() => {
         display.style.animation = 'none';
         const roll = Math.floor(Math.random() * 6) + 1;
         const faces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-        display.textContent = faces[roll - 1];
+        if(display) display.textContent = faces[roll - 1];
         if(roll === 6) {
-            result.textContent = "CRITICAL! +3 GEMS";
+            if(result) result.textContent = "CRITICAL! +3 GEMS";
             addGems(3);
             sounds.coin();
         } else {
-            result.textContent = `ROLLED A ${roll}`;
+            if(result) result.textContent = `ROLLED A ${roll}`;
         }
     }, 800);
 };
@@ -1275,7 +1275,7 @@ window.crackCookie = function() {
         "Save often, live freely."
     ];
     sounds.click();
-    text.textContent = fortunes[Math.floor(Math.random() * fortunes.length)];
+    if(text) text.textContent = fortunes[Math.floor(Math.random() * fortunes.length)];
     addGems(1);
 };
 
@@ -1298,7 +1298,7 @@ window.setMorseMode = function(mode) {
         input.value = '';
     }
     const output = document.getElementById('morseOutput');
-    if(output) output.textContent = '';
+    if(output) if(output) output.textContent = '';
 };
 
 window.updateMorse = function() {
@@ -1311,7 +1311,7 @@ window.updateMorse = function() {
         for(let char of input.toUpperCase()) {
             result += (morseCode[char] || char) + ' ';
         }
-        output.textContent = result.trim();
+        if(output) output.textContent = result.trim();
     } else {
         let result = '';
         const words = input.split('  ');
@@ -1326,7 +1326,7 @@ window.updateMorse = function() {
             });
             if(wi < words.length - 1) result += ' ';
         });
-        output.textContent = result;
+        if(output) output.textContent = result;
     }
 };
 
@@ -1376,7 +1376,7 @@ window.initMorse = function() {
     const input = document.getElementById('morseInput');
     const output = document.getElementById('morseOutput');
     if(input) input.value = '';
-    if(output) output.textContent = '';
+    if(output) if(output) output.textContent = '';
 };
 // Beat Boy implementation moved to beat-boy.js
 
@@ -1429,7 +1429,7 @@ window.initGuess = function() {
     window.targetNum = Math.floor(Math.random() * 100) + 1;
     window.guesses = 0;
     const fb = document.getElementById('guessFeedback');
-    if(fb) fb.textContent = "READY! (1-100)";
+    if(fb) if(fb) fb.textContent = "READY! (1-100)";
 };
 
 // Initial calls that might be missing
@@ -1591,8 +1591,8 @@ function setupWorldMap() {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
             
-            document.getElementById('wLat').textContent = lat.toFixed(4);
-            document.getElementById('wLng').textContent = lng.toFixed(4);
+            _el = document.getElementById('wLat'); if(_el) _el.textContent = lat.toFixed(4);
+            _el = document.getElementById('wLng'); if(_el) _el.textContent = lng.toFixed(4);
             
             worldMap = L.map('worldMapLeaflet').setView([lat, lng], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -1604,7 +1604,7 @@ function setupWorldMap() {
             const home = JSON.parse(localStorage.getItem('gbHome'));
             if(home) {
                 const dist = calculateDistance(lat, lng, home.lat, home.lng);
-                document.getElementById('wHomeDist').textContent = dist.toFixed(2) + ' KM';
+                _el = document.getElementById('wHomeDist'); if(_el) _el.textContent = dist.toFixed(2) + ' KM';
                 L.marker([home.lat, home.lng], {
                     icon: L.divIcon({className: 'home-icon', html: '🏠', iconSize: [20, 20]})
                 }).addTo(worldMap).bindPopup('HOUSE');
@@ -1671,7 +1671,7 @@ function setupNavMap() {
             
             if(home) {
                 const dist = calculateDistance(lat, lng, home.lat, home.lng);
-                document.getElementById('mapHomeDist').textContent = dist.toFixed(2) + ' KM';
+                _el = document.getElementById('mapHomeDist'); if(_el) _el.textContent = dist.toFixed(2) + ' KM';
                 L.marker([home.lat, home.lng], {
                     icon: L.divIcon({className: 'home-icon', html: '🏠', iconSize: [20, 20]})
                 }).addTo(navMap).bindPopup('HOUSE');
@@ -1776,6 +1776,23 @@ window.loadCurrencyRates = async function() {
         console.error("Currency API Error", e);
     }
 };
+// Define updateCurrencyDisplay — called after rates load
+window.updateCurrencyDisplay = function() {
+    const amountEl = document.getElementById('currencyAmount');
+    const fromEl = document.getElementById('fromCurrency');
+    const toEl = document.getElementById('toCurrency');
+    const resultEl = document.getElementById('currencyResult');
+    if(!amountEl || !fromEl || !toEl || !resultEl) return;
+    const amount = parseFloat(amountEl.value) || 1;
+    const fromCode = fromEl.value;
+    const toCode = toEl.value;
+    if(!rates[fromCode] || !rates[toCode]) {
+        if(resultEl) resultEl.textContent = 'Loading rates...';
+        return;
+    }
+    const result = amount * (rates[toCode] / rates[fromCode]);
+    if(resultEl) resultEl.textContent = amount + ' ' + fromCode + ' = ' + result.toFixed(2) + ' ' + toCode;
+};
 
 function populateCurrencyFlags(rates) {
     const fromSel = document.getElementById('fromCurrency');
@@ -1795,17 +1812,22 @@ function populateCurrencyFlags(rates) {
 }
 
 window.updateCurrency = async function() {
-    const amount = parseFloat(document.getElementById('currencyAmount').value) || 1;
-    const fromCode = document.getElementById('fromCurrency').value;
-    const toCode = document.getElementById('toCurrency').value;
+    const amountEl = document.getElementById('currencyAmount');
+    const fromEl = document.getElementById('fromCurrency');
+    const toEl = document.getElementById('toCurrency');
+    const resultEl = document.getElementById('currencyResult');
+    if(!amountEl || !fromEl || !toEl || !resultEl) return;
+    const amount = parseFloat(amountEl.value) || 1;
+    const fromCode = fromEl.value;
+    const toCode = toEl.value;
     
     if(!rates[fromCode] || !rates[toCode]) {
-        document.getElementById('currencyResult').textContent = "Loading rates...";
+        if(resultEl) resultEl.textContent = "Loading rates...";
         return;
     }
     
     const result = amount * (rates[toCode] / rates[fromCode]);
-    document.getElementById('currencyResult').textContent = `${amount} ${fromCode} = ${result.toFixed(2)} ${toCode}`;
+    if(resultEl) resultEl.textContent = `${amount} ${fromCode} = ${result.toFixed(2)} ${toCode}`;
 };
 
 window.swapCurrencies = function() {
@@ -1904,16 +1926,16 @@ window.paintFunc = function(action) {
 
 // ========== STUBS FOR OTHER APPS ==========
 // To prevent crashes when launching incomplete apps
-window.nextFlashcard = () => { document.getElementById('flashCard').textContent = "Concept: CLOSURE"; };
+window.nextFlashcard = () => { _el = document.getElementById('flashCard'); if(_el) _el.textContent = "Concept: CLOSURE"; };
 window.startClock = () => { 
     if(window.clockInterval) clearInterval(window.clockInterval);
     window.clockInterval = setInterval(() => {
         const d = new Date();
-        document.getElementById('bigClock').textContent = d.toLocaleTimeString();
-        document.getElementById('bigDate').textContent = d.toDateString();
+        _el = document.getElementById('bigClock'); if(_el) _el.textContent = d.toLocaleTimeString();
+        _el = document.getElementById('bigDate'); if(_el) _el.textContent = d.toDateString();
     }, 1000);
 };
-window.updateWeather = () => { document.getElementById('weatherText').textContent = "SIMULATED SUN"; };
+window.updateWeather = () => { _el = document.getElementById('weatherText'); if(_el) _el.textContent = "SIMULATED SUN"; };
 // Riddles
 let riddles = [
     { q: "WHAT HAS KEYS BUT NO LOCKS?", a: "A PIANO" },
@@ -1929,8 +1951,8 @@ window.initRiddle = () => {
     const q = document.getElementById('riddleQuestion');
     const a = document.getElementById('riddleAnswer');
     if(q && a) {
-        q.textContent = riddles[currentRiddleIdx].q;
-        a.textContent = riddles[currentRiddleIdx].a;
+        if(q) q.textContent = riddles[currentRiddleIdx].q;
+        if(a) a.textContent = riddles[currentRiddleIdx].a;
         a.style.display = 'none';
         document.getElementById('riddleBtn').style.display = 'block';
         document.getElementById('nextRiddleBtn').style.display = 'none';
@@ -1975,7 +1997,7 @@ window.playPet = () => {
 // ========== CALENDAR ==========
 window.initCalendar = () => {
     const today = new Date();
-    document.getElementById('calToday').textContent = today.toDateString();
+    _el = document.getElementById('calToday'); if(_el) _el.textContent = today.toDateString();
     const grid = document.getElementById('calGrid');
     if(grid) {
         grid.innerHTML = '';
@@ -2059,10 +2081,10 @@ window.initBall = function() {
 window.shakeBall = function() {
     const ans = document.getElementById('ballAnswer');
     const responses = ["YES", "NO", "MAYBE", "TRY AGAIN", "DOUBTFUL", "CERTAINLY"];
-    ans.textContent = "...";
+    if(ans) ans.textContent = "...";
     sounds.launch();
     setTimeout(() => {
-        ans.textContent = responses[Math.floor(Math.random() * responses.length)];
+        if(ans) ans.textContent = responses[Math.floor(Math.random() * responses.length)];
         sounds.coin();
     }, 1000);
 };
@@ -2245,10 +2267,10 @@ window.showBookDetail = function(book) {
     } else {
         cover.style.display = 'none';
     }
-    title.textContent = book.title ? book.title.toUpperCase() : 'UNKNOWN';
-    author.textContent = book.author_name ? 'BY ' + book.author_name.join(', ') : 'BY Unknown';
-    year.textContent = book.first_publish_year ? 'PUBLISHED ' + book.first_publish_year : '';
-    desc.textContent = book.first_sentence ? (Array.isArray(book.first_sentence) ? book.first_sentence[0] : book.first_sentence) : 'No description available.';
+    if(title) title.textContent = book.title ? book.title.toUpperCase() : 'UNKNOWN';
+    if(author) author.textContent = book.author_name ? 'BY ' + book.author_name.join(', ') : 'BY Unknown';
+    if(year) year.textContent = book.first_publish_year ? 'PUBLISHED ' + book.first_publish_year : '';
+    if(desc) desc.textContent = book.first_sentence ? (Array.isArray(book.first_sentence) ? book.first_sentence[0] : book.first_sentence) : 'No description available.';
     const key = book.key || '';
     link.href = key ? `https://openlibrary.org${key}` : '#';
     link.style.display = key ? 'inline-block' : 'none';
@@ -2277,11 +2299,11 @@ window.getIpInfo = async function() {
     const speedResult = document.getElementById('speedResult');
     if(!ipAddr) return;
     
-    ipAddr.textContent = "...";
-    ipCity.textContent = "...";
-    ipCountry.textContent = "...";
-    ipTz.textContent = "...";
-    ipIsp.textContent = "...";
+    if(ipAddr) ipAddr.textContent = "...";
+    if(ipCity) ipCity.textContent = "...";
+    if(ipCountry) ipCountry.textContent = "...";
+    if(ipTz) ipTz.textContent = "...";
+    if(ipIsp) ipIsp.textContent = "...";
     if(ipInfo) ipInfo.style.display = 'none';
     if(ipSpeed) ipSpeed.style.display = 'none';
     if(speedResult) speedResult.style.display = 'none';
@@ -2290,15 +2312,15 @@ window.getIpInfo = async function() {
     try {
         const res = await fetch('https://ipapi.co/json/');
         const data = await res.json();
-        ipAddr.textContent = data.ip;
-        ipCity.textContent = data.city;
-        ipCountry.textContent = data.country_name;
-        ipTz.textContent = data.timezone;
-        ipIsp.textContent = data.org;
+        if(ipAddr) ipAddr.textContent = data.ip;
+        if(ipCity) ipCity.textContent = data.city;
+        if(ipCountry) ipCountry.textContent = data.country_name;
+        if(ipTz) ipTz.textContent = data.timezone;
+        if(ipIsp) ipIsp.textContent = data.org;
         if(ipInfo) ipInfo.style.display = 'block';
         sounds.coin();
     } catch(e) {
-        ipAddr.textContent = "ERROR";
+        if(ipAddr) ipAddr.textContent = "ERROR";
     }
 };
 
@@ -2308,7 +2330,7 @@ window.runSpeedTest = async function() {
     const speedMbps = document.getElementById('speedMbps');
     if(!speedMbps) return;
     
-    speedMbps.textContent = "TESTING...";
+    if(speedMbps) speedMbps.textContent = "TESTING...";
     if(ipInfo) ipInfo.style.display = 'none';
     if(speedResult) speedResult.style.display = 'block';
     
@@ -2319,9 +2341,9 @@ window.runSpeedTest = async function() {
         const timeMs = end - start;
         // bytes * 8 / (time * 1000000) = Mbps
         const mbps = Math.round((10000000 * 8) / (timeMs * 1000000) * 10) / 10;
-        speedMbps.textContent = `${mbps} Mbps`;
+        if(speedMbps) speedMbps.textContent = `${mbps} Mbps`;
     } catch(e) {
-        speedMbps.textContent = "FAILED";
+        if(speedMbps) speedMbps.textContent = "FAILED";
     }
 };
 
@@ -2357,11 +2379,11 @@ window.searchPokemon = async function() {
     const q = document.getElementById('pokeSearch').value.toLowerCase().trim();
     if(!q) return;
 
-    document.getElementById('pokeName').textContent = "SEARCHING...";
+    _el = document.getElementById('pokeName'); if(_el) _el.textContent = "SEARCHING...";
     document.getElementById('pokeTypeChips').innerHTML = '';
     document.getElementById('pokeStats').innerHTML = '';
     document.getElementById('pokeEvolution').innerHTML = '';
-    document.getElementById('pokeId').textContent = '';
+    _el = document.getElementById('pokeId'); if(_el) _el.textContent = '';
     document.getElementById('pokeImg').style.display = 'none';
     document.getElementById('pokePlaceholder').style.display = 'block';
 
@@ -2372,8 +2394,8 @@ window.searchPokemon = async function() {
         if(!res.ok) throw new Error("Not found");
         const data = await res.json();
 
-        document.getElementById('pokeName').textContent = data.name.toUpperCase();
-        document.getElementById('pokeId').textContent = '#' + String(data.id).padStart(3, '0');
+        _el = document.getElementById('pokeName'); if(_el) _el.textContent = data.name.toUpperCase();
+        _el = document.getElementById('pokeId'); if(_el) _el.textContent = '#' + String(data.id).padStart(3, '0');
 
         // Type chips
         const chipsEl = document.getElementById('pokeTypeChips');
@@ -2417,7 +2439,7 @@ window.searchPokemon = async function() {
         // Fetch evolution chain
         fetchEvolutionChain(data.species.url);
     } catch(e) {
-        document.getElementById('pokeName').textContent = "MISSINGNO";
+        _el = document.getElementById('pokeName'); if(_el) _el.textContent = "MISSINGNO";
         document.getElementById('pokeTypeChips').innerHTML = '<span style="background:#888;color:#fff;padding:1px 5px;border-radius:3px;font-size:5px;">GLITCH</span>';
     }
 };
@@ -2467,12 +2489,12 @@ window.startPokeBattle = async function(p1) {
             const res = await fetch('https://pokeapi.co/api/v2/pokemon/' + id);
             enemyMon = await res.json();
 
-            document.getElementById('battleEnemyName').textContent = enemyMon.name.toUpperCase();
+            _el = document.getElementById('battleEnemyName'); if(_el) _el.textContent = enemyMon.name.toUpperCase();
             document.getElementById('battleEnemyImg').src = enemyMon.sprites.front_default;
-            document.getElementById('battlePlayerName').textContent = playerMon.name.toUpperCase();
+            _el = document.getElementById('battlePlayerName'); if(_el) _el.textContent = playerMon.name.toUpperCase();
             document.getElementById('battlePlayerImg').src = playerMon.sprites.back_default || playerMon.sprites.front_default;
 
-            document.getElementById('battleLog').textContent = 'A wild ' + enemyMon.name.toUpperCase() + ' appeared!';
+            _el = document.getElementById('battleLog'); if(_el) _el.textContent = 'A wild ' + enemyMon.name.toUpperCase() + ' appeared!';
         } catch(e) {
             cancelBattle();
         }
@@ -2513,9 +2535,9 @@ function updateTriviaUI() {
     const livesEl = document.getElementById('triviaLives');
     const streakEl = document.getElementById('triviaStreak');
     const scoreEl = document.getElementById('triviaScore');
-    if(livesEl) livesEl.textContent = '\u2764\uFE0F'.repeat(triviaLives) + '\u2661'.repeat(3 - triviaLives);
-    if(streakEl) streakEl.textContent = '\uD83D\uDD25 ' + triviaStreak;
-    if(scoreEl) scoreEl.textContent = '\uD83D\uDC8E ' + triviaTotalScore;
+    if(livesEl) if(livesEl) livesEl.textContent = '\u2764\uFE0F'.repeat(triviaLives) + '\u2661'.repeat(3 - triviaLives);
+    if(streakEl) if(streakEl) streakEl.textContent = '\uD83D\uDD25 ' + triviaStreak;
+    if(scoreEl) if(scoreEl) scoreEl.textContent = '\uD83D\uDC8E ' + triviaTotalScore;
 }
 
 window.resetTrivia = function() {
@@ -2523,10 +2545,10 @@ window.resetTrivia = function() {
     triviaStreak = 0;
     triviaTotalScore = 0;
     triviaAnswered = false;
-    document.getElementById('triviaQuestion').textContent = 'SELECT OPTIONS & PRESS START';
+    _el = document.getElementById('triviaQuestion'); if(_el) _el.textContent = 'SELECT OPTIONS & PRESS START';
     document.getElementById('triviaOptions').innerHTML = '';
-    document.getElementById('triviaResult').textContent = '';
-    document.getElementById('triviaCategory').textContent = 'CATEGORY';
+    _el = document.getElementById('triviaResult'); if(_el) _el.textContent = '';
+    _el = document.getElementById('triviaCategory'); if(_el) _el.textContent = 'CATEGORY';
     updateTriviaUI();
 };
 
@@ -2538,9 +2560,9 @@ window.getTrivia = async function() {
     const catEl = document.getElementById('triviaCategory');
     const resEl = document.getElementById('triviaResult');
 
-    qEl.textContent = "LOADING...";
+    if(qEl) qEl.textContent = "LOADING...";
     optEl.innerHTML = '';
-    resEl.textContent = '';
+    if(resEl) resEl.textContent = '';
     triviaAnswered = false;
     sounds.click();
 
@@ -2557,14 +2579,14 @@ window.getTrivia = async function() {
         const res = await fetch(url);
         const data = await res.json();
         if(data.response_code !== 0 || !data.results || data.results.length === 0) {
-            qEl.textContent = "NO QUESTIONS AVAILABLE";
+            if(qEl) qEl.textContent = "NO QUESTIONS AVAILABLE";
             return;
         }
         const q = data.results[0];
 
-        catEl.textContent = q.category.toUpperCase() + ' (' + q.difficulty.toUpperCase() + ')';
+        if(catEl) catEl.textContent = q.category.toUpperCase() + ' (' + q.difficulty.toUpperCase() + ')';
         const decode = function(str) { var txt = document.createElement('textarea'); txt.innerHTML = str; return txt.value; };
-        qEl.textContent = decode(q.question);
+        if(qEl) qEl.textContent = decode(q.question);
         triviaCorrectAnswer = q.correct_answer;
 
         const answers = [q.correct_answer].concat(q.incorrect_answers);
@@ -2572,13 +2594,13 @@ window.getTrivia = async function() {
 
         answers.forEach(function(ans) {
             const btn = document.createElement('button');
-            btn.textContent = decode(ans);
+            if(btn) btn.textContent = decode(ans);
             btn.style.cssText = 'padding:5px;font-size:6px;text-align:left;width:100%;margin-bottom:2px;';
             btn.onclick = function() { checkTrivia(ans); };
             optEl.appendChild(btn);
         });
         sounds.coin();
-    } catch(e) { qEl.textContent = "ERROR FETCHING QUESTION"; }
+    } catch(e) { if(qEl) qEl.textContent = "ERROR FETCHING QUESTION"; }
 };
 
 window.checkTrivia = function(ans) {
@@ -2594,18 +2616,18 @@ window.checkTrivia = function(ans) {
         const bonus = triviaStreak >= 3 ? 5 : 0;
         const pts = 5 + bonus;
         triviaTotalScore += pts;
-        resEl.textContent = 'CORRECT! +' + pts + ' GEMS' + (bonus ? ' (STREAK BONUS!)' : '');
+        if(resEl) resEl.textContent = 'CORRECT! +' + pts + ' GEMS' + (bonus ? ' (STREAK BONUS!)' : '');
         resEl.style.color = '#006400';
         sounds.launch();
         addGems(pts);
     } else {
         triviaStreak = 0;
         triviaLives--;
-        resEl.textContent = 'WRONG! (-1 LIFE)';
+        if(resEl) resEl.textContent = 'WRONG! (-1 LIFE)';
         resEl.style.color = '#8b0000';
         sounds.click();
         if(triviaLives <= 0) {
-            resEl.textContent = 'GAME OVER! FINAL SCORE: ' + triviaTotalScore;
+            if(resEl) resEl.textContent = 'GAME OVER! FINAL SCORE: ' + triviaTotalScore;
         }
     }
     updateTriviaUI();
@@ -2625,14 +2647,14 @@ window.checkTrivia = function(ans) {
 window.initAdvice = function() {};
 window.getAdvice = async function() {
     const txt = document.getElementById('adviceText');
-    txt.textContent = "...";
+    if(txt) txt.textContent = "...";
     sounds.click();
     try {
         const res = await fetch('https://api.adviceslip.com/advice');
         const data = await res.json();
-        txt.textContent = data.slip.advice.toUpperCase();
+        if(txt) txt.textContent = data.slip.advice.toUpperCase();
         sounds.coin();
-    } catch(e) { txt.textContent = "SILENCE IS GOLDEN (OFFLINE)"; }
+    } catch(e) { if(txt) txt.textContent = "SILENCE IS GOLDEN (OFFLINE)"; }
 };
 
 // ========== SPACE ==========
@@ -2640,7 +2662,7 @@ window.initSpace = function() {};
 window.getSpaceData = async function() {
     const txt = document.getElementById('spaceInfo');
     if(txt) {
-         txt.textContent = "ESTABLISHING UPLINK...";
+         if(txt) txt.textContent = "ESTABLISHING UPLINK...";
          sounds.click();
          try {
              // SpaceX V5 Next Launch
@@ -2654,7 +2676,7 @@ window.getSpaceData = async function() {
              
              txt.innerHTML = `FLIGHT #${flight}<br>MISSION: ${name}<br>LAUNCH: ${date}<br><br>INTEL:<br>${details.substring(0, 150)}${details.length>150?'...':''}`;
              sounds.coin();
-         } catch(e) { txt.textContent = "LINK FAILURE (OFFLINE)"; }
+         } catch(e) { if(txt) txt.textContent = "LINK FAILURE (OFFLINE)"; }
     }
 };
 
@@ -2664,7 +2686,7 @@ window.askOracle = async function() {
     const ans = document.getElementById('oracleAnswer');
     const gif = document.getElementById('oracleGif');
     
-    if(ans) ans.textContent = "CONSULTING...";
+    if(ans) if(ans) ans.textContent = "CONSULTING...";
     if(gif) gif.style.display = 'none';
     sounds.click();
     
@@ -2674,7 +2696,7 @@ window.askOracle = async function() {
             const data = await res.json();
             
             if(ans) {
-                ans.textContent = data.answer.toUpperCase();
+                if(ans) ans.textContent = data.answer.toUpperCase();
                 ans.style.color = data.answer === 'yes' ? '#006400' : '#8b0000';
             }
             if(gif) {
@@ -2682,7 +2704,7 @@ window.askOracle = async function() {
                 gif.onload = () => { gif.style.display = 'block'; sounds.launch(); };
             }
         } catch(e) { 
-            if(ans) ans.textContent = "THE VOID STARES BACK"; 
+            if(ans) if(ans) ans.textContent = "THE VOID STARES BACK"; 
         }
     }, 800);
 };
@@ -2771,15 +2793,15 @@ window.initQuote = function() {};
 window.getQuote = async function() {
     const txt = document.getElementById('quoteText');
     const auth = document.getElementById('quoteAuthor');
-    txt.textContent = "...";
+    if(txt) txt.textContent = "...";
     sounds.click();
     try {
         const res = await fetch('https://api.quotable.io/random?maxLength=50');
         const data = await res.json();
-        txt.textContent = `"${data.content.toUpperCase()}"`;
-        auth.textContent = `- ${data.author.toUpperCase()}`;
+        if(txt) txt.textContent = `"${data.content.toUpperCase()}"`;
+        if(auth) auth.textContent = `- ${data.author.toUpperCase()}`;
         sounds.coin();
-    } catch(e) { txt.textContent = "OFFLINE WISDOM"; }
+    } catch(e) { if(txt) txt.textContent = "OFFLINE WISDOM"; }
 };
 
 // ========== FOX ==========
@@ -2808,7 +2830,7 @@ window.getIdentity = async function() {
     const display = document.getElementById('identDisplay');
     if(!name) return;
     
-    display.textContent = "ANALYZING BIOMETRICS...";
+    if(display) display.textContent = "ANALYZING BIOMETRICS...";
     sounds.click();
     
     try {
@@ -2824,7 +2846,7 @@ window.getIdentity = async function() {
         
         display.innerHTML = `AGE: ${age.age || '?'}<br>GENDER: ${gen.gender ? gen.gender.toUpperCase() : '?'}<br>NAT: ${nat.country[0] ? nat.country[0].country_id : '?'}`;
         sounds.launch();
-    } catch(e) { display.textContent = "IDENTITY UNKNOWN"; }
+    } catch(e) { if(display) display.textContent = "IDENTITY UNKNOWN"; }
 };
 
 // ========== TTT ==========
@@ -2836,7 +2858,7 @@ window.resetTTT = function() {
     tttBoard = ['', '', '', '', '', '', '', '', ''];
     tttTurn = 'X';
     tttActive = true;
-    document.getElementById('tttStatus').textContent = "PLAYER (X) TURN";
+    _el = document.getElementById('tttStatus'); if(_el) _el.textContent = "PLAYER (X) TURN";
     renderTTT();
 };
 window.renderTTT = function() {
@@ -2844,7 +2866,7 @@ window.renderTTT = function() {
     board.innerHTML = '';
     tttBoard.forEach((cell, i) => {
         const btn = document.createElement('button');
-        btn.textContent = cell;
+        if(btn) btn.textContent = cell;
         btn.style.cssText = "width: 40px; height: 40px; font-size: 20px; padding: 0;";
         btn.onclick = () => playTTT(i);
         board.appendChild(btn);
@@ -2857,17 +2879,17 @@ window.playTTT = function(i) {
     sounds.click();
     // Check win
     if(checkWin(tttBoard, tttTurn)) {
-        document.getElementById('tttStatus').textContent = `${tttTurn} WINS!`;
+        _el = document.getElementById('tttStatus'); if(_el) _el.textContent = `${tttTurn} WINS!`;
         addGems(5);
         sounds.launch();
         tttActive = false;
     } else if(!tttBoard.includes('')) {
-        document.getElementById('tttStatus').textContent = "DRAW!";
+        _el = document.getElementById('tttStatus'); if(_el) _el.textContent = "DRAW!";
         tttActive = false;
     } else {
         // CPU
         tttTurn = 'O';
-        document.getElementById('tttStatus').textContent = "CPU (O) TURN";
+        _el = document.getElementById('tttStatus'); if(_el) _el.textContent = "CPU (O) TURN";
         setTimeout(cpuTTT, 500);
         renderTTT();
         return;
@@ -2885,14 +2907,14 @@ function cpuTTT() {
         const move = empty[Math.floor(Math.random() * empty.length)];
         tttBoard[move] = 'O';
         if(checkWin(tttBoard, 'O')) {
-             document.getElementById('tttStatus').textContent = "CPU WINS!";
+             _el = document.getElementById('tttStatus'); if(_el) _el.textContent = "CPU WINS!";
              tttActive = false;
         } else if(!tttBoard.includes('')) {
-             document.getElementById('tttStatus').textContent = "DRAW!";
+             _el = document.getElementById('tttStatus'); if(_el) _el.textContent = "DRAW!";
              tttActive = false;
         } else {
             tttTurn = 'X';
-            document.getElementById('tttStatus').textContent = "PLAYER (X) TURN";
+            _el = document.getElementById('tttStatus'); if(_el) _el.textContent = "PLAYER (X) TURN";
         }
         renderTTT();
         sounds.click(); // CPU sound
@@ -2909,7 +2931,7 @@ window.playRPS = function(move) {
     
     const icons = { rock: '🪨', paper: '📄', scissors: '✂️' };
     
-    resEl.textContent = `${icons[move]} vs ${icons[cpu]}`;
+    if(resEl) resEl.textContent = `${icons[move]} vs ${icons[cpu]}`;
     sounds.click();
     
     let result = ''; // Win, Lose, Draw
@@ -2925,7 +2947,7 @@ window.playRPS = function(move) {
         state.rpsLosses = (state.rpsLosses || 0) + 1;
     }
     
-    if(scoreEl) scoreEl.textContent = `W: ${state.rpsWins || 0} | L: ${state.rpsLosses || 0}`;
+    if(scoreEl) if(scoreEl) scoreEl.textContent = `W: ${state.rpsWins || 0} | L: ${state.rpsLosses || 0}`;
 };
 
 // ========== COIN ==========
@@ -2935,14 +2957,14 @@ window.flipCoin = function() {
     const res = document.getElementById('coinResult');
     
     icon.style.transform = "rotateY(720deg)";
-    res.textContent = "...";
+    if(res) res.textContent = "...";
     sounds.launch(); // WHOOSH
     
     setTimeout(() => {
         const heads = Math.random() > 0.5;
         icon.style.transform = "rotateY(0deg)";
-        icon.textContent = heads ? '🪙' : '⚪';
-        res.textContent = heads ? 'HEADS' : 'TAILS';
+        if(icon) icon.textContent = heads ? '🪙' : '⚪';
+        if(res) res.textContent = heads ? 'HEADS' : 'TAILS';
         sounds.coin();
     }, 500);
 };
@@ -2952,38 +2974,38 @@ let reactionStart = 0;
 let reactionTimer = null;
 window.initReaction = function() {
     document.getElementById('reactionBox').style.background = '#333';
-    document.getElementById('reactionBox').textContent = "TAP START";
+    _el = document.getElementById('reactionBox'); if(_el) _el.textContent = "TAP START";
 };
 window.startReaction = function() {
     const box = document.getElementById('reactionBox');
     box.style.background = '#8b0000'; // Red
-    box.textContent = "WAIT FOR GREEN...";
+    if(box) box.textContent = "WAIT FOR GREEN...";
     reactionStart = 0;
     clearTimeout(reactionTimer);
     
     const delay = 1000 + Math.random() * 3000;
     reactionTimer = setTimeout(() => {
         box.style.background = '#006400'; // Green
-        box.textContent = "TAP NOW!";
+        if(box) box.textContent = "TAP NOW!";
         reactionStart = Date.now();
         sounds.coin(); // Signal
     }, delay);
 };
 window.reactionClick = function() {
     const box = document.getElementById('reactionBox');
-    if(reactionStart === 0 && box.textContent === "WAIT FOR GREEN...") {
+    if(reactionStart === 0 && box && box.textContent === "WAIT FOR GREEN...") {
         clearTimeout(reactionTimer);
         box.style.background = '#333';
-        box.textContent = "TOO EARLY!";
+        if(box) box.textContent = "TOO EARLY!";
         if(typeof sounds !== 'undefined' && sounds.error) sounds.error(); else sounds.click();
         return;
     }
     if(reactionStart > 0) {
         const time = Date.now() - reactionStart;
         box.style.background = '#333';
-        box.textContent = `${time} ms`;
+        if(box) box.textContent = `${time} ms`;
         state.bestReaction = Math.min(state.bestReaction || 9999, time);
-        document.getElementById('reactionTime').textContent = `BEST: ${state.bestReaction} ms`;
+        _el = document.getElementById('reactionTime'); if(_el) _el.textContent = `BEST: ${state.bestReaction} ms`;
         reactionStart = 0;
         addGems(Math.max(0, 10 - Math.floor(time/50))); // Bonus for speed
         sounds.launch();
@@ -3013,10 +3035,10 @@ function updateClock() {
     
     // Also update common global clock if present
     const big = document.getElementById('bigClock');
-    if(big) big.textContent = timeStr;
+    if(big) if(big) big.textContent = timeStr;
     
     const sbt = document.getElementById('statusBarTime');
-    if(sbt) sbt.textContent = `${hours}:${mins}`; 
+    if(sbt) if(sbt) sbt.textContent = `${hours}:${mins}`; 
 }
 
 // ========== COMPASS ==========
@@ -3028,7 +3050,7 @@ window.initCompass = function() {
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             // iOS 13+ requires permission
             const btn = document.createElement('button');
-            btn.textContent = "ENABLE SENSORS";
+            if(btn) btn.textContent = "ENABLE SENSORS";
             btn.style.cssText = "padding: 10px; margin-top: 20px;";
             btn.onclick = async () => {
                 try {
@@ -3045,7 +3067,7 @@ window.initCompass = function() {
             window.addEventListener('deviceorientation', handleOrientation);
         }
     } else {
-        if(degEl) degEl.textContent = "NOT SUPPORTED";
+        if(degEl) if(degEl) degEl.textContent = "NOT SUPPORTED";
     }
 };
 
@@ -3063,7 +3085,7 @@ function handleOrientation(event) {
         if(alpha > 45 && alpha <= 135) dir = "EAST";
         else if(alpha > 135 && alpha <= 225) dir = "SOUTH";
         else if(alpha > 225 && alpha <= 315) dir = "WEST";
-        degEl.textContent = `${Math.round(alpha)}° ${dir}`;
+        if(degEl) degEl.textContent = `${Math.round(alpha)}° ${dir}`;
     }
 }
 
@@ -3179,7 +3201,7 @@ window.updateCounter = function(d) {
 };
 function updateCounterDisplay() {
     const el = document.getElementById('countDisplay');
-    if(el) el.textContent = countVal;
+    if(el) if(el) el.textContent = countVal;
 }
 
 // ========== PIXEL ART ==========
@@ -3250,7 +3272,7 @@ window.initPixel = function() {
             if(coordEl) {
                 const col = i % pixelSize;
                 const row = Math.floor(i / pixelSize);
-                coordEl.textContent = `X: ${col} Y: ${row}`;
+                if(coordEl) coordEl.textContent = `X: ${col} Y: ${row}`;
             }
         };
         grid.appendChild(d);
@@ -3268,28 +3290,28 @@ window.clearPixel = function() {
 window.initCatfact = function() {};
 window.getCatFact = async function() {
     const txt = document.getElementById('catfactText');
-    txt.textContent = "Fetching feline wisdom...";
+    if(txt) txt.textContent = "Fetching feline wisdom...";
     sounds.click();
     try {
         const res = await fetch('https://catfact.ninja/fact');
         const data = await res.json();
-        txt.textContent = data.fact.toUpperCase();
+        if(txt) txt.textContent = data.fact.toUpperCase();
         sounds.coin();
-    } catch(e) { txt.textContent = "CATS ARE OFFLINE (ERROR)"; }
+    } catch(e) { if(txt) txt.textContent = "CATS ARE OFFLINE (ERROR)"; }
 };
 
 // ========== CHUCK NORRIS ==========
 window.initChuck = function() {};
 window.getChuckJoke = async function() {
     const txt = document.getElementById('chuckJoke');
-    txt.textContent = "Loading Chuck...";
+    if(txt) txt.textContent = "Loading Chuck...";
     sounds.click();
     try {
         const res = await fetch('https://api.chucknorris.io/jokes/random');
         const data = await res.json();
-        txt.textContent = data.value.toUpperCase();
+        if(txt) txt.textContent = data.value.toUpperCase();
         sounds.coin();
-    } catch(e) { txt.textContent = "CHUCK IS TOO POWERFUL (OFFLINE)"; }
+    } catch(e) { if(txt) txt.textContent = "CHUCK IS TOO POWERFUL (OFFLINE)"; }
 };
 
 // ========== ANIME QUOTES ==========
@@ -3297,17 +3319,17 @@ window.initAnime = function() {};
 window.getAnimeQuote = async function() {
     const quote = document.getElementById('animeQuote');
     const char = document.getElementById('animeChar');
-    quote.textContent = '"..."';
+    if(quote) quote.textContent = '"..."';
     sounds.click();
     try {
         const res = await fetch('https://animechan.xyz/api/random');
         const data = await res.json();
-        quote.textContent = `"${data.quote.toUpperCase()}"`;
-        char.textContent = `- ${data.character.toUpperCase()} (${data.anime.toUpperCase()})`;
+        if(quote) quote.textContent = `"${data.quote.toUpperCase()}"`;
+        if(char) char.textContent = `- ${data.character.toUpperCase()} (${data.anime.toUpperCase()})`;
         sounds.coin();
     } catch(e) { 
-        quote.textContent = '"BELIEVE IN YOURSELF"';
-        char.textContent = '- NARUTO';
+        if(quote) quote.textContent = '"BELIEVE IN YOURSELF"';
+        if(char) char.textContent = '- NARUTO';
     }
 };
 
@@ -3320,7 +3342,7 @@ window.getMeme = async function() {
     
     if(ph) ph.style.display = 'block';
     if(img) img.style.display = 'none';
-    title.textContent = 'GENERATING...';
+    if(title) title.textContent = 'GENERATING...';
     sounds.click();
     
     try {
@@ -3335,9 +3357,9 @@ window.getMeme = async function() {
                 sounds.coin();
             };
         }
-        title.textContent = data.title ? data.title.toUpperCase().substring(0, 50) : 'MEME';
+        if(title) title.textContent = data.title ? data.title.toUpperCase().substring(0, 50) : 'MEME';
     } catch(e) { 
-        title.textContent = 'MEME MACHINE BROKE';
+        if(title) title.textContent = 'MEME MACHINE BROKE';
     }
 };
 
@@ -3351,8 +3373,8 @@ window.getNASA = async function() {
     
     if(ph) ph.style.display = 'block';
     if(img) img.style.display = 'none';
-    titleEl.textContent = 'LOADING COSMOS...';
-    descEl.textContent = '';
+    if(titleEl) titleEl.textContent = 'LOADING COSMOS...';
+    if(descEl) descEl.textContent = '';
     sounds.click();
     
     try {
@@ -3360,8 +3382,8 @@ window.getNASA = async function() {
         const res = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
         const data = await res.json();
         
-        titleEl.textContent = data.title ? data.title.toUpperCase() : 'NASA APOD';
-        descEl.textContent = data.explanation ? data.explanation.toUpperCase().substring(0, 200) + '...' : '';
+        if(titleEl) titleEl.textContent = data.title ? data.title.toUpperCase() : 'NASA APOD';
+        if(descEl) descEl.textContent = data.explanation ? data.explanation.toUpperCase().substring(0, 200) + '...' : '';
         
         if(img && data.url && data.media_type === 'image') {
             img.src = data.url;
@@ -3371,12 +3393,12 @@ window.getNASA = async function() {
                 sounds.coin();
             };
         } else {
-            if(ph) ph.textContent = '📹';
+            if(ph) if(ph) ph.textContent = '📹';
             sounds.coin();
         }
     } catch(e) { 
-        titleEl.textContent = 'TRANSMISSION LOST';
-        descEl.textContent = 'Unable to reach NASA servers';
+        if(titleEl) titleEl.textContent = 'TRANSMISSION LOST';
+        if(descEl) descEl.textContent = 'Unable to reach NASA servers';
     }
 };
 
@@ -3384,14 +3406,14 @@ window.getNASA = async function() {
 window.initKanye = function() {};
 window.getKanyeQuote = async function() {
     const txt = document.getElementById('kanyeQuote');
-    txt.textContent = '"..."';
+    if(txt) txt.textContent = '"..."';
     sounds.click();
     try {
         const res = await fetch('https://api.kanye.rest/');
         const data = await res.json();
-        txt.textContent = `"${data.quote.toUpperCase()}"`;
+        if(txt) txt.textContent = `"${data.quote.toUpperCase()}"`;
         sounds.coin();
-    } catch(e) { txt.textContent = '"I AM A GOD" - KANYE'; }
+    } catch(e) { if(txt) txt.textContent = '"I AM A GOD" - KANYE'; }
 };
 
 // ========== BORED API ==========
@@ -3399,18 +3421,18 @@ window.initBored = function() {};
 window.getBoredActivity = async function() {
     const activity = document.getElementById('boredActivity');
     const type = document.getElementById('boredType');
-    activity.textContent = 'THINKING...';
-    type.textContent = '';
+    if(activity) activity.textContent = 'THINKING...';
+    if(type) type.textContent = '';
     sounds.click();
     try {
         const res = await fetch(`https://www.boredapi.com/api/activity?_=${Date.now()}`);
         const data = await res.json();
-        activity.textContent = data.activity.toUpperCase();
-        type.textContent = `TYPE: ${data.type.toUpperCase()} | PARTICIPANTS: ${data.participants}`;
+        if(activity) activity.textContent = data.activity.toUpperCase();
+        if(type) type.textContent = `TYPE: ${data.type.toUpperCase()} | PARTICIPANTS: ${data.participants}`;
         sounds.coin();
     } catch(e) { 
-        activity.textContent = 'TRY COUNTING TO INFINITY';
-        type.textContent = 'TYPE: IMPOSSIBLE';
+        if(activity) activity.textContent = 'TRY COUNTING TO INFINITY';
+        if(type) type.textContent = 'TYPE: IMPOSSIBLE';
     }
 };
 
@@ -3420,14 +3442,14 @@ window.getBoredActivity = async function() {
 window.initZen = function() {};
 window.getZen = async function() {
     const txt = document.getElementById('zenText');
-    txt.textContent = '"..."';
+    if(txt) txt.textContent = '"..."';
     sounds.click();
     try {
         const res = await fetch('https://api.github.com/zen');
         const data = await res.text();
-        txt.textContent = `"${data.toUpperCase()}"`;
+        if(txt) txt.textContent = `"${data.toUpperCase()}"`;
         sounds.coin();
-    } catch(e) { txt.textContent = '"DESIGN FOR FAILURE"'; }
+    } catch(e) { if(txt) txt.textContent = '"DESIGN FOR FAILURE"'; }
 };
 
 // ========== COCKTAIL DB ==========
@@ -3440,8 +3462,8 @@ window.getRandomCocktail = async function() {
     
     if(ph) ph.style.display = 'block';
     if(img) img.style.display = 'none';
-    nameEl.textContent = 'MIXING...';
-    ingredientsEl.textContent = '';
+    if(nameEl) nameEl.textContent = 'MIXING...';
+    if(ingredientsEl) ingredientsEl.textContent = '';
     sounds.click();
     
     try {
@@ -3449,7 +3471,7 @@ window.getRandomCocktail = async function() {
         const data = await res.json();
         const drink = data.drinks[0];
         
-        nameEl.textContent = drink.strDrink.toUpperCase();
+        if(nameEl) nameEl.textContent = drink.strDrink.toUpperCase();
         
         // Get ingredients
         const ingredients = [];
@@ -3460,7 +3482,7 @@ window.getRandomCocktail = async function() {
                 ingredients.push(`${measure ? measure + ' ' : ''}${ingredient}`.toUpperCase());
             }
         }
-        ingredientsEl.textContent = ingredients.join(', ');
+        if(ingredientsEl) ingredientsEl.textContent = ingredients.join(', ');
         
         if(img && drink.strDrinkThumb) {
             img.src = drink.strDrinkThumb;
@@ -3471,8 +3493,8 @@ window.getRandomCocktail = async function() {
             };
         }
     } catch(e) { 
-        nameEl.textContent = 'WATER';
-        ingredientsEl.textContent = 'H2O';
+        if(nameEl) nameEl.textContent = 'WATER';
+        if(ingredientsEl) ingredientsEl.textContent = 'H2O';
     }
 };
 
@@ -3497,7 +3519,7 @@ let musicTracks = [];
 let musicIdx = 0;
 
 window.initMusic = function() {
-    document.getElementById('musicStatus').textContent = 'CHOOSE A TRACK';
+    _el = document.getElementById('musicStatus'); if(_el) _el.textContent = 'CHOOSE A TRACK';
 };
 
 window.searchMusic = async function() {
@@ -3505,7 +3527,7 @@ window.searchMusic = async function() {
     const status = document.getElementById('musicStatus');
     if(!q) return;
     
-    status.textContent = 'CONNECTING...';
+    if(status) status.textContent = 'CONNECTING...';
     sounds.click();
     
     try {
@@ -3517,10 +3539,10 @@ window.searchMusic = async function() {
             musicIdx = 0;
             playTrack();
         } else {
-            status.textContent = 'NO VIBES FOUND';
+            if(status) status.textContent = 'NO VIBES FOUND';
         }
     } catch(e) {
-        status.textContent = 'SATELLITE OFFLINE';
+        if(status) status.textContent = 'SATELLITE OFFLINE';
     }
 }
 
@@ -3533,7 +3555,7 @@ function playTrack() {
     if(player && track.audio) {
         player.src = track.audio;
         player.play();
-        status.textContent = `NOW PLAYING: ${track.name.toUpperCase()}`;
+        if(status) status.textContent = `NOW PLAYING: ${track.name.toUpperCase()}`;
         
         // Background Audio Support
         if ('mediaSession' in navigator) {
@@ -3568,7 +3590,7 @@ window.prevMusicTrack = function() {
 window.stopMusic = function() {
     const audio = document.getElementById('musicAudio');
     if(audio) audio.pause();
-    document.getElementById('musicStatus').textContent = 'STOPPED';
+    _el = document.getElementById('musicStatus'); if(_el) _el.textContent = 'STOPPED';
 };
 
 // ========== CAMERA & VIDEO LOGIC (FILTER BAKE v2.0) ==========
@@ -3589,14 +3611,14 @@ window.initCamera = async function(mode = null) {
     const retakeBtn = document.getElementById('retakeBtn');
     const modeDisplay = document.getElementById('camModeDisplay');
 
-    if (modeDisplay) modeDisplay.textContent = currentFacingMode === 'user' ? 'FRONT' : 'BACK';
+    if (modeDisplay) if(modeDisplay) modeDisplay.textContent = currentFacingMode === 'user' ? 'FRONT' : 'BACK';
 
     preview.style.display = 'none';
     video.style.display = 'block';
     captureBtn.style.display = 'block';
     if(recordBtn) { 
         recordBtn.style.display = 'block';
-        recordBtn.textContent = 'REC';
+        if(recordBtn) recordBtn.textContent = 'REC';
         recordBtn.style.background = '#333';
     }
     saveBtn.style.display = 'none';
@@ -4148,7 +4170,7 @@ async function startRecording() {
 
         isRecording = true;
         if (status) status.style.display = 'block';
-        if (btn)    { btn.textContent = 'STOP'; btn.style.background = '#f00'; }
+        if (btn)    { if(btn) btn.textContent = 'STOP'; btn.style.background = '#f00'; }
         sounds.launch();
     } catch (e) {
         alert("RECORDING FAILED: " + e.message);
@@ -4162,7 +4184,7 @@ function stopRecording() {
     const status = document.getElementById('videoStatus');
     const btn = document.getElementById('recordBtn');
     if(status) status.style.display = 'none';
-    if(btn) { btn.textContent = 'REC'; btn.style.background = '#333'; }
+    if(btn) { if(btn) btn.textContent = 'REC'; btn.style.background = '#333'; }
     sounds.back();
 }
 
@@ -4207,7 +4229,7 @@ window.initChat = function() {
     const myFreq = localStorage.getItem('gb_freq');
     
     const idEl = document.getElementById('chatMyId');
-    if(idEl) idEl.textContent = `MY FREQ: ${myFreq}`;
+    if(idEl) if(idEl) idEl.textContent = `MY FREQ: ${myFreq}`;
     
     // Load saved room name
     const savedRoom = localStorage.getItem('gb_chatRoom') || '';
@@ -4226,7 +4248,7 @@ window.initChat = function() {
     if(window.gbPeer) return;
     
     updateSignalBars(1);
-    document.getElementById('chatStatusLabel').textContent = "SIGNALING...";
+    _el = document.getElementById('chatStatusLabel'); if(_el) _el.textContent = "SIGNALING...";
 
     // Start Peer with deterministic ID
     window.gbPeer = new Peer(myFreq, {
@@ -4239,7 +4261,7 @@ window.initChat = function() {
     }); 
     
     window.gbPeer.on('open', (id) => {
-        document.getElementById('chatStatusLabel').textContent = "ONLINE";
+        _el = document.getElementById('chatStatusLabel'); if(_el) _el.textContent = "ONLINE";
         updateChatStatus('online');
         updateSignalBars(3);
         console.log("Link Tower Open:", id);
@@ -4252,7 +4274,7 @@ window.initChat = function() {
     window.gbPeer.on('error', (err) => {
         updateSignalBars(0);
         updateChatStatus('error');
-        document.getElementById('chatStatusLabel').textContent = "LINK ERR";
+        _el = document.getElementById('chatStatusLabel'); if(_el) _el.textContent = "LINK ERR";
         console.error("PeerJS Error:", err);
     });
 };
@@ -4264,19 +4286,19 @@ function updateChatStatus(state) {
     const roomName = (room && room.value.trim()) || 'PUBLIC';
     switch(state) {
         case 'online':
-            dot.textContent = `● ONLINE — ${roomName.toUpperCase()}`;
+            if(dot) dot.textContent = `● ONLINE — ${roomName.toUpperCase()}`;
             dot.style.color = '#0f0';
             break;
         case 'connected':
-            dot.textContent = `● CONNECTED — ${roomName.toUpperCase()}`;
+            if(dot) dot.textContent = `● CONNECTED — ${roomName.toUpperCase()}`;
             dot.style.color = '#0ff';
             break;
         case 'error':
-            dot.textContent = '● LINK ERROR';
+            if(dot) dot.textContent = '● LINK ERROR';
             dot.style.color = '#f00';
             break;
         default:
-            dot.textContent = `● OFFLINE — ${roomName.toUpperCase()}`;
+            if(dot) dot.textContent = `● OFFLINE — ${roomName.toUpperCase()}`;
             dot.style.color = '#555';
     }
 }
@@ -4473,7 +4495,7 @@ function setupChatConnection(targetConn) {
         if(window.gbConns.length === 0) {
             updateSignalBars(3);
             updateChatStatus('online');
-            document.getElementById('chatStatusLabel').textContent = "ONLINE";
+            _el = document.getElementById('chatStatusLabel'); if(_el) _el.textContent = "ONLINE";
             appendChat('SYSTEM', 'ALL PEERS DISCONNECTED.');
         } else {
             appendChat('SYSTEM', `${nick.toUpperCase()} HAS LEFT.`);
@@ -4639,8 +4661,8 @@ function updatePetDisplay() {
         sprite.style.filter = 'none';
     }
 
-    sprite.textContent = emoji;
-    status.textContent = `(${mood})`;
+    if(sprite) sprite.textContent = emoji;
+    if(status) status.textContent = `(${mood})`;
 }
 
 window.interactPet = function(action) {
@@ -4793,7 +4815,7 @@ window.randomWiki = async function() {
     const status = document.getElementById('wikiStatus');
     const result = document.getElementById('wikiResult');
     status.style.display = 'block';
-    status.textContent = 'FETCHING RANDOM ARTICLE...';
+    if(status) status.textContent = 'FETCHING RANDOM ARTICLE...';
     result.style.display = 'none';
     if(window.sounds) sounds.launch();
 
@@ -4804,7 +4826,7 @@ window.randomWiki = async function() {
         document.getElementById('wikiSearch').value = data.title;
         displayWikiResult(data);
     } catch(err) {
-        status.textContent = '!! ' + err.message.toUpperCase() + ' !!';
+        if(status) status.textContent = '!! ' + err.message.toUpperCase() + ' !!';
         if(window.sounds) sounds.back();
     }
 };
@@ -4813,7 +4835,7 @@ async function fetchWikiArticle(query) {
     const status = document.getElementById('wikiStatus');
     const result = document.getElementById('wikiResult');
     status.style.display = 'block';
-    status.textContent = 'FETCHING KNOWLEDGE...';
+    if(status) status.textContent = 'FETCHING KNOWLEDGE...';
     result.style.display = 'none';
     if(window.sounds) sounds.launch();
 
@@ -4826,7 +4848,7 @@ async function fetchWikiArticle(query) {
         const data = await response.json();
         displayWikiResult(data);
     } catch(err) {
-        status.textContent = '!! ' + err.message.toUpperCase() + ' !!';
+        if(status) status.textContent = '!! ' + err.message.toUpperCase() + ' !!';
         if(window.sounds) sounds.back();
     }
 }
@@ -4840,8 +4862,8 @@ function displayWikiResult(data) {
     status.style.display = 'none';
     result.style.display = 'block';
 
-    document.getElementById('wikiTitle').textContent = data.title.toUpperCase();
-    document.getElementById('wikiSummary').textContent = data.extract;
+    _el = document.getElementById('wikiTitle'); if(_el) _el.textContent = data.title.toUpperCase();
+    _el = document.getElementById('wikiSummary'); if(_el) _el.textContent = data.extract;
 
     if(data.thumbnail && data.thumbnail.source) {
         thumbImg.src = data.thumbnail.source;
@@ -4916,7 +4938,7 @@ window.loadRomFile = function(input) {
             `;
             sounds.coin();
         } else {
-            status.textContent = "INVALID FORMAT. USE .GB .GBC .NES";
+            if(status) status.textContent = "INVALID FORMAT. USE .GB .GBC .NES";
             status.style.color = "#a00";
             sounds.back();
             if(zone) zone.style.opacity = "1";
@@ -5032,7 +5054,7 @@ window.genAscii = function(text) {
     if(!text) return;
     const art = figlet.textSync(text, { font: 'Standard', horizontalLayout: 'default' });
     const artDiv = document.getElementById('asciiArt');
-    if(artDiv) artDiv.textContent = art.replace(/\n/g, '<br>');
+    if(artDiv) if(artDiv) artDiv.textContent = art.replace(/\n/g, '<br>');
 };
 
 window.genRandomAscii = function() {

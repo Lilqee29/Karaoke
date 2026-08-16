@@ -70,6 +70,13 @@ window.sanitizeHTML = function(str) {
     return div.innerHTML;
 };
 
+// Safe textContent setter — prevents null reference errors when app screens are hidden
+window.safeText = function(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+    return el;
+};
+
 // Global Error Handler
 window.addEventListener('error', (e) => {
     console.error('Global error:', e.error);

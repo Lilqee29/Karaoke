@@ -2,28 +2,28 @@
 window.initCatfact = function() {};
 window.getCatFact = async function() {
     const txt = document.getElementById('catfactText');
-    txt.textContent = "Fetching feline wisdom...";
+    if(txt) txt.textContent = "Fetching feline wisdom...";
     sounds.click();
     try {
         const res = await fetch('https://catfact.ninja/fact');
         const data = await res.json();
-        txt.textContent = data.fact.toUpperCase();
+        if(txt) txt.textContent = data.fact.toUpperCase();
         sounds.coin();
-    } catch(e) { txt.textContent = "CATS ARE OFFLINE (ERROR)"; }
+    } catch(e) { if(txt) txt.textContent = "CATS ARE OFFLINE (ERROR)"; }
 };
 
 // ========== CHUCK NORRIS ==========
 window.initChuck = function() {};
 window.getChuckJoke = async function() {
     const txt = document.getElementById('chuckJoke');
-    txt.textContent = "Loading Chuck...";
+    if(txt) txt.textContent = "Loading Chuck...";
     sounds.click();
     try {
         const res = await fetch('https://api.chucknorris.io/jokes/random');
         const data = await res.json();
-        txt.textContent = data.value.toUpperCase();
+        if(txt) txt.textContent = data.value.toUpperCase();
         sounds.coin();
-    } catch(e) { txt.textContent = "CHUCK IS TOO POWERFUL (OFFLINE)"; }
+    } catch(e) { if(txt) txt.textContent = "CHUCK IS TOO POWERFUL (OFFLINE)"; }
 };
 
 // // ========== ANIME QUOTES ==========
@@ -31,19 +31,19 @@ window.getChuckJoke = async function() {
 // window.getAnimeQuote = async function() {
 //     const quote = document.getElementById('animeQuote');
 //     const char = document.getElementById('animeChar');
-//     quote.textContent = '"..."';
+//     if(quote) quote.textContent = '"..."';
 //     sounds.click();
 //     try {
 //         const res = await fetch('https://api.animechan.io/v1/quotes/random');
 //         const data = await res.json();
 //         console.log(data)
-//         quote.textContent = `"${data.quote}"`;
-//         char.textContent = `- ${data.character} (${data.anime})`;
+//         if(quote) quote.textContent = `"${data.quote}"`;
+//         if(char) char.textContent = `- ${data.character} (${data.anime})`;
 //         sounds.coin();
 //     } catch(e) { 
 //         console.error(e)
-//         quote.textContent = '"BELIEVE IN YOURSELF"';
-//         char.textContent = '- NARUTO';
+//         if(quote) quote.textContent = '"BELIEVE IN YOURSELF"';
+//         if(char) char.textContent = '- NARUTO';
 //     }
 // };
 
@@ -56,7 +56,7 @@ window.getMeme = async function() {
     
     if(ph) ph.style.display = 'block';
     if(img) img.style.display = 'none';
-    title.textContent = 'GENERATING...';
+    if(title) title.textContent = 'GENERATING...';
     sounds.click();
     
     try {
@@ -71,9 +71,9 @@ window.getMeme = async function() {
                 sounds.coin();
             };
         }
-        title.textContent = data.title ? data.title.toUpperCase().substring(0, 50) : 'MEME';
+        if(title) title.textContent = data.title ? data.title.toUpperCase().substring(0, 50) : 'MEME';
     } catch(e) { 
-        title.textContent = 'MEME MACHINE BROKE';
+        if(title) title.textContent = 'MEME MACHINE BROKE';
     }
 };
 
@@ -87,8 +87,8 @@ window.getNASA = async function() {
     
     if(ph) ph.style.display = 'block';
     if(img) img.style.display = 'none';
-    titleEl.textContent = 'LOADING COSMOS...';
-    descEl.textContent = '';
+    if(titleEl) titleEl.textContent = 'LOADING COSMOS...';
+    if(descEl) descEl.textContent = '';
     sounds.click();
     
     try {
@@ -96,8 +96,8 @@ window.getNASA = async function() {
         const res = await fetch('https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY');
         const data = await res.json();
         
-        titleEl.textContent = data.title ? data.title.toUpperCase() : 'NASA APOD';
-        descEl.textContent = data.explanation ? data.explanation.toUpperCase().substring(0, 200) + '...' : '';
+        if(titleEl) titleEl.textContent = data.title ? data.title.toUpperCase() : 'NASA APOD';
+        if(descEl) descEl.textContent = data.explanation ? data.explanation.toUpperCase().substring(0, 200) + '...' : '';
         
         if(img && data.url && data.media_type === 'image') {
             img.src = data.url;
@@ -107,12 +107,12 @@ window.getNASA = async function() {
                 sounds.coin();
             };
         } else {
-            if(ph) ph.textContent = '📹';
+            if(ph) if(ph) ph.textContent = '📹';
             sounds.coin();
         }
     } catch(e) { 
-        titleEl.textContent = 'TRANSMISSION LOST';
-        descEl.textContent = 'Unable to reach NASA servers';
+        if(titleEl) titleEl.textContent = 'TRANSMISSION LOST';
+        if(descEl) descEl.textContent = 'Unable to reach NASA servers';
     }
 };
 
@@ -120,14 +120,14 @@ window.getNASA = async function() {
 window.initKanye = function() {};
 window.getKanyeQuote = async function() {
     const txt = document.getElementById('kanyeQuote');
-    txt.textContent = '"..."';
+    if(txt) txt.textContent = '"..."';
     sounds.click();
     try {
         const res = await fetch('https://api.kanye.rest/');
         const data = await res.json();
-        txt.textContent = `"${data.quote.toUpperCase()}"`;
+        if(txt) txt.textContent = `"${data.quote.toUpperCase()}"`;
         sounds.coin();
-    } catch(e) { txt.textContent = '"I AM A GOD" - KANYE'; }
+    } catch(e) { if(txt) txt.textContent = '"I AM A GOD" - KANYE'; }
 };
 
 // ========== BORED API ==========
@@ -185,15 +185,15 @@ window.getBoredActivity = function() {
     
     if(!activity || !type) return;
 
-    activity.textContent = 'THINKING...';
-    type.textContent = '';
+    if(activity) activity.textContent = 'THINKING...';
+    if(type) type.textContent = '';
     
     if(typeof sounds !== 'undefined') sounds.click();
     
     setTimeout(() => {
         const item = boredActivities[Math.floor(Math.random() * boredActivities.length)];
-        activity.textContent = item.activity.toUpperCase();
-        type.textContent = `TYPE: ${item.type.toUpperCase()}`;
+        if(activity) activity.textContent = item.activity.toUpperCase();
+        if(type) type.textContent = `TYPE: ${item.type.toUpperCase()}`;
         if(typeof sounds !== 'undefined') sounds.coin();
     }, 300);
 };
@@ -202,14 +202,14 @@ window.getBoredActivity = function() {
 window.initZen = function() {};
 window.getZen = async function() {
     const txt = document.getElementById('zenText');
-    txt.textContent = '"..."';
+    if(txt) txt.textContent = '"..."';
     sounds.click();
     try {
         const res = await fetch('https://api.github.com/zen');
         const data = await res.text();
-        txt.textContent = `"${data.toUpperCase()}"`;
+        if(txt) txt.textContent = `"${data.toUpperCase()}"`;
         sounds.coin();
-    } catch(e) { txt.textContent = '"DESIGN FOR FAILURE"'; }
+    } catch(e) { if(txt) txt.textContent = '"DESIGN FOR FAILURE"'; }
 };
 
 // ========== COCKTAIL DB ==========
@@ -222,8 +222,8 @@ window.getRandomCocktail = async function() {
     
     if(ph) ph.style.display = 'block';
     if(img) img.style.display = 'none';
-    nameEl.textContent = 'MIXING...';
-    ingredientsEl.textContent = '';
+    if(nameEl) nameEl.textContent = 'MIXING...';
+    if(ingredientsEl) ingredientsEl.textContent = '';
     sounds.click();
     
     try {
@@ -231,7 +231,7 @@ window.getRandomCocktail = async function() {
         const data = await res.json();
         const drink = data.drinks[0];
         
-        nameEl.textContent = drink.strDrink.toUpperCase();
+        if(nameEl) nameEl.textContent = drink.strDrink.toUpperCase();
         
         // Get ingredients
         const ingredients = [];
@@ -242,7 +242,7 @@ window.getRandomCocktail = async function() {
                 ingredients.push(`${measure ? measure + ' ' : ''}${ingredient}`.toUpperCase());
             }
         }
-        ingredientsEl.textContent = ingredients.join(', ');
+        if(ingredientsEl) ingredientsEl.textContent = ingredients.join(', ');
         
         if(img && drink.strDrinkThumb) {
             img.src = drink.strDrinkThumb;
@@ -253,8 +253,8 @@ window.getRandomCocktail = async function() {
             };
         }
     } catch(e) { 
-        nameEl.textContent = 'WATER';
-        ingredientsEl.textContent = 'H2O';
+        if(nameEl) nameEl.textContent = 'WATER';
+        if(ingredientsEl) ingredientsEl.textContent = 'H2O';
     }
 };
 
@@ -335,7 +335,7 @@ window.initTerm = function() {
                 break;
             case 'clear':
             case 'cls':
-                output.textContent = '';
+                if(output) output.textContent = '';
                 break;
             case 'date':
                 print(new Date().toString());

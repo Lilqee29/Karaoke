@@ -34,8 +34,8 @@ window.qrStartScan = async function() {
     try {
         _qrScanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         video.srcObject = _qrScanStream;
-        scanBtn.textContent = 'STOP SCAN';
-        resultEl.textContent = 'SCANNING...';
+        if(scanBtn) scanBtn.textContent = 'STOP SCAN';
+        if(resultEl) resultEl.textContent = 'SCANNING...';
 
         video.onloadedmetadata = () => {
             canvas.width = video.videoWidth;
@@ -43,7 +43,7 @@ window.qrStartScan = async function() {
             _qrScanFrame(video, canvas, ctx, resultEl);
         };
     } catch(e) {
-        resultEl.textContent = 'CAMERA ACCESS DENIED';
+        if(resultEl) resultEl.textContent = 'CAMERA ACCESS DENIED';
     }
 };
 
@@ -55,10 +55,10 @@ function _qrScanFrame(video, canvas, ctx, resultEl) {
     if (typeof jsQR !== 'undefined') {
         const code = jsQR(imgData.data, imgData.width, imgData.height);
         if (code && code.data) {
-            resultEl.textContent = code.data;
+            if(resultEl) resultEl.textContent = code.data;
             document.getElementById('qrOpenBtn').style.display = 'block';
             document.getElementById('qrCopyBtn').style.display = 'block';
-            document.getElementById('qrScanBtn').textContent = 'SCAN AGAIN';
+            const _el = document.getElementById('qrScanBtn'); if(_el) if(_el) _el.textContent = 'SCAN AGAIN';
             qrStopScan();
             sounds.coin();
             return;
@@ -74,7 +74,7 @@ function qrStopScan() {
         _qrScanStream = null;
     }
     const scanBtn = document.getElementById('qrScanBtn');
-    if (scanBtn) scanBtn.textContent = 'START SCAN';
+    if (scanBtn) if(scanBtn) scanBtn.textContent = 'START SCAN';
 }
 
 window.qrOpenLink = function() {
@@ -99,11 +99,11 @@ const arts = [
 ];
 let artIdx = 0;
 window.initAscii = function() {
-    document.getElementById('asciiArt').textContent = arts[0];
+    const _el = document.getElementById('asciiArt'); if(_el) if(_el) _el.textContent = arts[0];
 };
 window.nextAscii = function() {
     artIdx = (artIdx + 1) % arts.length;
-    document.getElementById('asciiArt').textContent = arts[artIdx];
+    const _el = document.getElementById('asciiArt'); if(_el) if(_el) _el.textContent = arts[artIdx];
     if(typeof sounds !== 'undefined') sounds.select();
 };
 window.copyAscii = function() {
@@ -161,11 +161,11 @@ window.initLevel = function() {
                 const y = Math.max(-45, Math.min(45, e.beta || 0));
                 bubble.style.left = (50 + (x/45)*50) + '%';
                 bubble.style.top = (50 + (y/45)*50) + '%';
-                txt.textContent = `X: ${Math.round(x)} | Y: ${Math.round(y)}`;
+                if(txt) txt.textContent = `X: ${Math.round(x)} | Y: ${Math.round(y)}`;
             }
         };
     } else {
-        txt.textContent = "NO SENSOR";
+        if(txt) txt.textContent = "NO SENSOR";
     }
 };
 
@@ -211,11 +211,11 @@ window.testRegex = function() {
         if(match) {
             const re = new RegExp(match[1], match[2]);
             const matches = txt.match(re);
-            res.textContent = matches ? `Matches: ${matches.length} (${matches.join(', ')})` : 'Matches: 0';
+            if(res) res.textContent = matches ? `Matches: ${matches.length} (${matches.join(', ')})` : 'Matches: 0';
         } else {
-            res.textContent = "Format: /pattern/flags";
+            if(res) res.textContent = "Format: /pattern/flags";
         }
-    } catch(e) { res.textContent = "Error"; }
+    } catch(e) { if(res) res.textContent = "Error"; }
 };
 
 // 9. LOREM IPSUM
@@ -241,17 +241,17 @@ window.initTyper = function() {
     typerCnt = 0;
     nextWord();
     document.getElementById('typerInput').focus();
-    document.getElementById('typerStats').textContent = "GO!";
+    const _el = document.getElementById('typerStats'); if(_el) if(_el) _el.textContent = "GO!";
 };
 function nextWord() {
     const word = typeWords[Math.floor(Math.random()*typeWords.length)];
-    document.getElementById('typerWord').textContent = word;
+    const _el = document.getElementById('typerWord'); if(_el) if(_el) _el.textContent = word;
     const inp = document.getElementById('typerInput');
     inp.value = '';
     inp.oninput = (e) => {
         if(e.target.value.toUpperCase() === word) {
             typerCnt++;
-            document.getElementById('typerStats').textContent = `Score: ${typerCnt}`;
+            const _el = document.getElementById('typerStats'); if(_el) if(_el) _el.textContent = `Score: ${typerCnt}`;
             if(typeof sounds !== 'undefined') sounds.coin();
             nextWord();
         }

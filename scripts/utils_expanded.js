@@ -2,14 +2,14 @@
 
 // 1. BMI CALCULATOR
 window.initBmi = function() {
-    document.getElementById('bmiResult').textContent = "---";
+    const _el = document.getElementById('bmiResult'); if(_el) if(_el) _el.textContent = "---";
 };
 window.calcBmi = function() {
     const h = parseFloat(document.getElementById('bmiHeight').value) / 100;
     const w = parseFloat(document.getElementById('bmiWeight').value);
     if(h > 0 && w > 0) {
         const bmi = (w / (h * h)).toFixed(1);
-        document.getElementById('bmiResult').textContent = bmi;
+        const _el = document.getElementById('bmiResult'); if(_el) if(_el) _el.textContent = bmi;
         sounds.coin();
     }
 };
@@ -34,13 +34,13 @@ window.convertUnit = function() {
 
 // 3. PASSWORD GENERATOR
 window.initPass = function() {
-    document.getElementById('passDisplay').textContent = "P@SSWORD";
+    const _el = document.getElementById('passDisplay'); if(_el) if(_el) _el.textContent = "P@SSWORD";
 };
 window.genPass = function() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
     let pass = "";
     for(let i=0; i<12; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
-    document.getElementById('passDisplay').textContent = pass;
+    const _el = document.getElementById('passDisplay'); if(_el) if(_el) _el.textContent = pass;
     sounds.coin();
 };
 
@@ -55,7 +55,7 @@ window.togglePomo = function() {
     if(pomoInt) {
         clearInterval(pomoInt);
         pomoInt = null;
-        document.getElementById('pomoBtn').textContent = "START";
+        const _el = document.getElementById('pomoBtn'); if(_el) if(_el) _el.textContent = "START";
     } else {
         pomoInt = setInterval(() => {
             pomoTime--;
@@ -67,26 +67,26 @@ window.togglePomo = function() {
                 alert("POMODORO FINISHED!");
             }
         }, 1000);
-        document.getElementById('pomoBtn').textContent = "PAUSE";
+        const _el = document.getElementById('pomoBtn'); if(_el) if(_el) _el.textContent = "PAUSE";
     }
     sounds.click();
 };
 function updatePomoDisplay() {
     const m = Math.floor(pomoTime / 60);
     const s = pomoTime % 60;
-    document.getElementById('pomoDisplay').textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    const _el = document.getElementById('pomoDisplay'); if(_el) if(_el) _el.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
 // 5. TIP CALCULATOR
 window.initTip = function() {
-    document.getElementById('tipResult').textContent = "$0.00";
+    const _el = document.getElementById('tipResult'); if(_el) if(_el) _el.textContent = "$0.00";
 };
 window.calcTip = function() {
     const bill = parseFloat(document.getElementById('tipBill').value);
     const pct = parseFloat(document.getElementById('tipPct').value);
     if(bill > 0) {
         const total = bill * (1 + pct/100);
-        document.getElementById('tipResult').textContent = "$" + total.toFixed(2);
+        const _el = document.getElementById('tipResult'); if(_el) if(_el) _el.textContent = "$" + total.toFixed(2);
         sounds.coin();
     }
 };
@@ -129,12 +129,13 @@ window.resetWater = function() {
     sounds.back();
 };
 function updateWaterUI() {
-    document.getElementById('waterCount').textContent = waterCount + " GLASSES";
+    const waterEl = document.getElementById('waterCount');
+    if (waterEl) if(waterEl) waterEl.textContent = waterCount + " GLASSES";
 }
 
 // 8. BMR CALCULATOR (Mifflin-St Jeor)
 window.initBmr = function() {
-    document.getElementById('bmrResult').textContent = "---";
+    const _el = document.getElementById('bmrResult'); if(_el) if(_el) _el.textContent = "---";
 };
 window.calcBmr = function() {
     const w = parseFloat(document.getElementById('bmrW').value);
@@ -144,14 +145,14 @@ window.calcBmr = function() {
     if(w && h && a) {
         let bmr = (10 * w) + (6.25 * h) - (5 * a);
         bmr = (g === 'm') ? bmr + 5 : bmr - 161;
-        document.getElementById('bmrResult').textContent = Math.round(bmr) + " KCAL";
+        const _el = document.getElementById('bmrResult'); if(_el) if(_el) _el.textContent = Math.round(bmr) + " KCAL";
         sounds.coin();
     }
 };
 
 // 9. COMPOUND INTEREST
 window.initInt = function() {
-    document.getElementById('intResult').textContent = "$0.00";
+    const _el = document.getElementById('intResult'); if(_el) if(_el) _el.textContent = "$0.00";
 };
 window.calcInt = function() {
     const p = parseFloat(document.getElementById('intP').value);
@@ -159,7 +160,7 @@ window.calcInt = function() {
     const t = parseFloat(document.getElementById('intT').value);
     if(p && t) {
         const a = p * Math.pow(1 + r, t);
-        document.getElementById('intResult').textContent = "$" + a.toFixed(2);
+        const _el = document.getElementById('intResult'); if(_el) if(_el) _el.textContent = "$" + a.toFixed(2);
         sounds.coin();
     }
 };
@@ -168,24 +169,24 @@ window.calcInt = function() {
 let metroInt = null;
 let metroBpm = 120;
 window.initMetro = function() {
-    document.getElementById('metroBpmDisplay').textContent = metroBpm + " BPM";
+    const _el = document.getElementById('metroBpmDisplay'); if(_el) if(_el) _el.textContent = metroBpm + " BPM";
 };
 window.toggleMetro = function() {
     if(metroInt) {
         clearInterval(metroInt);
         metroInt = null;
-        document.getElementById('metroBtn').textContent = "START";
+        const _el = document.getElementById('metroBtn'); if(_el) if(_el) _el.textContent = "START";
     } else {
         metroInt = setInterval(() => {
             playSound(800, 'square', 0.05); // Tick
         }, 60000 / metroBpm);
-        document.getElementById('metroBtn').textContent = "STOP";
+        const _el = document.getElementById('metroBtn'); if(_el) if(_el) _el.textContent = "STOP";
     }
     sounds.click();
 };
 window.adjMetro = function(delta) {
     metroBpm = Math.min(240, Math.max(40, metroBpm + delta));
-    document.getElementById('metroBpmDisplay').textContent = metroBpm + " BPM";
+    const _el = document.getElementById('metroBpmDisplay'); if(_el) if(_el) _el.textContent = metroBpm + " BPM";
     if(metroInt) {
         clearInterval(metroInt);
         metroInt = setInterval(() => playSound(800, 'square', 0.05), 60000 / metroBpm);

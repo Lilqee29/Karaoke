@@ -14,14 +14,14 @@ window.swToggle = function() {
     if (_swInterval) {
         intervalManager.clear(_swInterval);
         _swInterval = null;
-        if (btn) btn.textContent = 'START';
+        if (btn) if(btn) btn.textContent = 'START';
     } else {
         const start = Date.now() - _swTime;
         _swInterval = intervalManager.set(() => {
             _swTime = Date.now() - start;
             _swUpdate();
         }, 10);
-        if (btn) btn.textContent = 'STOP';
+        if (btn) if(btn) btn.textContent = 'STOP';
     }
     sounds.click();
 };
@@ -34,7 +34,7 @@ window.swReset = function() {
     const lapsEl = document.getElementById('swLaps');
     if (lapsEl) lapsEl.innerHTML = '';
     const btn = document.getElementById('swBtn');
-    if (btn) btn.textContent = 'START';
+    if (btn) if(btn) btn.textContent = 'START';
     sounds.back();
 };
 
@@ -51,7 +51,7 @@ window.swLap = function() {
 
 function _swUpdate() {
     const d = document.getElementById('swDisplay');
-    if (d) d.textContent = _swFormatTime(_swTime);
+    if (d) if(d) d.textContent = _swFormatTime(_swTime);
 }
 
 function _swFormatTime(ms) {
@@ -94,12 +94,12 @@ window.startTimer = function() {
     if (_tmInterval) {
         clearInterval(_tmInterval);
         _tmInterval = null;
-        document.getElementById('tmBtn').textContent = 'RESUME';
+        const _el = document.getElementById('tmBtn'); if(_el) if(_el) _el.textContent = 'RESUME';
         return;
     }
     if (_tmTime <= 0) return;
     _tmTotalTime = _tmTime;
-    document.getElementById('tmBtn').textContent = 'PAUSE';
+    const _el = document.getElementById('tmBtn'); if(_el) if(_el) _el.textContent = 'PAUSE';
     _tmInterval = setInterval(() => {
         _tmTime--;
         _tmUpdateDisplay();
@@ -107,7 +107,7 @@ window.startTimer = function() {
         if (_tmTime <= 0) {
             clearInterval(_tmInterval);
             _tmInterval = null;
-            document.getElementById('tmBtn').textContent = 'START';
+            const _el = document.getElementById('tmBtn'); if(_el) if(_el) _el.textContent = 'START';
             sounds.launch();
         }
     }, 1000);
@@ -121,7 +121,7 @@ window.resetTimer = function() {
     _tmTotalTime = 0;
     _tmUpdateDisplay();
     _tmUpdateRing();
-    document.getElementById('tmBtn').textContent = 'START';
+    const _el = document.getElementById('tmBtn'); if(_el) if(_el) _el.textContent = 'START';
     sounds.back();
 };
 
@@ -130,7 +130,7 @@ function _tmUpdateDisplay() {
     if (!el) return;
     const m = Math.floor(_tmTime / 60);
     const s = _tmTime % 60;
-    el.textContent = `${_swPad(m)}:${_swPad(s)}`;
+    if(el) el.textContent = `${_swPad(m)}:${_swPad(s)}`;
 }
 
 function _tmUpdateRing() {
@@ -184,7 +184,7 @@ window.togglePomo = function() {
     if (_pomoInt) {
         intervalManager.clear(_pomoInt);
         _pomoInt = null;
-        if (btn) btn.textContent = 'RESUME';
+        if (btn) if(btn) btn.textContent = 'RESUME';
     } else {
         _pomoInt = intervalManager.set(() => {
             _pomoTime--;
@@ -200,7 +200,7 @@ window.togglePomo = function() {
                 _updatePomoDisplay();
             }
         }, 1000);
-        if (btn) btn.textContent = 'PAUSE';
+        if (btn) if(btn) btn.textContent = 'PAUSE';
     }
     sounds.click();
 };
@@ -210,7 +210,7 @@ function _updatePomoDisplay() {
     if (!d) return;
     const m = Math.floor(_pomoTime / 60);
     const s = _pomoTime % 60;
-    d.textContent = `${_pad(m)}:${_pad(s)}`;
+    if(d) d.textContent = `${_pad(m)}:${_pad(s)}`;
 }
 
 })(); // <-- IIFE END

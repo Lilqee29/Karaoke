@@ -23,26 +23,26 @@ function populateCurrencyDropdowns() {
     const toSlot = document.getElementById('toSlot');
     if (!fromSlot || !toSlot) return;
 
-    fromSlot.textContent = '';
-    toSlot.textContent = '';
+    if(fromSlot) fromSlot.textContent = '';
+    if(toSlot) toSlot.textContent = '';
 
     CURRENCIES.forEach(currency => {
         const fromOpt = document.createElement('div');
         fromOpt.className = 'currency-slot' + (currency.code === 'USD' ? ' flag' : '');
         fromOpt.textContent = currency.flag + ' ' + currency.code;
-        fromOpt.onclick = () => { fromSlot.textContent = currency.flag + ' ' + currency.code; convertCurrency(); };
+        fromOpt.onclick = () => { if(fromSlot) fromSlot.textContent = currency.flag + ' ' + currency.code; convertCurrency(); };
         fromSlot.appendChild(fromOpt);
 
         const toOpt = document.createElement('div');
         toOpt.className = 'currency-slot';
         toOpt.textContent = currency.flag + ' ' + currency.code;
-        toOpt.onclick = () => { toSlot.textContent = currency.flag + ' ' + currency.code; convertCurrency(); };
+        toOpt.onclick = () => { if(toSlot) toSlot.textContent = currency.flag + ' ' + currency.code; convertCurrency(); };
         toSlot.appendChild(toOpt);
     });
 
     // Set defaults
-    fromSlot.textContent = 'USD🇺🇸';
-    toSlot.textContent = 'EUR🇪🇬';
+    if(fromSlot) fromSlot.textContent = 'USD🇺🇸';
+    if(toSlot) toSlot.textContent = 'EUR🇪🇬';
 }
 
 function convertCurrency() {
@@ -60,7 +60,7 @@ function convertCurrency() {
             const toRate = rates[toCode] || 1;
 
             const converted = (amount / fromRate) * toRate;
-            document.getElementById('result').textContent = converted.toFixed(2);
+            _el = document.getElementById('result'); if(_el) if(_el) _el.textContent = converted.toFixed(2);
 
             // Highlight the result
             const resultEl = document.getElementById('result');
@@ -68,7 +68,7 @@ function convertCurrency() {
             setTimeout(() => resultEl.style.color = '', 1500);
         })
         .catch(err => {
-            document.getElementById('result').textContent = 'ERROR';
+            _el = document.getElementById('result'); if(_el) if(_el) _el.textContent = 'ERROR';
             console.error(err);
         });
 }
@@ -77,8 +77,8 @@ window.swapCurrency = function() {
     const fromSlot = document.getElementById('fromSlot');
     const toSlot = document.getElementById('toSlot');
     const temp = fromSlot.textContent;
-    fromSlot.textContent = toSlot.textContent;
-    toSlot.textContent = temp;
+    if(fromSlot) fromSlot.textContent = toSlot.textContent;
+    if(toSlot) toSlot.textContent = temp;
     convertCurrency();
 };
 
@@ -91,11 +91,11 @@ window.getIpInfo = function() {
     fetch('https://ipapi.co/json/')
         .then(res => res.json())
         .then(data => {
-            document.getElementById('ipAddr').textContent = data.ip || 'unknown';
-            document.getElementById('ipCity').textContent = data.city || 'unknown';
-            document.getElementById('ipIsp').textContent = data.isp || 'unknown';
-            document.getElementById('ipCountry').textContent = data.country_name || 'unknown';
-            document.getElementById('ipTz').textContent = data.timezone || 'unknown';
+            _el = document.getElementById('ipAddr'); if(_el) if(_el) _el.textContent = data.ip || 'unknown';
+            _el = document.getElementById('ipCity'); if(_el) if(_el) _el.textContent = data.city || 'unknown';
+            _el = document.getElementById('ipIsp'); if(_el) if(_el) _el.textContent = data.isp || 'unknown';
+            _el = document.getElementById('ipCountry'); if(_el) if(_el) _el.textContent = data.country_name || 'unknown';
+            _el = document.getElementById('ipTz'); if(_el) if(_el) _el.textContent = data.timezone || 'unknown';
         });
 };
 
@@ -107,7 +107,7 @@ window.runSpeedTest = function() {
         const durationSec = (endTime - startTime) / 1000000;
         const bytes = 10000000;
         const mbps = (bytes * 8) / (durationSec * 1000000);
-        document.getElementById('speedMbps').textContent = mbps.toFixed(2);
+        _el = document.getElementById('speedMbps'); if(_el) if(_el) _el.textContent = mbps.toFixed(2);
         document.getElementById('speedResult').style.display = 'block';
     };
     speedImg.src = 'https://speed.cloudflare.com/__down?bytes=10000000';
@@ -179,9 +179,9 @@ function renderWater() {
         fillEl.style.height = `${pct}%`;
         fillEl.style.backgroundColor = pct >= 100 ? '#0f380f' : '#0f380f';
     }
-    if (countEl) countEl.textContent = waterData.count;
+    if (countEl) if(countEl) countEl.textContent = waterData.count;
     
-    if (streakEl) streakEl.textContent = waterData.streak || 0;
+    if (streakEl) if(streakEl) streakEl.textContent = waterData.streak || 0;
 }
 
 function saveWater() {
@@ -222,7 +222,7 @@ window.initSos = function() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
             const el = document.getElementById('sosCoords');
-            if(el) el.textContent = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+            if(el) if(el) el.textContent = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
         });
     }
 };

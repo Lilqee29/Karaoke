@@ -6,17 +6,17 @@
 window.getQuote = async function() {
     const txt = document.getElementById('quoteText');
     const auth = document.getElementById('quoteAuthor');
-    txt.textContent = "...";
+    if(txt) txt.textContent = "...";
     sounds.click();
     try {
         const res = await fetch('https://api.quotable.io/random');
         const data = await res.json();
-        txt.textContent = `"${data.content.toUpperCase()}"`;
-        auth.textContent = `- ${data.author.toUpperCase()}`;
+        if(txt) txt.textContent = `"${data.content.toUpperCase()}"`;
+        if(auth) auth.textContent = `- ${data.author.toUpperCase()}`;
         sounds.coin();
     } catch(e) { 
-        txt.textContent = '"THE ONLY WAY TO DO GREAT WORK IS TO LOVE WHAT YOU DO"';
-        auth.textContent = '- STEVE JOBS';
+        if(txt) txt.textContent = '"THE ONLY WAY TO DO GREAT WORK IS TO LOVE WHAT YOU DO"';
+        if(auth) auth.textContent = '- STEVE JOBS';
     }
 };
 
@@ -24,14 +24,14 @@ window.getQuote = async function() {
 window.getBoredActivity = async function() {
     const activity = document.getElementById('boredActivity');
     const type = document.getElementById('boredType');
-    activity.textContent = 'THINKING...';
-    type.textContent = '';
+    if(activity) activity.textContent = 'THINKING...';
+    if(type) type.textContent = '';
     sounds.click();
     try {
         const res = await fetch(`https://www.boredapi.com/api/activity?_=${Date.now()}`);
         const data = await res.json();
-        activity.textContent = data.activity.toUpperCase();
-        type.textContent = `TYPE: ${data.type.toUpperCase()} | PARTICIPANTS: ${data.participants}`;
+        if(activity) activity.textContent = data.activity.toUpperCase();
+        if(type) type.textContent = `TYPE: ${data.type.toUpperCase()} | PARTICIPANTS: ${data.participants}`;
         sounds.coin();
     } catch(e) { 
         const activities = [
@@ -41,8 +41,8 @@ window.getBoredActivity = async function() {
             'WRITE IN A JOURNAL',
             'TAKE A WALK OUTSIDE'
         ];
-        activity.textContent = activities[Math.floor(Math.random() * activities.length)];
-        type.textContent = 'TYPE: RANDOM';
+        if(activity) activity.textContent = activities[Math.floor(Math.random() * activities.length)];
+        if(type) type.textContent = 'TYPE: RANDOM';
     }
 };
 
@@ -90,9 +90,9 @@ function updateZodiac() {
     const descEl = document.getElementById('zodiacDesc');
     const dateEl = document.getElementById('zodiacDate');
     
-    if(el) el.textContent = `${emoji} ${sign}`;
-    if(descEl) descEl.textContent = desc;
-    if(dateEl) dateEl.textContent = `${now.toLocaleDateString().toUpperCase()}`;
+    if(el) if(el) el.textContent = `${emoji} ${sign}`;
+    if(descEl) if(descEl) descEl.textContent = desc;
+    if(dateEl) if(dateEl) dateEl.textContent = `${now.toLocaleDateString().toUpperCase()}`;
 }
 
 // Fix 5: Translate - Moved to newapps.js with full upgrade
@@ -101,7 +101,7 @@ function updateZodiac() {
 
 // Fix 7: Better Music Player using RapidAPI Deezer (or fallback to Jamendo)
 window.initMusic = function() {
-    document.getElementById('musicStatus').textContent = 'READY';
+    const _el = document.getElementById('musicStatus'); if(_el) if(_el) _el.textContent = 'READY';
 };
 
 let musicTracks = [];
@@ -113,7 +113,7 @@ window.searchMusic = async function() {
     
     if(!query) return;
     
-    status.textContent = 'SEARCHING...';
+    if(status) status.textContent = 'SEARCHING...';
     sounds.click();
     
     try {
@@ -126,10 +126,10 @@ window.searchMusic = async function() {
             musicIndex = 0;
             playMusicTrack();
         } else {
-            status.textContent = 'NO RESULTS';
+            if(status) status.textContent = 'NO RESULTS';
         }
     } catch(e) {
-        status.textContent = 'MUSIC SERVER OFFLINE';
+        if(status) status.textContent = 'MUSIC SERVER OFFLINE';
     }
 };
 
@@ -143,7 +143,7 @@ function playMusicTrack() {
     if(audio && track.audio) {
         audio.src = track.audio;
         audio.play();
-        status.textContent = `PLAYING: ${track.name.toUpperCase()}`;
+        if(status) status.textContent = `PLAYING: ${track.name.toUpperCase()}`;
         sounds.launch();
     }
 }
@@ -166,6 +166,6 @@ window.stopMusic = function() {
         audio.pause();
         audio.currentTime = 0;
     }
-    document.getElementById('musicStatus').textContent = 'STOPPED';
+    const _el = document.getElementById('musicStatus'); if(_el) if(_el) _el.textContent = 'STOPPED';
     sounds.back();
 };

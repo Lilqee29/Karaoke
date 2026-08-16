@@ -62,8 +62,8 @@ function initSnake() {
     let gameInterval = null;
     let started      = false;
 
-    document.getElementById('score').textContent     = score;
-    document.getElementById('highScore').textContent = state.highScore;
+    _el = document.getElementById('score'); if(_el) if(_el) _el.textContent = score;
+    _el = document.getElementById('highScore'); if(_el) if(_el) _el.textContent = state.highScore;
 
     drawSnakeFrame();
 
@@ -139,7 +139,7 @@ function initSnake() {
         }
 
         snake.unshift({x:hx, y:hy});
-        document.getElementById('score').textContent = score;
+        _el = document.getElementById('score'); if(_el) if(_el) _el.textContent = score;
     }
 
     function collision(head, arr) {
@@ -181,7 +181,7 @@ function initFlappy() {
     const pipeGap   = 80;
     const pipeSpeed = 1.8;
 
-    document.getElementById('flappyScore').textContent = score;
+    _el = document.getElementById('flappyScore'); if(_el) if(_el) _el.textContent = score;
     drawStartScreen();
 
     function drawStartScreen() {
@@ -243,7 +243,7 @@ function initFlappy() {
             if (!p.scored && p.x+pipeW < bird.x) {
                 p.scored = true; score++; addGems(2);
                 if(window.trackQuest) trackQuest('flappy', 1);
-                document.getElementById('flappyScore').textContent = score;
+                _el = document.getElementById('flappyScore'); if(_el) if(_el) _el.textContent = score;
                 sounds.select();
             }
 
@@ -292,7 +292,7 @@ function initBreakout() {
         bricks.push({ x: 3 + c*(brickW+3), y: 28 + r*(brickH+4), active:true, row:r });
     }
 
-    document.getElementById('breakoutScore').textContent = score;
+    _el = document.getElementById('breakoutScore'); if(_el) if(_el) _el.textContent = score;
 
     addGameListener('breakoutKey', document, 'keydown', (e) => {
         keys[e.key] = true;
@@ -341,7 +341,7 @@ function initBreakout() {
                 ball.dy *= -1; b.active = false;
                 score++; addGems(1);
                 if(window.trackQuest) trackQuest('breakout', 1);
-                document.getElementById('breakoutScore').textContent = score;
+                _el = document.getElementById('breakoutScore'); if(_el) if(_el) _el.textContent = score;
                 sounds.select();
                 break; // one brick per frame
             }
@@ -439,7 +439,7 @@ function renderMemory() {
         grid.appendChild(card);
     });
 
-    document.getElementById('memoryScore').textContent = memoryGame.matched.length / 2;
+    _el = document.getElementById('memoryScore'); if(_el) if(_el) _el.textContent = memoryGame.matched.length / 2;
 }
 
 window.flipCard = function flipCard(i) {
@@ -512,8 +512,8 @@ function initTetris() {
     let score   = 0, lines = 0, level = 1;
     let running = false;
 
-    document.getElementById('tetrisScore').textContent = score;
-    document.getElementById('tetrisLines').textContent = lines;
+    _el = document.getElementById('tetrisScore'); if(_el) if(_el) _el.textContent = score;
+    _el = document.getElementById('tetrisLines'); if(_el) if(_el) _el.textContent = lines;
 
     function newPiece() {
         const si = Math.floor(Math.random() * SHAPES.length);
@@ -553,8 +553,8 @@ function initTetris() {
             lines += cleared; score += cleared*100*level;
             level  = Math.floor(lines/10)+1;
             addGems(cleared*10); sounds.select();
-            document.getElementById('tetrisScore').textContent = score;
-            document.getElementById('tetrisLines').textContent = lines;
+            _el = document.getElementById('tetrisScore'); if(_el) if(_el) _el.textContent = score;
+            _el = document.getElementById('tetrisLines'); if(_el) if(_el) _el.textContent = lines;
             // Update drop speed
             clearInterval(tetrisDropInt);
             tetrisDropInt = setInterval(drop, Math.max(100, 1000 - (level-1)*80));
@@ -666,10 +666,10 @@ function initMines() {
         isBomb:false, isRevealed:false, isFlagged:false, neighborCount:0
     }));
 
-    statusEl.textContent = '';
+    if(statusEl) statusEl.textContent = '';
     statusEl.style.color = '';
-    timeEl.textContent   = 'TIME: 0';
-    flagsEl.textContent  = `FLAGS: ${flags}`;
+    if(timeEl) timeEl.textContent = 'TIME: 0';
+    if(flagsEl) flagsEl.textContent = `FLAGS: ${flags}`;
 
     function placeBombs(safeIdx) {
         let placed = 0;
@@ -724,7 +724,7 @@ function initMines() {
 
             grid.appendChild(div);
         });
-        flagsEl.textContent = `FLAGS: ${flags}`;
+        if(flagsEl) flagsEl.textContent = `FLAGS: ${flags}`;
     }
 
     function reveal(idx) {
@@ -775,10 +775,10 @@ function initMines() {
         gameActive=false;
         clearInterval(window.minesTimer); window.minesTimer=null;
         if (win) {
-            statusEl.textContent='YOU WIN! +20 💎'; statusEl.style.color='#0f0';
+            if(statusEl) statusEl.textContent ='YOU WIN! +20 💎'; statusEl.style.color='#0f0';
             sounds.launch(); addGems(20);
         } else {
-            statusEl.textContent='GAME OVER'; statusEl.style.color='#f00';
+            if(statusEl) statusEl.textContent ='GAME OVER'; statusEl.style.color='#f00';
             board.forEach(c => { if(c.isBomb) c.isRevealed=true; });
             sounds.back();
             render();
@@ -786,7 +786,7 @@ function initMines() {
     }
 
     window.minesTimer = setInterval(() => {
-        if (gameActive) { time++; timeEl.textContent=`TIME: ${time}`; }
+        if (gameActive) { time++; if(timeEl) timeEl.textContent =`TIME: ${time}`; }
     }, 1000);
 
     render();
@@ -854,7 +854,7 @@ function init2048() {
             gridEl.appendChild(cell);
         });
         if (score > best) { best=score; localStorage.setItem('2048best', best); }
-        scoreEl.textContent = `SCORE: ${score}  BEST: ${best}`;
+        if(scoreEl) scoreEl.textContent = `SCORE: ${score}  BEST: ${best}`;
     }
 
     function getColor(v) {
