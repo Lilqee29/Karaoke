@@ -388,7 +388,9 @@ window.toggleRemixPlay = async function() {
     document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('highlight'));
   } else {
     remixStep = 0;
-    bbScheduleStep();
+    // Use simple setInterval like v4 — reliable, no Tone.js timing dependency
+    const ms = (60000 / remixBPM) / 4;
+    remixInterval = setInterval(bbPlayStep, ms);
     if (btn) { btn.textContent = '⏹ STOP'; btn.style.background = '#f00'; btn.style.color = '#fff'; }
     bbDrawViz();
   }
@@ -396,21 +398,9 @@ window.toggleRemixPlay = async function() {
 };
 
 function bbScheduleStep() {
+  // Fallback: called by old code paths, now just uses setInterval
   if (!isRemixPlaying) return;
-
   bbPlayStep();
-
-  // Calculate step duration with swing
-  const stepDuration = Tone.Time(remixDivision).toSeconds();
-  let swingOffset = 0;
-
-  // Apply swing to odd-numbered 16th notes (even indices in 0-based)
-  if (remixSwing > 0 && remixStep % 2 === 1) {
-    const swingMs = stepDuration * (remixSwing / 100) * 0.5;
-    swingOffset = swingMs;
-  }
-
-  remixInterval = setTimeout(bbScheduleStep, (stepDuration + swingOffset) * 1000);
 }
 
 window.changeBPM = function(delta) {
@@ -418,8 +408,9 @@ window.changeBPM = function(delta) {
   const el = document.getElementById('remixBpmDisplay');
   if (el) el.textContent = `${remixBPM} BPM`;
   if (isRemixPlaying) {
-    clearTimeout(remixInterval);
-    bbScheduleStep();
+    clearInterval(remixInterval);
+    const ms = (60000 / remixBPM) / 4;
+    remixInterval = setInterval(bbPlayStep, ms);
   }
   if (typeof sounds !== 'undefined') sounds.click?.();
 };
@@ -469,8 +460,9 @@ window.setDivision = function(div) {
     b.classList.toggle('active', b.dataset.div === div);
   });
   if (isRemixPlaying) {
-    clearTimeout(remixInterval);
-    bbScheduleStep();
+    clearInterval(remixInterval);
+    const ms = (60000 / remixBPM) / 4;
+    remixInterval = setInterval(bbPlayStep, ms);
   }
   if (typeof sounds !== 'undefined') sounds.click?.();
 };
@@ -760,7 +752,7 @@ function bbDrawViz() {
 // ── Cleanup ───────────────────────────────────────────────
 
 window.stopRemix = function() {
-  if (remixInterval) { clearTimeout(remixInterval); remixInterval = null; }
+  if (remixInterval) { clearInterval(remixInterval); remixInterval = null; }
   if (vizAnimFrame) { cancelAnimationFrame(vizAnimFrame); vizAnimFrame = null; }
   isRemixPlaying = false;
   bbUnbindKeyboard();
