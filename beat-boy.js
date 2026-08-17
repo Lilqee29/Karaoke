@@ -1,30 +1,37 @@
 // ========================================================
-//  BEAT BOY v4.0 — Real Samples + Tone.js Synths
+//  BEAT BOY v5.0 — Full Production Suite
 //  Drum samples: tonejs.github.io/audio/drum-samples/
 //  Piano lead:   tonejs.github.io/audio/salamander/
+//  Features: 10 kits, save/load, swing, effects, MIDI/keys
 // ========================================================
 
 const BB_SAMPLE_BASE = 'https://tonejs.github.io/audio/drum-samples/';
 const BB_PIANO_BASE  = 'https://tonejs.github.io/audio/salamander/';
 
-// All drum kits available from the Tone.js CDN
+// ── Drum Kits (10 from Tone.js CDN) ──────────────────────
 const BB_KITS = {
-  'CR-78':  'CR78',
-  'LINN':   'LINN',
-  'R-8':    'R8',
-  'STARK':  'Stark',
+  'CR-78':    'CR78',
+  'LINN':     'LINN',
+  'R-8':      'R8',
+  'STARK':    'Stark',
+  'TECHNO':   'Techno',
+  'KPR-77':   'KPR77',
+  'KIT3':     'Kit3',
+  'KIT8':     'Kit8',
+  'ACOUSTIC': 'acoustic-kit',
+  '4OP-FM':   '4OP-FM',
 };
 
 // 8 tracks: 5 sampled drums + 3 synth melodic
 const INSTRUMENTS = [
-  { name: 'KICK',   color: '#ff3333', emoji: '🥁', type: 'sample', file: 'kick'  },
-  { name: 'SNARE',  color: '#ffb700', emoji: '🪘', type: 'sample', file: 'snare' },
-  { name: 'HI-HAT', color: '#00ccff', emoji: '🎩', type: 'sample', file: 'hihat' },
-  { name: 'TOM 1',  color: '#ff8800', emoji: '🟠', type: 'sample', file: 'tom1'  },
-  { name: 'TOM 2',  color: '#ffdd00', emoji: '🟡', type: 'sample', file: 'tom2'  },
-  { name: 'BASS',   color: '#00ff88', emoji: '🎸', type: 'synth'                 },
-  { name: 'LEAD',   color: '#aa88ff', emoji: '🎹', type: 'piano'                 },
-  { name: 'CHORD',  color: '#ff66cc', emoji: '🎵', type: 'chord'                 },
+  { name: 'KICK',   color: '#ff3333', emoji: '🥁', type: 'sample', file: 'kick',  key: 'Q' },
+  { name: 'SNARE',  color: '#ffb700', emoji: '🪘', type: 'sample', file: 'snare', key: 'W' },
+  { name: 'HI-HAT', color: '#00ccff', emoji: '🎩', type: 'sample', file: 'hihat', key: 'E' },
+  { name: 'TOM 1',  color: '#ff8800', emoji: '🟠', type: 'sample', file: 'tom1',  key: 'R' },
+  { name: 'TOM 2',  color: '#ffdd00', emoji: '🟡', type: 'sample', file: 'tom2',  key: 'T' },
+  { name: 'BASS',   color: '#00ff88', emoji: '🎸', type: 'synth',  key: 'A' },
+  { name: 'LEAD',   color: '#aa88ff', emoji: '🎹', type: 'piano',  key: 'S' },
+  { name: 'CHORD',  color: '#ff66cc', emoji: '🎵', type: 'chord',  key: 'D' },
 ];
 
 // ── State ─────────────────────────────────────────────────
@@ -39,6 +46,11 @@ let currentKit     = 'CR78';
 let vizAnimFrame   = null;
 let audioReady     = false;
 
+// Swing (0–100%) — delays odd 16th notes
+let remixSwing     = 0;
+// Note division: '16n' (default), '8n', '32n'
+let remixDivision  = '16n';
+
 // Tone.js nodes
 let bbMasterVol   = null;
 let bbTrackGains  = [];
@@ -47,6 +59,14 @@ let bbBassSynth   = null;
 let bbPiano       = null;
 let bbChordSynth  = null;
 let bbAnalyser    = null;
+
+// Effects rack nodes
+let bbDelay       = null;
+let bbDelayGain   = null;
+let bbFilter      = null;
+let bbReverb      = null;
+let bbReverbGain  = null;
+let bbCompressor  = null;
 
 // Melodic sequences
 const BASS_NOTES  = ['C2','C2','G2','A2','F2','E2','D2','C2'];
@@ -98,6 +118,36 @@ const PRESETS = {
     [0,0,0,0, 1,0,0,1, 0,0,0,0, 1,0,0,0],
     [0,0,0,0, 0,0,0,0, 0,0,0,0, 1,0,0,0],
   ],
+  'REGGAE': [
+    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    [0,0,0,1, 0,0,0,0, 0,0,0,1, 0,0,0,0],
+    [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0],
+    [0,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
+    [1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,1,0],
+    [0,0,1,0, 0,0,0,0, 0,0,1,0, 0,0,0,0],
+    [1,0,0,0, 0,0,1,0, 0,0,0,0, 1,0,0,0],
+    [0,0,0,0, 0,1,0,0, 0,0,0,0, 0,0,0,0],
+  ],
+  'FUNK': [
+    [1,0,0,0, 0,0,0,0, 1,0,1,0, 0,0,0,0],
+    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    [0,0,1,0, 0,1,1,0, 0,0,1,0, 0,1,1,0],
+    [0,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
+    [0,0,0,0, 0,0,1,0, 0,0,0,0, 0,0,0,1],
+    [1,0,0,1, 0,0,0,0, 1,0,0,0, 0,1,0,0],
+    [0,0,1,0, 0,0,0,0, 0,0,1,0, 0,0,0,1],
+    [1,0,0,0, 0,0,1,0, 0,0,0,0, 0,1,0,0],
+  ],
+  'HIP HOP': [
+    [1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
+    [0,0,0,0, 1,0,0,0, 0,0,0,1, 0,0,0,0],
+    [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0],
+    [0,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0],
+    [0,1,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1],
+    [1,0,0,0, 0,0,1,0, 0,0,0,0, 1,0,0,0],
+    [0,0,0,1, 0,0,0,0, 0,1,0,0, 0,0,1,0],
+    [1,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
+  ],
 };
 
 // ── Audio Init ────────────────────────────────────────────
@@ -106,32 +156,60 @@ async function bbInitAudio() {
   if (audioReady) return;
   await Tone.start();
 
-  bbMasterVol = new Tone.Volume(Tone.gainToDb(remixMasterVol)).toDestination();
-  bbAnalyser  = new Tone.Analyser('waveform', 128);
-  bbMasterVol.connect(bbAnalyser);
+  // Master chain: masterVol → compressor → analyser → destination
+  bbCompressor = new Tone.Compressor({ threshold: -20, ratio: 4, attack: 0.003, release: 0.25 });
+  bbAnalyser   = new Tone.Analyser('waveform', 128);
+  bbMasterVol  = new Tone.Volume(Tone.gainToDb(remixMasterVol));
 
-  // Per-track gain nodes — one per instrument
+  // Effects chain
+  bbDelay  = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0 });
+  bbFilter = new Tone.Filter({ frequency: 20000, type: 'lowpass', rolloff: -12 });
+  bbReverb = new Tone.Reverb({ decay: 2.5, wet: 0 });
+
+  // Dry/wet gain nodes for effects
+  bbDelayGain  = new Tone.Gain(0);
+  bbReverbGain = new Tone.Gain(0);
+
+  // Wire: tracks → masterVol → compressor → analyser → destination
+  bbMasterVol.chain(bbCompressor, bbAnalyser, Tone.Destination);
+
+  // Wire effects send/return: masterVol → delay → delayGain → compressor
+  bbDelay.connect(bbDelayGain);
+  bbDelayGain.connect(bbCompressor);
+  bbDelay.receive('bbBus');
+  bbDelay.send('bbBus');
+
+  // Wire reverb: masterVol → reverb → reverbGain → compressor
+  bbReverb.connect(bbReverbGain);
+  bbReverbGain.connect(bbCompressor);
+  bbReverb.receive('bbBus');
+  bbReverb.send('bbBus');
+
+  // Wire filter: masterVol → filter → compressor
+  bbFilter.connect(bbCompressor);
+
+  // Per-track gain nodes
   bbTrackGains = INSTRUMENTS.map(() => {
     const g = new Tone.Volume(0);
     g.connect(bbMasterVol);
     return g;
   });
 
-  // Bass synth (square wave → low-pass filter)
+  // Bass synth
   bbBassSynth = new Tone.Synth({
     oscillator: { type: 'square' },
     envelope:   { attack: 0.005, decay: 0.3, sustain: 0.2, release: 0.1 },
     volume: -4,
   }).connect(new Tone.Filter(500, 'lowpass').connect(bbTrackGains[5]));
 
-  // Chord poly synth (warm triangle)
+  // Chord poly synth
   bbChordSynth = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: 'triangle' },
     envelope:   { attack: 0.02, decay: 0.5, sustain: 0.1, release: 0.6 },
     volume: -12,
   }).connect(new Tone.Reverb({ decay: 2, wet: 0.35 }).connect(bbTrackGains[7]));
 
-  // Salamander piano sampler for lead
+  // Salamander piano sampler
   bbPiano = new Tone.Sampler({
     urls: {
       C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', A4: 'A4.mp3',
@@ -141,9 +219,7 @@ async function bbInitAudio() {
     baseUrl: BB_PIANO_BASE,
   }).connect(new Tone.Reverb({ decay: 1.5, wet: 0.2 }).connect(bbTrackGains[6]));
 
-  // Load drum samples
   await bbLoadKit(currentKit);
-
   audioReady = true;
   bbSetStatus('');
 }
@@ -171,10 +247,8 @@ async function bbLoadKit(kitFolder) {
     }
   );
 
-  // Wait for samples (max 5s)
   await Promise.race([Tone.loaded(), new Promise(r => setTimeout(r, 5000))]);
 
-  // Wire each drum output to its track gain
   ['kick','snare','hihat','tom1','tom2'].forEach((name, i) => {
     try { bbDrumPlayers.player(name).connect(bbTrackGains[i]); } catch(e) {}
   });
@@ -199,7 +273,6 @@ function bbTrigger(r, step) {
   const now = Tone.now();
 
   if (r <= 4) {
-    // Sampled drums
     const names = ['kick','snare','hihat','tom1','tom2'];
     const name  = names[r];
     if (!bbDrumPlayers) return;
@@ -247,6 +320,7 @@ window.initRemix = async function() {
       <div class="beat-boy-track-header">
         <span style="color:${inst.color}">${inst.emoji} ${inst.name}</span>
         <div class="track-vol-row">
+          <span class="bb-key-hint">[${inst.key}]</span>
           <input type="range" class="track-vol-slider" min="0" max="100" value="80"
             oninput="updateTrackVol(${r}, this.value)">
           <span id="track-vol-${r}" class="track-vol-label">80</span>
@@ -277,6 +351,7 @@ window.initRemix = async function() {
   });
 
   bbInitViz();
+  bbBindKeyboard();
 };
 
 // ── Transport Controls ────────────────────────────────────
@@ -291,20 +366,39 @@ window.toggleRemixPlay = async function() {
     if (btn) { btn.textContent = '▶ PLAY'; btn.style.background = '#0f0'; btn.style.color = '#000'; }
     document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('highlight'));
   } else {
-    remixInterval = setInterval(bbPlayStep, (60000 / remixBPM) / 4);
+    remixStep = 0;
+    bbScheduleStep();
     if (btn) { btn.textContent = '⏹ STOP'; btn.style.background = '#f00'; btn.style.color = '#fff'; }
     bbDrawViz();
   }
   isRemixPlaying = !isRemixPlaying;
 };
 
+function bbScheduleStep() {
+  if (!isRemixPlaying) return;
+
+  bbPlayStep();
+
+  // Calculate step duration with swing
+  const stepDuration = Tone.Time(remixDivision).toSeconds();
+  let swingOffset = 0;
+
+  // Apply swing to odd-numbered 16th notes (even indices in 0-based)
+  if (remixSwing > 0 && remixStep % 2 === 1) {
+    const swingMs = stepDuration * (remixSwing / 100) * 0.5;
+    swingOffset = swingMs;
+  }
+
+  remixInterval = setTimeout(bbScheduleStep, (stepDuration + swingOffset) * 1000);
+}
+
 window.changeBPM = function(delta) {
   remixBPM = Math.min(240, Math.max(40, remixBPM + delta));
   const el = document.getElementById('remixBpmDisplay');
   if (el) el.textContent = `${remixBPM} BPM`;
   if (isRemixPlaying) {
-    clearInterval(remixInterval);
-    remixInterval = setInterval(bbPlayStep, (60000 / remixBPM) / 4);
+    clearTimeout(remixInterval);
+    bbScheduleStep();
   }
   if (typeof sounds !== 'undefined') sounds.click?.();
 };
@@ -336,6 +430,29 @@ function bbPlayStep() {
 
   remixStep = (remixStep + 1) % 16;
 }
+
+// ── Swing ─────────────────────────────────────────────────
+
+window.setSwing = function(val) {
+  remixSwing = Math.max(0, Math.min(100, parseInt(val)));
+  const el = document.getElementById('swingLabel');
+  if (el) el.textContent = `${remixSwing}%`;
+  if (typeof sounds !== 'undefined') sounds.click?.();
+};
+
+// ── Note Division ─────────────────────────────────────────
+
+window.setDivision = function(div) {
+  remixDivision = div;
+  document.querySelectorAll('.bb-div-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.div === div);
+  });
+  if (isRemixPlaying) {
+    clearTimeout(remixInterval);
+    bbScheduleStep();
+  }
+  if (typeof sounds !== 'undefined') sounds.click?.();
+};
 
 // ── Kit Switch ────────────────────────────────────────────
 
@@ -375,9 +492,212 @@ window.loadPreset = function(name) {
 window.clearRemix = function() {
   document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('active'));
   remixGrid.forEach(row => row.fill(false));
-  document.querySelectorAll('.bb-preset-btn, .bb-kit-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.bb-preset-btn').forEach(b => b.classList.remove('active'));
   if (typeof sounds !== 'undefined') sounds.back?.();
 };
+
+// ── Pattern Save / Load ───────────────────────────────────
+
+const BB_STORAGE_KEY = 'beatboy_patterns';
+
+function bbGetSavedPatterns() {
+  try {
+    return JSON.parse(localStorage.getItem(BB_STORAGE_KEY)) || {};
+  } catch(e) { return {}; }
+}
+
+window.bbSavePattern = function() {
+  const name = prompt('Name this pattern:');
+  if (!name || !name.trim()) return;
+  const key = name.trim().toUpperCase();
+  const patterns = bbGetSavedPatterns();
+  patterns[key] = {
+    grid: remixGrid.map(r => r.map(v => v ? 1 : 0)),
+    bpm: remixBPM,
+    kit: currentKit,
+    swing: remixSwing,
+    division: remixDivision,
+    trackVols: [...trackVols],
+    savedAt: Date.now(),
+  };
+  localStorage.setItem(BB_STORAGE_KEY, JSON.stringify(patterns));
+  bbRefreshSavedList();
+  if (typeof sounds !== 'undefined') sounds.coin?.();
+};
+
+window.bbLoadPattern = function(key) {
+  const patterns = bbGetSavedPatterns();
+  const p = patterns[key];
+  if (!p) return;
+
+  // Restore grid
+  document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('active'));
+  (p.grid || []).forEach((row, r) => {
+    if (!remixGrid[r]) return;
+    row.forEach((val, c) => {
+      remixGrid[r][c] = !!val;
+      if (val) {
+        document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${c}"]`)?.classList.add('active');
+      }
+    });
+  });
+
+  // Restore settings
+  if (p.bpm) { remixBPM = p.bpm; document.getElementById('remixBpmDisplay').textContent = `${remixBPM} BPM`; }
+  if (p.kit) { window.switchKit(p.kit); }
+  if (p.swing !== undefined) {
+    remixSwing = p.swing;
+    const sl = document.getElementById('swingLabel');
+    if (sl) sl.textContent = `${remixSwing}%`;
+    const slider = document.getElementById('swingSlider');
+    if (slider) slider.value = remixSwing;
+  }
+  if (p.division) { window.setDivision(p.division); }
+  if (p.trackVols) {
+    p.trackVols.forEach((v, i) => {
+      trackVols[i] = v;
+      const el = document.getElementById(`track-vol-${i}`);
+      if (el) el.textContent = v;
+    });
+  }
+
+  if (typeof sounds !== 'undefined') sounds.click?.();
+};
+
+window.bbDeletePattern = function(key) {
+  if (!confirm(`Delete "${key}"?`)) return;
+  const patterns = bbGetSavedPatterns();
+  delete patterns[key];
+  localStorage.setItem(BB_STORAGE_KEY, JSON.stringify(patterns));
+  bbRefreshSavedList();
+  if (typeof sounds !== 'undefined') sounds.back?.();
+};
+
+function bbRefreshSavedList() {
+  const list = document.getElementById('bbSavedList');
+  if (!list) return;
+  const patterns = bbGetSavedPatterns();
+  const keys = Object.keys(patterns).sort();
+  list.innerHTML = keys.length === 0
+    ? '<div style="color:#555;font-size:5px;">No saved patterns</div>'
+    : keys.map(k => {
+        const p = patterns[k];
+        const date = p.savedAt ? new Date(p.savedAt).toLocaleDateString() : '';
+        return `<div class="bb-saved-item">
+          <span class="bb-saved-name" onclick="bbLoadPattern('${k}')">${k}</span>
+          <span class="bb-saved-meta">${p.bpm || 120}BPM ${date}</span>
+          <span class="bb-saved-del" onclick="bbDeletePattern('${k}')">✕</span>
+        </div>`;
+      }).join('');
+}
+
+// ── Effects Controls ──────────────────────────────────────
+
+window.bbSetDelay = function(val) {
+  const wet = parseInt(val) / 100;
+  if (bbDelayGain) bbDelayGain.gain.value = wet;
+  const el = document.getElementById('delayLabel');
+  if (el) el.textContent = `${val}%`;
+};
+
+window.bbSetDelayTime = function(time) {
+  if (bbDelay) bbDelay.delayTime.value = time;
+  document.querySelectorAll('.bb-delay-time-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.time === time);
+  });
+  if (typeof sounds !== 'undefined') sounds.click?.();
+};
+
+window.bbSetFilter = function(freq) {
+  if (bbFilter) bbFilter.frequency.value = parseInt(freq);
+  const el = document.getElementById('filterLabel');
+  if (el) el.textContent = freq >= 1000 ? `${(freq/1000).toFixed(1)}k` : `${freq}Hz`;
+};
+
+window.bbSetFilterType = function(type) {
+  if (bbFilter) bbFilter.type = type;
+  document.querySelectorAll('.bb-filter-type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.ftype === type);
+  });
+  if (typeof sounds !== 'undefined') sounds.click?.();
+};
+
+window.bbSetReverb = function(val) {
+  const wet = parseInt(val) / 100;
+  if (bbReverbGain) bbReverbGain.gain.value = wet;
+  const el = document.getElementById('reverbLabel');
+  if (el) el.textContent = `${val}%`;
+};
+
+// ── Keyboard / MIDI Input ─────────────────────────────────
+
+let bbKeyBound = false;
+
+function bbBindKeyboard() {
+  if (bbKeyBound) return;
+  bbKeyBound = true;
+
+  // Physical keyboard → trigger pads
+  const keyMap = {};
+  INSTRUMENTS.forEach((inst, i) => { keyMap[inst.key.toLowerCase()] = i; });
+
+  window._bbKeyHandler = async function(e) {
+    // Ignore if typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const key = e.key.toLowerCase();
+    if (keyMap[key] !== undefined) {
+      const r = keyMap[key];
+      if (!audioReady) { bbSetStatus('⟳ Loading…'); await bbInitAudio(); }
+
+      // Light up the pad visually
+      const step = remixStep;
+      const pad = document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${step}"]`);
+      if (pad) {
+        pad.classList.add('active');
+        remixGrid[r][step] = true;
+      }
+      bbTrigger(r, step);
+    }
+
+    // Spacebar = play/stop
+    if (e.code === 'Space' && !e.repeat) {
+      e.preventDefault();
+      window.toggleRemixPlay();
+    }
+  };
+
+  document.addEventListener('keydown', window._bbKeyHandler);
+
+  // Web MIDI API
+  if (navigator.requestMIDI) {
+    navigator.requestMIDI().then(bbSetupMIDI).catch(() => {});
+  } else if (navigator.midi) {
+    navigator.midi.requestMIDIAccess().then(bbSetupMIDI).catch(() => {});
+  }
+}
+
+function bbSetupMIDI(midiAccess) {
+  midiAccess.inputs.forEach(input => {
+    input.onmidimessage = function(msg) {
+      if (!audioReady) return;
+      const [status, note, velocity] = msg.data;
+      // Note On (0x90–0x9F) with velocity > 0
+      if ((status & 0xF0) === 0x90 && velocity > 0) {
+        const track = note % INSTRUMENTS.length;
+        bbTrigger(track, remixStep);
+      }
+    };
+  });
+}
+
+function bbUnbindKeyboard() {
+  if (window._bbKeyHandler) {
+    document.removeEventListener('keydown', window._bbKeyHandler);
+    window._bbKeyHandler = null;
+  }
+  bbKeyBound = false;
+}
 
 // ── Visualizer ────────────────────────────────────────────
 
@@ -400,7 +720,6 @@ function bbDrawViz() {
     vizAnimFrame = requestAnimationFrame(draw);
     const data = bbAnalyser.getValue();
 
-    // Trail effect
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fillRect(0, 0, W, H);
 
@@ -408,7 +727,7 @@ function bbDrawViz() {
     data.forEach((v, i) => {
       const amp = Math.abs(v);
       const h   = amp * H * 0.9;
-      const hue = 110 + (i / data.length) * 160; // green → teal → blue
+      const hue = 110 + (i / data.length) * 160;
       ctx.fillStyle = `hsl(${hue},100%,${35 + amp * 45}%)`;
       ctx.fillRect(i * bw, H / 2 - h / 2, bw - 1, h);
     });
@@ -416,3 +735,18 @@ function bbDrawViz() {
 
   draw();
 }
+
+// ── Cleanup ───────────────────────────────────────────────
+
+window.stopRemix = function() {
+  if (remixInterval) { clearTimeout(remixInterval); remixInterval = null; }
+  if (vizAnimFrame) { cancelAnimationFrame(vizAnimFrame); vizAnimFrame = null; }
+  isRemixPlaying = false;
+  bbUnbindKeyboard();
+  const btn = document.getElementById('remixPlayBtn');
+  if (btn) { btn.textContent = '▶ PLAY'; btn.style.background = '#0f0'; btn.style.color = '#000'; }
+  document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('highlight'));
+};
+
+// Auto-init saved list on load
+setTimeout(() => { if (typeof bbRefreshSavedList === 'function') bbRefreshSavedList(); }, 500);

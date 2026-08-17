@@ -272,3 +272,55 @@
   align-self: center;
   flex-shrink: 0;
 }
+
+/* ── Keyboard Hints ─────────────────────────────────────── */
+
+.bb-key-hint {
+  font-size: 4px;
+  color: #444;
+  font-family: "VT323", monospace;
+}
+
+/* ── Saved Patterns ─────────────────────────────────────── */
+
+.bb-saved-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  background: rgba(0,255,0,0.05);
+  border: 1px solid #222;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+
+.bb-saved-name {
+  font-size: 5px;
+  color: #0f0;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.bb-saved-name:hover {
+  text-shadow: 0 0 4px rgba(0,255,0,0.8);
+}
+
+.bb-saved-meta {
+  font-size: 4px;
+  color: #555;
+  flex: 1;
+  text-align: right;
+}
+
+.bb-saved-del {
+  font-size: 5px;
+  color: #f55;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.bb-saved-del:hover {
+  color: #ff0;
+}

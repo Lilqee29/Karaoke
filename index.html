@@ -255,7 +255,7 @@
                         <!-- ── Header ─────────────────────────────────────────────── -->
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">
                         <div style="font-size:9px; color:var(--gb-text); font-weight:bold; letter-spacing:1px;">
-                            🎛 BEAT BOY™
+                            🎛 BEAT BOY™ v5
                         </div>
                         <div style="display:flex; gap:4px; align-items:center;">
                             <div id="remixBpmDisplay">120 BPM</div>
@@ -288,6 +288,21 @@
                         </div>
                         </div>
 
+                        <!-- ── Division + Swing Row ──────────────────────────────── -->
+                        <div style="display:flex; gap:6px; margin-bottom:5px; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:3px;">
+                            <span class="bb-section-label">DIV:</span>
+                            <button class="bb-div-btn" data-div="8n" onclick="setDivision('8n')" style="font-size:4px; padding:2px 4px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px; cursor:pointer;">8th</button>
+                            <button class="bb-div-btn active" data-div="16n" onclick="setDivision('16n')" style="font-size:4px; padding:2px 4px; background:#0f0; color:#000; border:1px solid #0f0; border-radius:2px; cursor:pointer;">16th</button>
+                            <button class="bb-div-btn" data-div="32n" onclick="setDivision('32n')" style="font-size:4px; padding:2px 4px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px; cursor:pointer;">32nd</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:3px; flex:1;">
+                            <span class="bb-section-label">SWING:</span>
+                            <input type="range" id="swingSlider" min="0" max="100" value="0" oninput="setSwing(this.value)" style="flex:1; height:3px; background:#222; border:none; padding:0;">
+                            <span id="swingLabel" style="font-size:5px; color:#ff0; min-width:18px; text-align:right;">0%</span>
+                        </div>
+                        </div>
+
                         <!-- ── Preset Patterns ────────────────────────────────────── -->
                         <div style="display:flex; align-items:center; gap:4px; margin-bottom:5px; flex-wrap:wrap;">
                         <span class="bb-section-label">BEAT:</span>
@@ -295,15 +310,24 @@
                         <button class="bb-preset-btn" data-preset="HOUSE"    onclick="loadPreset('HOUSE')">🏠 HOUSE</button>
                         <button class="bb-preset-btn" data-preset="BOOM BAP" onclick="loadPreset('BOOM BAP')">💥 BOOM BAP</button>
                         <button class="bb-preset-btn" data-preset="TECHNO"   onclick="loadPreset('TECHNO')">⚡ TECHNO</button>
+                        <button class="bb-preset-btn" data-preset="REGGAE"   onclick="loadPreset('REGGAE')">🌴 REGGAE</button>
+                        <button class="bb-preset-btn" data-preset="FUNK"     onclick="loadPreset('FUNK')">🪩 FUNK</button>
+                        <button class="bb-preset-btn" data-preset="HIP HOP"  onclick="loadPreset('HIP HOP')">🎤 HIP HOP</button>
                         </div>
 
                         <!-- ── Drum Kit Selector ───────────────────────────────────── -->
-                        <div style="display:flex; align-items:center; gap:4px; margin-bottom:7px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:4px; margin-bottom:5px; flex-wrap:wrap;">
                         <span class="bb-section-label">KIT:</span>
-                        <button class="bb-kit-btn active" data-kit="CR78"  onclick="switchKit('CR78')">CR-78</button>
-                        <button class="bb-kit-btn"        data-kit="LINN"  onclick="switchKit('LINN')">LINN</button>
-                        <button class="bb-kit-btn"        data-kit="R8"    onclick="switchKit('R8')">R-8</button>
-                        <button class="bb-kit-btn"        data-kit="Stark" onclick="switchKit('Stark')">STARK</button>
+                        <button class="bb-kit-btn active" data-kit="CR78"     onclick="switchKit('CR78')">CR-78</button>
+                        <button class="bb-kit-btn"        data-kit="LINN"     onclick="switchKit('LINN')">LINN</button>
+                        <button class="bb-kit-btn"        data-kit="R8"       onclick="switchKit('R8')">R-8</button>
+                        <button class="bb-kit-btn"        data-kit="Stark"    onclick="switchKit('Stark')">STARK</button>
+                        <button class="bb-kit-btn"        data-kit="Techno"   onclick="switchKit('Techno')">TECHNO</button>
+                        <button class="bb-kit-btn"        data-kit="KPR77"    onclick="switchKit('KPR77')">KPR-77</button>
+                        <button class="bb-kit-btn"        data-kit="Kit3"     onclick="switchKit('Kit3')">KIT3</button>
+                        <button class="bb-kit-btn"        data-kit="Kit8"     onclick="switchKit('Kit8')">KIT8</button>
+                        <button class="bb-kit-btn"        data-kit="acoustic-kit" onclick="switchKit('acoustic-kit')">ACOUSTIC</button>
+                        <button class="bb-kit-btn"        data-kit="4OP-FM"   onclick="switchKit('4OP-FM')">4OP-FM</button>
                         </div>
 
                         <!-- ── Step Sequencer Grid (injected by beat-boy.js) ─────── -->
@@ -313,7 +337,7 @@
                         <canvas id="beatVizCanvas" width="320" height="28"></canvas>
 
                         <!-- ── Master Volume ──────────────────────────────────────── -->
-                        <div style="margin-top:8px; padding:5px 4px; background:rgba(0,0,0,0.15); border-radius:4px;">
+                        <div style="margin-top:6px; padding:5px 4px; background:rgba(0,0,0,0.15); border-radius:4px;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                             <span style="font-size:5px; color:#555;">MASTER VOL</span>
                             <span id="remixVolLabel" style="font-size:5px; color:#0f0;">80%</span>
@@ -322,6 +346,54 @@
                             min="0" max="100" value="80"
                             oninput="updateRemixVol(this.value)"
                             style="width:100%;">
+                        </div>
+
+                        <!-- ── Effects Rack ───────────────────────────────────────── -->
+                        <div style="margin-top:6px; padding:5px 4px; background:rgba(0,0,0,0.2); border:1px solid #222; border-radius:4px;">
+                        <div style="font-size:5px; color:#0f0; margin-bottom:5px; letter-spacing:1px;">🎛 FX RACK</div>
+
+                        <!-- Delay -->
+                        <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                            <span class="bb-section-label" style="min-width:24px;">DLY</span>
+                            <div style="display:flex; gap:2px;">
+                                <button class="bb-delay-time-btn" data-time="8n" onclick="bbSetDelayTime('8n')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px; cursor:pointer;">8n</button>
+                                <button class="bb-delay-time-btn active" data-time="8n." onclick="bbSetDelayTime('8n.')" style="font-size:4px; padding:2px 3px; background:#0f0; color:#000; border:1px solid #0f0; border-radius:2px; cursor:pointer;">8n.</button>
+                                <button class="bb-delay-time-btn" data-time="16n" onclick="bbSetDelayTime('16n')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px; cursor:pointer;">16n</button>
+                                <button class="bb-delay-time-btn" data-time="4n" onclick="bbSetDelayTime('4n')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px; cursor:pointer;">4n</button>
+                            </div>
+                            <input type="range" min="0" max="100" value="0" oninput="bbSetDelay(this.value)" style="flex:1; height:3px; background:#222; border:none; padding:0;">
+                            <span id="delayLabel" style="font-size:5px; color:#0cf; min-width:16px; text-align:right;">0%</span>
+                        </div>
+
+                        <!-- Filter -->
+                        <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                            <span class="bb-section-label" style="min-width:24px;">FLT</span>
+                            <div style="display:flex; gap:2px;">
+                                <button class="bb-filter-type-btn active" data-ftype="lowpass" onclick="bbSetFilterType('lowpass')" style="font-size:4px; padding:2px 3px; background:#0f0; color:#000; border:1px solid #0f0; border-radius:2px; cursor:pointer;">LP</button>
+                                <button class="bb-filter-type-btn" data-ftype="highpass" onclick="bbSetFilterType('highpass')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px; cursor:pointer;">HP</button>
+                                <button class="bb-filter-type-btn" data-ftype="bandpass" onclick="bbSetFilterType('bandpass')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px; cursor:pointer;">BP</button>
+                            </div>
+                            <input type="range" min="100" max="20000" value="20000" step="100" oninput="bbSetFilter(this.value)" style="flex:1; height:3px; background:#222; border:none; padding:0;">
+                            <span id="filterLabel" style="font-size:5px; color:#0cf; min-width:20px; text-align:right;">20k</span>
+                        </div>
+
+                        <!-- Reverb -->
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            <span class="bb-section-label" style="min-width:24px;">REV</span>
+                            <input type="range" min="0" max="100" value="0" oninput="bbSetReverb(this.value)" style="flex:1; height:3px; background:#222; border:none; padding:0;">
+                            <span id="reverbLabel" style="font-size:5px; color:#0cf; min-width:16px; text-align:right;">0%</span>
+                        </div>
+                        </div>
+
+                        <!-- ── Save / Load Patterns ──────────────────────────────── -->
+                        <div style="margin-top:6px; padding:5px 4px; background:rgba(0,0,0,0.2); border:1px solid #222; border-radius:4px;">
+                        <div style="display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+                            <span style="font-size:5px; color:#0f0; letter-spacing:1px;">💾 SAVED PATTERNS</span>
+                            <button onclick="bbSavePattern()" style="margin-left:auto; font-size:5px; padding:2px 6px; background:#0f0; color:#000; border:none; border-radius:2px; cursor:pointer;">+ SAVE</button>
+                        </div>
+                        <div id="bbSavedList" style="max-height:50px; overflow-y:auto;">
+                            <div style="color:#555;font-size:5px;">No saved patterns</div>
+                        </div>
                         </div>
 
                     </div>
@@ -1826,6 +1898,7 @@
     <script src="scripts/games.js"></script>
     <script src="scripts/physics_puzzle.js"></script>
     <script src="scripts/kartracing.js"></script>
+    <script src="beat-boy.js"></script>
     <script src="scripts/newapps.js"></script>
     <script src="scripts/newapps_batch5.js"></script>
     <script src="scripts/newapps_utility.js"></script>
