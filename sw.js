@@ -31,9 +31,8 @@ const ASSETS = [
 ];
 
 // API domains that should be network-only (never cached)
-// NOTE: tonejs.github.io is NOT here — it serves audio samples that need caching
+// NOTE: itunes.apple.com is NOT here — iOS redirects to musics:// scheme which breaks SW fetch
 const API_PATTERNS = [
-    'itunes.apple.com',
     'api.radio-browser.info',
     'api.open-meteo.com',
     'nasa.gov',

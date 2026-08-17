@@ -345,6 +345,7 @@ function bbSetStatus(msg) {
 
 // Custom sample buffers (loaded from URLs)
 const bbCustomBuffers = {};
+const bbCustomPlayers = {};
 
 // Synthesized sounds (voices, FX, synths)
 function bbPlaySynthSound(name) {
@@ -627,6 +628,10 @@ window.toggleSampleBrowser = function() {
 window.resetSamples = function() {
   trackSamples[sampleBrowserTrack] = null;
   delete bbCustomBuffers[sampleBrowserTrack];
+  if (bbCustomPlayers[sampleBrowserTrack]) {
+    try { bbCustomPlayers[sampleBrowserTrack].dispose(); } catch(e) {}
+    delete bbCustomPlayers[sampleBrowserTrack];
+  }
   const inst = INSTRUMENTS[sampleBrowserTrack];
   const label = document.querySelector(`#track-${sampleBrowserTrack}`)?.closest('.beat-boy-track')?.querySelector('.beat-boy-track-header span');
   if (label) label.innerHTML = `<span style="color:${inst.color}">${inst.emoji} ${inst.name}</span>`;
@@ -660,9 +665,13 @@ function renderSampleBrowser() {
 window.bbPreviewSample = function(name, data) {
   if (!audioReady) return;
   if (data.type === 'sample' && data.url) {
-    const player = new Tone.Player(data.url).toDestination();
-    player.volume.value = -6;
-    player.start();
+    try {
+      const player = new Tone.Player(data.url).toDestination();
+      player.volume.value = -6;
+      player.start();
+      // Dispose after playback to avoid memory leak
+      setTimeout(() => { try { player.dispose(); } catch(e) {} }, 5000);
+    } catch(e) { console.warn('Preview error:', e); }
   } else if (data.type === 'synth' && data.synth) {
     bbPlaySynthSound(data.synth);
   }
@@ -672,10 +681,16 @@ window.bbPreviewSample = function(name, data) {
 window.bbAssignSample = function(trackIdx, name, data) {
   if (data.type === 'sample' && data.url) {
     trackSamples[trackIdx] = { type: 'url', url: data.url, name };
-    // Load buffer
-    const buf = new Tone.ToneAudioBuffer(data.url, () => {
-      bbCustomBuffers[trackIdx] = buf;
-    });
+    // Create a reusable Player connected to the track gain
+    try {
+      const player = new Tone.Player(data.url, () => {
+        bbCustomPlayers[trackIdx] = player;
+        bbSetStatus(`✓ Loaded: ${name}`);
+      }).connect(bbTrackGains[trackIdx]);
+    } catch(e) {
+      console.warn('Sample load error:', e);
+      bbSetStatus(`✗ Failed: ${name}`);
+    }
   } else if (data.type === 'synth' && data.synth) {
     trackSamples[trackIdx] = { type: 'synth', synth: data.synth, name };
   }
@@ -700,11 +715,11 @@ function bbTrigger(r, step) {
   // Check for custom sample first
   const custom = trackSamples[r];
   if (custom) {
-    if (custom.type === 'url' && bbCustomBuffers[r]) {
+    if (custom.type === 'url' && bbCustomPlayers[r]) {
       try {
-        const player = new Tone.Player(bbCustomBuffers[r]).connect(bbTrackGains[r]);
-        player.start(now);
-      } catch(e) {}
+        const p = bbCustomPlayers[r];
+        if (p.loaded) { p.stop(now); p.start(now); }
+      } catch(e) { console.warn('Custom sample trigger:', e); }
     } else if (custom.type === 'synth') {
       bbPlaySynthSound(custom.synth);
     }
