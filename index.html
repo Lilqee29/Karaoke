@@ -22,28 +22,22 @@
     <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/dist/figlet.min.js"></script>
 </head>
 <body>
-    <!-- GameBoy Boot Intro -->
-    <div id="introOverlay" style="position:fixed;inset:0;z-index:999999;background:#0f380f;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
-        <!-- Lottie Logo -->
-        <div id="introLogoWrap" style="opacity:0;transform:translateY(-60px);">
-            <div id="introLogo" style="width:200px;height:120px;"></div>
-        </div>
-        <!-- "GAMEBOY OS" text -->
-        <div id="introTitle" style="font-family:'VT323',monospace;font-size:22px;color:#9bbc0f;letter-spacing:3px;opacity:0;margin-top:8px;text-shadow:0 0 10px rgba(155,188,15,0.6);">GAMEBOY OS</div>
-        <!-- Subtitle -->
-        <div id="introSub" style="font-family:'VT323',monospace;font-size:8px;color:#306230;opacity:0;margin-top:4px;letter-spacing:1px;">SYSTEM READY</div>
-        <!-- CRT flicker overlay -->
-        <div id="introFlicker" style="position:absolute;inset:0;background:#9bbc0f;opacity:0;pointer-events:none;"></div>
-        <!-- Scanlines -->
-        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(0,0,0,0.15) 1px,rgba(0,0,0,0.15) 2px);pointer-events:none;"></div>
-    </div>
-
     <div class="gameboy">
         <div class="power-led"></div>
         
         <div class="screen-bezel">
             <div class="screen">
                 <div class="screen-content">
+                    <!-- GameBoy Boot Intro -->
+                    <div id="introOverlay" style="position:absolute;inset:0;z-index:999;background:#0f380f;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;border-radius:inherit;">
+                        <div id="introLogoWrap" style="opacity:0;transform:translateY(-60px);">
+                            <div id="introLogo" style="width:200px;height:100px;"></div>
+                        </div>
+                        <div id="introTitle" style="font-family:'VT323',monospace;font-size:18px;color:#9bbc0f;letter-spacing:3px;opacity:0;margin-top:8px;text-shadow:0 0 10px rgba(155,188,15,0.6);">GAMEBOY OS</div>
+                        <div id="introSub" style="font-family:'VT323',monospace;font-size:7px;color:#306230;opacity:0;margin-top:4px;letter-spacing:1px;">SYSTEM READY</div>
+                        <div id="introFlicker" style="position:absolute;inset:0;background:#9bbc0f;opacity:0;pointer-events:none;"></div>
+                        <div style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 1px,rgba(0,0,0,0.15) 1px,rgba(0,0,0,0.15) 2px);pointer-events:none;"></div>
+                    </div>
                     <header>
                         <h1 class="header-title" id="screenTitle">GAMEBOY<br>OS</h1>
                         <div class="battery">
@@ -2012,35 +2006,13 @@
 
             if (!overlay) return;
 
-            // Skip intro if already played this session
+            // Skip intro if already played this session — just clean up
             if (sessionStorage.getItem('gbIntroPlayed')) {
                 overlay.style.display = 'none';
                 return;
             }
 
-            // Hide gameboy + all app icons initially
-            const gameboy = document.querySelector('.gameboy');
-            if (gameboy) gameboy.style.opacity = '0';
-
-            // Hide all app icons before they render (use MutationObserver)
-            const appIconsHidden = { done: false };
-            function hideAppIcons() {
-                const icons = document.querySelectorAll('.app-icon');
-                if (icons.length > 0) {
-                    icons.forEach(i => { i.style.opacity = '0'; i.style.transform = 'scale(0) translateY(20px)'; });
-                    appIconsHidden.done = true;
-                }
-            }
-            // Try immediately, then fallback to observer
-            hideAppIcons();
-            if (!appIconsHidden.done) {
-                const obs = new MutationObserver(() => { hideAppIcons(); if (appIconsHidden.done) obs.disconnect(); });
-                obs.observe(document.body, { childList: true, subtree: true });
-                // Safety: stop observing after 5s
-                setTimeout(() => obs.disconnect(), 5000);
-            }
-
-            // Draw the Lottie-style pixel art logo via canvas
+            // Draw the pixel art logo via canvas
             const canvas = document.createElement('canvas');
             canvas.width = 200; canvas.height = 100;
             canvas.style.imageRendering = 'pixelated';
@@ -2050,17 +2022,13 @@
             function drawLogo(progress) {
                 ctx.clearRect(0, 0, 200, 100);
                 ctx.fillStyle = '#9bbc0f';
-
-                // "GB" pixel letters — each pixel is 6x6
                 const letters = [
-                    // G
                     [2,2],[2,3],[2,4],[2,5],[2,6],[2,7],
                     [3,2],[4,2],[5,2],[6,2],
                     [6,3],[6,4],
                     [4,4],[5,4],[6,4],
                     [6,5],[6,6],
                     [2,7],[3,7],[4,7],[5,7],[6,7],
-                    // B
                     [9,2],[9,3],[9,4],[9,5],[9,6],[9,7],
                     [10,2],[11,2],[12,2],
                     [12,3],[12,4],
@@ -2070,45 +2038,31 @@
                     [10,7],
                     [13,2],[13,3],[13,4],[13,5],[13,6],[13,7],
                 ];
-
-                const px = 6; // pixel size
-                const ox = 40; // offset x
+                const px = 6, ox = 40;
                 const visibleCount = Math.floor(letters.length * Math.min(progress * 1.5, 1));
                 for (let i = 0; i < visibleCount; i++) {
                     const [col, row] = letters[i];
                     ctx.fillRect(ox + col * px, row * px, px - 1, px - 1);
                 }
-
-                // Underline
                 if (progress > 0.7) {
-                    const lineW = (progress - 0.7) / 0.3 * 90;
-                    ctx.fillRect(ox, 8 * px + 4, lineW, 3);
+                    ctx.fillRect(ox, 8 * px + 4, (progress - 0.7) / 0.3 * 90, 3);
                 }
             }
-
             drawLogo(0);
 
             // Build GSAP timeline
-            const tl = gsap.timeline({
-                onComplete: () => {
-                    sessionStorage.setItem('gbIntroPlayed', '1');
-                }
-            });
+            const tl = gsap.timeline();
 
             // Phase 1: Logo drop + draw
             tl.to(logoWrap, {
                 opacity: 1, y: 0, duration: 0.6, ease: 'bounce.out',
-                onStart: () => { if (typeof sounds !== 'undefined') sounds.introChime(); },
+                onStart: () => { try { sounds.introChime(); } catch(e) {} },
                 onUpdate: function() { drawLogo(this.progress()); }
             });
-
-            // Title fade in
             tl.to(titleEl, { opacity: 1, duration: 0.3, ease: 'power2.out' }, '-=0.2');
-
-            // Subtitle fade in
             tl.to(subEl, { opacity: 1, duration: 0.2, ease: 'power2.out' }, '-=0.1');
 
-            // Phase 2: Logo pulse/glow
+            // Phase 2: Logo pulse
             tl.to(logoWrap, { scale: 1.05, duration: 0.15, yoyo: true, repeat: 1, ease: 'power2.inOut' }, '+=0.3');
 
             // Phase 2b: CRT flicker
@@ -2118,39 +2072,29 @@
             tl.to(flicker, { opacity: 0, duration: 0.03 });
             tl.to(flicker, { opacity: 0.2, duration: 0.02 });
             tl.to(flicker, { opacity: 0, duration: 0.05,
-                onStart: () => { if (typeof sounds !== 'undefined') sounds.introWhoosh(); }
+                onStart: () => { try { sounds.introWhoosh(); } catch(e) {} }
             });
 
-            // Phase 2c: Fade out intro overlay
+            // Phase 2c: Fade out overlay
             tl.to(overlay, { opacity: 0, duration: 0.3, ease: 'power2.in',
                 onComplete: () => { overlay.style.display = 'none'; }
             });
 
-            // Phase 3: Show gameboy + stagger app icons
+            // Phase 3: Stagger app icons + mark played
             tl.add(() => {
-                if (gameboy) { gameboy.style.opacity = '1'; gameboy.style.transition = 'none'; }
-            });
+                sessionStorage.setItem('gbIntroPlayed', '1');
 
-            tl.add(() => {
+                // Animate whatever app icons exist right now
                 const appIcons = document.querySelectorAll('.app-icon');
-                if (appIcons.length === 0) return;
-
-                gsap.fromTo(appIcons,
-                    { opacity: 0, scale: 0, y: 20 },
-                    {
-                        opacity: 1, scale: 1, y: 0,
-                        duration: 0.35,
-                        stagger: 0.04,
-                        ease: 'back.out(1.7)',
-                    }
-                );
-
-                // Pop sound for each icon
-                appIcons.forEach((icon, i) => {
-                    setTimeout(() => {
-                        if (typeof sounds !== 'undefined' && i < 10) sounds.introPop();
-                    }, i * 50);
-                });
+                if (appIcons.length > 0) {
+                    gsap.fromTo(appIcons,
+                        { opacity: 0, scale: 0, y: 20 },
+                        { opacity: 1, scale: 1, y: 0, duration: 0.35, stagger: 0.04, ease: 'back.out(1.7)' }
+                    );
+                    appIcons.forEach((icon, i) => {
+                        setTimeout(() => { try { if (i < 10) sounds.introPop(); } catch(e) {} }, i * 50);
+                    });
+                }
             });
 
         })();
