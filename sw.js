@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gbos-v15';
+const CACHE_NAME = 'gbos-v16';
 const ASSETS = [
     './',
     './index.html',
@@ -6,6 +6,7 @@ const ASSETS = [
     './app.js',
     './retroos.js',
     './manifest.json',
+    './beat-boy.css',
     './scripts/system.js',
     './scripts/games.js',
     './scripts/newapps.js',
@@ -30,6 +31,7 @@ const ASSETS = [
 ];
 
 // API domains that should be network-only (never cached)
+// NOTE: tonejs.github.io is NOT here — it serves audio samples that need caching
 const API_PATTERNS = [
     'itunes.apple.com',
     'api.radio-browser.info',
@@ -37,20 +39,19 @@ const API_PATTERNS = [
     'nasa.gov',
     'api.openweathermap.org',
     'thecocktaildb.com',
-    'youtube.com',
-    'ytimg.com',
-    'googlevideo.com',
-    'tonejs.github.io',
 ];
+
+// YouTube domains — network-only for video/audio
+const YT_PATTERNS = ['youtube.com', 'ytimg.com', 'googlevideo.com'];
 
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('Caching assets...');
+            console.log('SW: Caching assets...');
             return cache.addAll(ASSETS).catch(err => {
-                console.warn('Cache addAll failed for some assets, trying individual add:', err);
+                console.warn('SW: Cache addAll failed, trying individual:', err);
                 return Promise.all(
-                    ASSETS.map(url => cache.add(url).catch(e => console.error(`Failed to cache: ${url}`, e)))
+                    ASSETS.map(url => cache.add(url).catch(e => console.error(`SW: Failed to cache: ${url}`, e)))
                 );
             });
         })
@@ -63,17 +64,18 @@ self.addEventListener('activate', (e) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((name) => {
-                    // Delete ALL old caches (not just different name)
                     if (name !== CACHE_NAME) {
-                        console.log('Deleting old cache:', name);
+                        console.log('SW: Deleting old cache:', name);
                         return caches.delete(name);
                     }
                 })
             );
         }).then(() => {
-            // Force all clients to reload after SW activates
+            // Reload clients safely — don't crash if navigate fails
             return self.clients.matchAll().then(clients => {
-                clients.forEach(client => client.navigate(client.url));
+                clients.forEach(client => {
+                    try { client.reload(); } catch(e) { /* ignore */ }
+                });
             });
         })
     );
@@ -86,7 +88,12 @@ self.addEventListener('fetch', (e) => {
     // Skip non-GET requests
     if (e.request.method !== 'GET') return;
 
-    // API calls / external resources → network only, never cache
+    // Skip cross-origin navigation (e.g. MiniTrollGame, external pages)
+    // Only handle same-origin or known CDN requests
+    const isSameOrigin = url.startsWith(self.location.origin);
+    const isCDN = url.includes('cdn.jsdelivr.net') || url.includes('cdnjs.cloudflare.com') || url.includes('tonejs.github.io');
+
+    // API calls → network only, never cache
     const isAPI = API_PATTERNS.some(p => url.includes(p));
     if (isAPI) {
         e.respondWith(
@@ -100,12 +107,29 @@ self.addEventListener('fetch', (e) => {
         return;
     }
 
-    // Static assets → cache-first
+    // YouTube → network only
+    const isYT = YT_PATTERNS.some(p => url.includes(p));
+    if (isYT) {
+        e.respondWith(
+            fetch(e.request).catch(() => {
+                return new Response('Offline', { status: 503 });
+            })
+        );
+        return;
+    }
+
+    // For non-same-origin, non-CDN requests (e.g. external page navigation) — just fetch, don't cache
+    if (!isSameOrigin && !isCDN) {
+        return; // Let browser handle it normally
+    }
+
+    // Static assets / same-origin / CDN audio → cache-first
     e.respondWith(
         caches.match(e.request).then((response) => {
-            return response || fetch(e.request).then(networkResponse => {
-                // Cache new static assets
-                if (networkResponse && networkResponse.status === 200) {
+            if (response) return response;
+            return fetch(e.request).then(networkResponse => {
+                // Cache successful responses for same-origin and CDN
+                if (networkResponse && networkResponse.status === 200 && (isSameOrigin || isCDN)) {
                     const clone = networkResponse.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
                 }
