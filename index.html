@@ -136,6 +136,7 @@
                                     onkeydown="if(event.key==='Enter')searchMusic()">
                                 <button onclick="searchMusic()" style="font-size: 5px;">🔍</button>
                                 <button onclick="toggleMusicQueue()" style="font-size: 5px;">☰</button>
+                                <button onclick="document.getElementById('recentlyPlayedPanel').style.display=document.getElementById('recentlyPlayedPanel').style.display==='none'?'block':'none'; renderRecentlyPlayed();" style="font-size: 5px;">🕐</button>
                             </div>
                             
                             <div id="vinylContainer" style="position: relative; width: 140px; height: 140px; margin: 10px auto; transition: transform 0.1s linear;">
@@ -174,6 +175,15 @@
                                     <button onclick="toggleMusicQueue()" style="font-size: 5px;">CLOSE</button>
                                 </div>
                                 <div id="queueList" style="font-size: 6px; display: flex; flex-direction: column; gap: 2px;"></div>
+                            </div>
+
+                            <!-- Recently Played Panel -->
+                            <div id="recentlyPlayedPanel" style="display: none; position: absolute; top: 40px; left: 10px; right: 10px; bottom: 10px; background: #0a0a1a; border: 2px solid #9bbc0f; z-index: 20; padding: 10px; overflow-y: auto; border-radius: 5px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                    <span style="font-size: 8px; font-weight: bold; color: #9bbc0f;">RECENTLY PLAYED</span>
+                                    <button onclick="document.getElementById('recentlyPlayedPanel').style.display='none'" style="font-size: 5px; background: none; border: 1px solid #9bbc0f; color: #9bbc0f; cursor: pointer;">CLOSE</button>
+                                </div>
+                                <div id="recentlyPlayedList"></div>
                             </div>
                             
                             <input type="file" id="musicFileInput" accept="audio/*" style="display:none;">
