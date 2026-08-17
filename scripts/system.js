@@ -345,7 +345,35 @@ const sounds = {
     select: () => playSound(800, 'square', 0.05),
     back:   () => playSound(400, 'square', 0.1),
     launch: () => { playSound(440, 'square', 0.1); setTimeout(() => playSound(880, 'square', 0.1), 100); },
-    coin:   () => { playSound(1200, 'sine', 0.1); setTimeout(() => playSound(1000, 'sine', 0.15), 80); }
+    coin:   () => { playSound(1200, 'sine', 0.1); setTimeout(() => playSound(1000, 'sine', 0.15), 80); },
+
+    // Intro sounds
+    introChime: () => {
+        // Classic GameBoy "bing!" — two-note ascending chime
+        playSound(523, 'sine', 0.15);     // C5
+        setTimeout(() => playSound(1047, 'sine', 0.3), 120); // C6
+    },
+    introWhoosh: () => {
+        // White noise burst via oscillator sweep
+        try {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime((state.vol / 100) * 0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.25);
+        } catch(e) {}
+    },
+    introPop: () => {
+        // Soft bubble pop for app icon appearance
+        playSound(1400, 'sine', 0.04);
+    }
 };
 
 function setVolume(val)     { state.vol = val; saveState(); }
