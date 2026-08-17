@@ -358,11 +358,11 @@ if(abBtns.length >= 2) {
 
     const handleA = (down) => {
         if (down && currentScreen === 'home') launchApp(displayedApps[selectedIndex].id);
-        else document.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup', { key: 'z' }));
+        else document.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup', { key: 'z', bubbles: true }));
     };
     const handleB = (down) => {
         if (!down) {
-            document.dispatchEvent(new KeyboardEvent('keyup', { key: 'x' }));
+            document.dispatchEvent(new KeyboardEvent('keyup', { key: 'x', bubbles: true }));
             return;
         }
         
@@ -370,7 +370,7 @@ if(abBtns.length >= 2) {
         const gameModeApps = ['adventure', 'troll', 'racer', 'duel', 'brawl', 'void', 'chess', 'sync', 'chameleon'];
         
         if (gameModeApps.includes(currentScreen)) {
-            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }));
         } else {
             goBack();
         }
@@ -413,8 +413,8 @@ if (selectBtn) {
 if (startBtn) {
     startBtn.onclick = () => {
         // Start usually acts as Enter or a special Menu
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-        setTimeout(() => document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter' })), 100);
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        setTimeout(() => document.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true })), 100);
         
         // Special: In Adventure Game, cycle visual modes (if implemented in script)
         if (currentScreen === 'adventure' && typeof RetroQuest !== 'undefined' && RetroQuest.cycleMode) {
@@ -428,7 +428,7 @@ function bindHold(selector, key) {
     const el = document.querySelector(selector);
     if(!el) return;
     const press = (d) => {
-        document.dispatchEvent(new KeyboardEvent(d?'keydown':'keyup', { key: key }));
+        document.dispatchEvent(new KeyboardEvent(d?'keydown':'keyup', { key: key, bubbles: true }));
         if(d) el.classList.add('pressed'); else el.classList.remove('pressed');
     };
     el.addEventListener('mousedown', () => press(true));

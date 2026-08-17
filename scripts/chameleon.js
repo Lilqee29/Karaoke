@@ -55,21 +55,71 @@ function chmInit() {
 function chmSetupInput() {
     // Keyboard for testing
     document.addEventListener('keydown', (e) => {
+        // Only handle input when chameleon screen is active
+        if(typeof currentScreen === 'undefined' || currentScreen !== 'chameleon') return;
+        
         if(chmPhase === 'lobby') {
-            if(e.key === 'Enter') chmStartGame();
-            if(e.key === 'ArrowUp') chmChangeSeekers(1);
-            if(e.key === 'ArrowDown') chmChangeSeekers(-1);
+            if(e.key === 'Enter' || e.key === 'z' || e.key === 'a') {
+                chmStartGame();
+                if(window.sounds) sounds.click();
+            }
+            if(e.key === 'ArrowUp') { chmChangeSeekers(1); if(window.sounds) sounds.click(); }
+            if(e.key === 'ArrowDown') { chmChangeSeekers(-1); if(window.sounds) sounds.click(); }
+            if(e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                // Cycle game mode
+                const modes = ['basic', 'infection', 'double'];
+                const i = modes.indexOf(chmGameMode);
+                chmGameMode = modes[(i + (e.key === 'ArrowRight' ? 1 : -1) + modes.length) % modes.length];
+                chmNumSeekers = chmGameMode === 'double' ? 2 : 1;
+                if(window.sounds) sounds.click();
+                chmDrawLobby();
+            }
+            return;
         }
+        
         if(chmPhase === 'prep' && chmMyRole === 'hider') {
+            // D-pad movement
+            if(e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                chmDpad(e.key.replace('Arrow', '').toLowerCase());
+                e.preventDefault();
+                return;
+            }
             if(e.key === 'b' || e.key === 'B') {
                 chmTogglePaintMenu(chmCurrentMap, chmPlayers[chmLocalPlayer]?.x || 150, chmPlayers[chmLocalPlayer]?.y || 120);
+                if(window.sounds) sounds.click();
                 e.preventDefault();
+                return;
             }
-            if(e.key === 'Enter') chmReadyUp();
+            if(e.key === 'Enter' || e.key === 'z' || e.key === 'a') {
+                chmReadyUp();
+                if(window.sounds) sounds.click();
+                return;
+            }
+            return;
         }
+        
         if(chmPhase === 'hunt' && chmMyRole === 'seeker') {
-            if(e.key === 'z' || e.key === 'a') chmShootWand();
-            if(e.key === 'x' || e.key === 'b') chmSniff();
+            if(e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                chmDpad(e.key.replace('Arrow', '').toLowerCase());
+                e.preventDefault();
+                return;
+            }
+            if(e.key === 'z' || e.key === 'a') {
+                chmShootWand();
+                if(window.sounds) sounds.click();
+                return;
+            }
+            if(e.key === 'x' || e.key === 'b') {
+                chmSniff();
+                if(window.sounds) sounds.coin();
+                return;
+            }
+            return;
+        }
+        
+        // Global: Backspace/Escape to go back
+        if(e.key === 'Backspace' || e.key === 'Escape') {
+            if(window.sounds) sounds.back();
         }
     });
     
@@ -105,6 +155,7 @@ function chmStartGame() {
         chmPrepTimer = 30;
         chmAssignRoles();
         chmStartPrepPhase();
+        if(window.sounds) sounds.launch();
     }
 }
 
@@ -172,6 +223,8 @@ function chmStartHuntPhase() {
         }
     }
     
+    if(window.sounds) sounds.launch();
+    
     const interval = setInterval(() => {
         chmHuntTimer--;
         if(chmHuntTimer <= 0) {
@@ -203,6 +256,8 @@ function chmUpdateHunt() {
                         pl.alive = false;
                         chmFoundEffects.push({ x: pl.x, y: pl.y, life: 30 });
                         chmWandProjectiles.splice(i, 1);
+                        
+                        if(window.sounds) sounds.coin();
                         
                         // Infection mode: found hider becomes seeker
                         if(chmGameMode === 'infection') {
@@ -258,6 +313,8 @@ function chmShootWand() {
         owner: chmLocalPlayer
     });
     
+    if(window.sounds) sounds.click();
+    
     // Broadcast
     if(typeof chmSyncSend === 'function') {
         chmSyncSend({ type: 'shoot', x: player.x, y: player.y, angle });
@@ -295,6 +352,11 @@ function chmSniff() {
 // ── End Game ────────────────────────────────────────────────────────────
 function chmEndGame(winner) {
     chmPhase = 'reveal';
+    
+    if(window.sounds) {
+        if(winner === 'seekers') sounds.coin();
+        else sounds.back();
+    }
     
     // Calculate scores
     for(const id in chmPlayers) {
