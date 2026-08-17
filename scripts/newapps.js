@@ -4,18 +4,21 @@ const pad = (n) => n.toString().padStart(2, '0');
 const JAMENDO_CLIENT_ID = '56d30c55';
 const RADIO_API_URL = 'https://de1.api.radio-browser.info/json/stations/search';
 
-// ========== MUSIC PLAYER (iTunes + YouTube Embed) ==========
+// ========== MUSIC PLAYER (iTunes Search + YouTube Playback) ==========
 let musicQueue = [];
 let currentMusicIdx = 0;
 let isMusicPlaying = false;
 let isShuffle = false;
 let isRepeat = false;
-let vinylRotation = 0;
-let vinylInterval = null;
-let ytPlayer = null;
-let ytReady = false;
-let ytProgressInterval = null;
 let currentAudio = null;
+let musicSkipGuard = false; // prevents cascading nextMusic calls
+
+// ── CORS Proxy for iTunes search (bypasses SW on iOS) ──────
+const CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+];
+let activeCorsProxy = 0;
 
 // ── Recently Played ──────────────────────────────────────────
 let recentlyPlayed = JSON.parse(localStorage.getItem('gbRecentlyPlayed') || '[]');
@@ -89,104 +92,89 @@ function loadMusicQueue() {
 // Auto-load saved queue on script init
 setTimeout(loadMusicQueue, 100);
 
-// ── YouTube IFrame API Loader (for full songs) ────────────
-function loadYouTubeAPI() {
-  if (window.YT && window.YT.Player) return;
-  const tag = document.createElement('script');
-  tag.src = 'https://www.youtube.com/iframe_api';
-  document.head.appendChild(tag);
-}
-loadYouTubeAPI();
+// ── YouTube embed helper (used by playFullSong) ────────────
+// Full songs play via direct YouTube embed — no API key needed
 
-window.onYouTubeIframeAPIReady = function() {
-  const div = document.createElement('div');
-  div.id = 'ytPlayerDiv';
-  div.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0;';
-  document.body.appendChild(div);
-  ytPlayer = new YT.Player('ytPlayerDiv', {
-    height: '1', width: '1',
-    playerVars: { autoplay: 0, controls: 0 },
-    events: {
-      onReady: () => { ytReady = true; },
-      onStateChange: (e) => {
-        if (e.data === 0) { // ENDED
-          if (isRepeat && ytPlayer.seekTo) { ytPlayer.seekTo(0); ytPlayer.playVideo(); }
-          else nextMusic();
-        }
-      }
-    }
-  });
-};
-
-// ── Search via iTunes API (CORS-enabled, reliable) ─────────
+// ── Search via iTunes API (with CORS proxy for iOS) ────────
 async function searchMusic() {
   const query = document.getElementById('musicSearch')?.value;
   if (!query) return;
   const resultsEl = document.getElementById('musicResults');
   if (resultsEl) resultsEl.innerHTML = '<div style="color:#9bbc0f;font-size:7px;text-align:center;padding:10px;">SEARCHING...</div>';
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
-    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30`, {
-      signal: controller.signal,
-      cache: 'no-store',
-      mode: 'cors'
-    });
-    clearTimeout(timeoutId);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+  // Try direct first, then CORS proxies
+  const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30`;
+  const urls = [itunesUrl, ...CORS_PROXIES.map(p => p + encodeURIComponent(itunesUrl))];
 
-    if (data.results && data.results.length > 0) {
-      musicQueue = data.results.map(t => ({
-        trackId: t.trackId || t.collectionId || `${t.trackName}-${t.artistName}`.replace(/\s+/g,'-'),
-        name: t.trackName || t.collectionName,
-        artist_name: t.artistName,
-        audio: t.previewUrl,
-        thumbnail: (t.artworkUrl100 || '').replace('100x100', '300x300'),
-        duration: t.trackTimeMillis ? Math.floor(t.trackTimeMillis / 1000) : 0,
-        genre: t.primaryGenreName || '',
-        appleUrl: t.trackViewUrl || '',
-        youtubeQuery: `${t.trackName} ${t.artistName} official`.trim(),
-      }));
-      saveMusicQueue();
-      renderMusicResults();
-    } else {
-      if (resultsEl) resultsEl.innerHTML = '<div style="color:#306230;font-size:7px;text-align:center;padding:20px 0;">NO RESULTS</div>';
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const data = JSON.parse(text);
+
+      if (data.results && data.results.length > 0) {
+        musicQueue = data.results.map(t => ({
+          trackId: t.trackId || t.collectionId || `${t.trackName}-${t.artistName}`.replace(/\s+/g,'-'),
+          name: t.trackName || t.collectionName,
+          artist_name: t.artistName,
+          audio: t.previewUrl,
+          thumbnail: (t.artworkUrl100 || '').replace('100x100', '300x300'),
+          duration: t.trackTimeMillis ? Math.floor(t.trackTimeMillis / 1000) : 0,
+          genre: t.primaryGenreName || '',
+          appleUrl: t.trackViewUrl || '',
+          youtubeQuery: `${t.trackName} ${t.artistName} official`.trim(),
+        }));
+        saveMusicQueue();
+        renderMusicResults();
+        return; // success!
+      } else {
+        if (resultsEl) resultsEl.innerHTML = '<div style="color:#306230;font-size:7px;text-align:center;padding:20px 0;">NO RESULTS</div>';
+        return;
+      }
+    } catch (e) {
+      lastError = e;
+      continue; // try next proxy
     }
-  } catch (e) {
-    console.warn('iTunes search failed:', e.name, e.message, e);
-    let errMsg = 'SEARCH FAILED';
-    if (e.name === 'AbortError') errMsg = 'TIMEOUT (12s)';
-    else if (e.message) errMsg = `FAILED: ${e.message.substring(0, 40)}`;
-    if (resultsEl) resultsEl.innerHTML = `<div style="color:#306230;font-size:6px;text-align:center;padding:20px 0;">${errMsg}</div>`;
   }
+
+  // All methods failed
+  console.warn('All search methods failed:', lastError);
+  let errMsg = 'SEARCH FAILED';
+  if (lastError?.name === 'AbortError') errMsg = 'TIMEOUT';
+  else if (lastError?.message) errMsg = lastError.message.substring(0, 40);
+  if (resultsEl) resultsEl.innerHTML = `<div style="color:#306230;font-size:6px;text-align:center;padding:20px 0;">${errMsg}</div>`;
 }
 
-// ── Render search results as clickable list ─────────────────
+// ── Render search results ──────────────────────────────────
 function renderMusicResults() {
   const el = document.getElementById('musicResults');
   if (!el) return;
   el.innerHTML = musicQueue.map((t, i) => `
-    <div onclick="playMusic(${i})" style="display:flex;align-items:center;gap:6px;padding:5px 4px;cursor:pointer;border-bottom:1px solid #1a1a2e;border-radius:3px;transition:background 0.15s;" onmouseenter="this.style.background='#1a2a1a'" onmouseleave="this.style.background='transparent'">
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 4px;border-bottom:1px solid #1a1a2e;border-radius:3px;transition:background 0.15s;">
       <img src="${t.thumbnail || ''}" style="width:28px;height:28px;border-radius:3px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">
-      <div style="flex:1;overflow:hidden;">
+      <div style="flex:1;overflow:hidden;min-width:0;">
         <div style="font-size:7px;font-weight:bold;color:#9bbc0f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(t.name||'UNKNOWN').toUpperCase()}</div>
         <div style="font-size:5px;color:#306230;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(t.artist_name||'').toUpperCase()}</div>
       </div>
       <div style="display:flex;gap:3px;flex-shrink:0;">
-        <div onclick="event.stopPropagation();playFullSong(${i})" title="Play full song on YouTube" style="font-size:5px;padding:2px 4px;background:#300;color:#f55;border:1px solid #600;border-radius:2px;cursor:pointer;">▶ YT</div>
+        <div onclick="playMusic(${i})" title="Play 30s preview" style="font-size:5px;padding:2px 4px;background:#030;color:#9bbc0f;border:1px solid #306230;border-radius:2px;cursor:pointer;">▶ 30s</div>
+        <div onclick="playFullSong(${i})" title="Play full song on YouTube" style="font-size:5px;padding:2px 6px;background:#300;color:#f55;border:1px solid #600;border-radius:2px;cursor:pointer;font-weight:bold;">▶▶ FULL</div>
       </div>
     </div>
   `).join('');
 }
 
-// ── Play track (iTunes audio or YouTube) ───────────────────
+// ── Play track (30s preview) ──────────────────────────────
 function playMusic(idx) {
   // Stop previous
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  if (ytPlayer && ytReady && ytPlayer.stopVideo) ytPlayer.stopVideo();
+  if (currentAudio) { currentAudio.pause(); currentAudio.src = ''; currentAudio = null; }
 
+  musicSkipGuard = false;
   currentMusicIdx = idx;
   const track = musicQueue[idx];
   if (!track) return;
@@ -200,45 +188,59 @@ function playMusic(idx) {
   if (artistEl) artistEl.textContent = track.artist_name?.toUpperCase() || '';
 
   if (track.audio) {
-    // Show now-playing bar
     const npBar = document.getElementById('nowPlayingBar');
     if (npBar) npBar.style.display = 'block';
     const npThumb = document.getElementById('npThumb');
     if (npThumb && track.thumbnail) { npThumb.src = track.thumbnail; npThumb.style.display = 'block'; }
     else if (npThumb) npThumb.style.display = 'none';
 
-    currentAudio = new Audio(track.audio);
+    currentAudio = new Audio();
+    currentAudio.preload = 'auto';
+    currentAudio.src = track.audio;
+
+    currentAudio.oncanplay = () => {
+      currentAudio.play().catch(() => {});
+    };
+
     currentAudio.onended = () => {
-      if (isRepeat) { currentAudio.currentTime = 0; currentAudio.play(); }
+      isMusicPlaying = false;
+      if (playBtn) playBtn.textContent = '▶';
+      if (isRepeat) { currentAudio.currentTime = 0; currentAudio.play(); isMusicPlaying = true; if (playBtn) playBtn.textContent = '⏸'; }
       else nextMusic();
     };
+
     currentAudio.onerror = () => {
-      console.warn('Track failed:', track.name);
-      if (musicQueue.length > 1) nextMusic();
+      console.warn('Preview failed:', track.name);
+      // Don't cascade — just stop
+      isMusicPlaying = false;
+      if (playBtn) playBtn.textContent = '▶';
+      const titleEl2 = document.getElementById('musicTitle');
+      if (titleEl2) titleEl2.textContent = '❌ PREVIEW FAILED';
     };
-    currentAudio.play().catch(() => {
-      if (musicQueue.length > 1) nextMusic();
+
+    currentAudio.play().then(() => {
+      isMusicPlaying = true;
+      if (playBtn) playBtn.textContent = '⏸';
+    }).catch(() => {
+      // Autoplay blocked — show play button
+      isMusicPlaying = false;
     });
-    isMusicPlaying = true;
-    if (playBtn) playBtn.textContent = '⏸';
+
     startProgress();
 
-    // Highlight active track in results list
+    // Highlight active track
     document.querySelectorAll('#musicResults > div').forEach((el, i) => {
       el.style.background = i === idx ? '#1a2a1a' : 'transparent';
       el.style.borderLeft = i === idx ? '2px solid #9bbc0f' : '2px solid transparent';
     });
 
-    // Add to recently played
     addToRecentlyPlayed(track);
   }
 
-  // Media Session API (lock screen controls)
+  // Media Session API
   if ('mediaSession' in navigator && track.thumbnail) {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: track.name,
-      artist: track.artist_name,
-      album: 'GameBoy Music',
+      title: track.name, artist: track.artist_name, album: 'GameBoy Music',
       artwork: [{ src: track.thumbnail, sizes: '300x300', type: 'image/jpeg' }]
     });
     navigator.mediaSession.setActionHandler('play', () => toggleMusicPlay());
@@ -249,13 +251,15 @@ function playMusic(idx) {
 }
 
 function toggleMusicPlay() {
-  if (currentAudio) {
+  if (currentAudio && currentAudio.src) {
     if (isMusicPlaying) {
       currentAudio.pause(); stopProgress();
       const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '▶';
     } else {
-      currentAudio.play(); startProgress();
-      const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '⏸';
+      currentAudio.play().then(() => {
+        startProgress();
+        const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '⏸';
+      }).catch(() => {});
     }
     isMusicPlaying = !isMusicPlaying;
   } else if (musicQueue.length > 0) {
@@ -264,6 +268,9 @@ function toggleMusicPlay() {
 }
 
 function nextMusic() {
+  if (musicSkipGuard) return;
+  musicSkipGuard = true;
+  setTimeout(() => { musicSkipGuard = false; }, 500);
   if (musicQueue.length === 0) return;
   const next = isShuffle
     ? Math.floor(Math.random() * musicQueue.length)
@@ -272,6 +279,9 @@ function nextMusic() {
 }
 
 function prevMusic() {
+  if (musicSkipGuard) return;
+  musicSkipGuard = true;
+  setTimeout(() => { musicSkipGuard = false; }, 500);
   if (musicQueue.length === 0) return;
   playMusic((currentMusicIdx - 1 + musicQueue.length) % musicQueue.length);
 }
@@ -289,14 +299,12 @@ function toggleMusicRepeat() {
 }
 
 // ── YouTube Full Song Player ────────────────────────────────
-let ytFullFrame = null;
-
 window.playFullSong = function(idx) {
   const track = musicQueue[idx];
   if (!track) return;
 
-  // Stop any iTunes preview
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; isMusicPlaying = false; }
+  // Stop any preview audio
+  if (currentAudio) { currentAudio.pause(); currentAudio.src = ''; currentAudio = null; isMusicPlaying = false; }
 
   currentMusicIdx = idx;
   saveMusicQueue();
@@ -312,25 +320,30 @@ window.playFullSong = function(idx) {
   if (artistEl) artistEl.textContent = 'FULL SONG — ' + (track.artist_name?.toUpperCase() || '');
   const pb = document.getElementById('musicPlayBtn');
   if (pb) pb.textContent = '⏸';
+  isMusicPlaying = true;
 
-  // Create or reuse YouTube embed iframe
+  // Show YouTube embed
   const container = document.getElementById('musicResults');
   if (!container) return;
 
   const q = encodeURIComponent(track.youtubeQuery || `${track.name} ${track.artist_name}`);
   const embedUrl = `https://www.youtube.com/embed?listType=search&list=${q}&autoplay=1`;
 
-  // Replace results with YouTube embed
   container.innerHTML = `
-    <div style="text-align:center;padding:4px;">
-      <div style="font-size:6px;color:#9bbc0f;margin-bottom:4px;">▶ PLAYING FULL SONG ON YOUTUBE</div>
-      <iframe id="ytFullEmbed" src="${embedUrl}" style="width:100%;height:150px;border:1px solid #306230;border-radius:4px;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-      <div style="font-size:5px;color:#306230;margin-top:4px;">Powered by YouTube • Full songs</div>
-      <button onclick="restoreMusicResults()" style="margin-top:6px;font-size:5px;padding:3px 8px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">← BACK TO RESULTS</button>
+    <div style="text-align:center;padding:6px;">
+      <div style="font-size:6px;color:#9bbc0f;margin-bottom:6px;">▶▶ PLAYING FULL SONG</div>
+      <iframe id="ytFullEmbed" src="${embedUrl}" 
+        style="width:100%;height:180px;border:1px solid #306230;border-radius:4px;background:#000;" 
+        allow="autoplay; encrypted-media; fullscreen" allowfullscreen
+        sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+      <div style="font-size:5px;color:#306230;margin-top:4px;">YouTube • Full songs</div>
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:6px;">
+        <button onclick="restoreMusicResults()" style="font-size:5px;padding:4px 10px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">← RESULTS</button>
+        <button onclick="playFullSong((currentMusicIdx + 1) % musicQueue.length)" style="font-size:5px;padding:4px 10px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">NEXT ▶</button>
+      </div>
     </div>
   `;
 
-  // Highlight active track
   addToRecentlyPlayed(track);
 };
 
@@ -384,9 +397,11 @@ function renderQueue() {
 }
 
 // ── Progress ───────────────────────────────────────────────
+let progressInterval = null;
+
 function startProgress() {
   stopProgress();
-  ytProgressInterval = setInterval(() => {
+  progressInterval = setInterval(() => {
     if (!currentAudio) return;
     const cur = currentAudio.currentTime || 0;
     const dur = currentAudio.duration || 1;
@@ -399,8 +414,8 @@ function startProgress() {
 }
 
 function stopProgress() {
-  if (ytProgressInterval) clearInterval(ytProgressInterval);
-  ytProgressInterval = null;
+  if (progressInterval) clearInterval(progressInterval);
+  progressInterval = null;
 }
 
 function fmtTime(s) {

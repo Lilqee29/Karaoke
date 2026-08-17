@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gbos-v16';
+const CACHE_NAME = 'gbos-v17';
 const ASSETS = [
     './',
     './index.html',
@@ -42,6 +42,9 @@ const API_PATTERNS = [
 
 // YouTube domains — network-only for video/audio
 const YT_PATTERNS = ['youtube.com', 'ytimg.com', 'googlevideo.com'];
+
+// CORS proxy domains — network-only
+const CORS_PROXY_PATTERNS = ['corsproxy.io', 'allorigins.win'];
 
 self.addEventListener('install', (e) => {
     e.waitUntil(
