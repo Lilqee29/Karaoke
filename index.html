@@ -15,15 +15,21 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="stylesheet" href="beat-boy.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js" defer></script>
-
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <link rel="stylesheet" href="styles.css">
-    <script src="scripts/system.js"></script> <!-- Ensure system specific vars load early -->
-    <script src="https://cdn.jsdelivr.net/npm/figlet@2.0.0/dist/figlet.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" defer></script>
+    <script src="scripts/system.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/figlet@1.7.0/dist/figlet.min.js"></script>
 </head>
 <body>
+    <!-- Loading Splash -->
+    <div id="loadingSplash" style="position:fixed;inset:0;z-index:999999;background:#0f380f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:'VT323',monospace;">
+        <div style="font-size:18px;color:#9bbc0f;letter-spacing:2px;">GAMEBOY OS</div>
+        <div id="loadingText" style="font-size:8px;color:#306230;">LOADING SYSTEM...</div>
+        <div style="width:100px;height:4px;background:#0a2a0a;border-radius:2px;overflow:hidden;">
+            <div id="loadingBar" style="width:0%;height:100%;background:#9bbc0f;border-radius:2px;transition:width 0.3s;"></div>
+        </div>
+    </div>
+
     <div class="gameboy">
         <div class="power-led"></div>
         
@@ -1976,6 +1982,39 @@
         document.addEventListener('click', handleGesture);
         document.addEventListener('keydown', handleGesture);
         document.addEventListener('touchstart', handleGesture);
+
+        // ── Remove loading splash after all scripts loaded ──
+        window.addEventListener('load', () => {
+            const bar = document.getElementById('loadingBar');
+            const txt = document.getElementById('loadingText');
+            const splash = document.getElementById('loadingSplash');
+            if (bar) bar.style.width = '100%';
+            if (txt) txt.textContent = 'READY!';
+            setTimeout(() => { if (splash) splash.style.display = 'none'; }, 400);
+        });
+
+        // Update splash as scripts load
+        (function() {
+            const bar = document.getElementById('loadingBar');
+            const txt = document.getElementById('loadingText');
+            const steps = [
+                [10, 'Loading core...'],
+                [30, 'Loading games...'],
+                [50, 'Loading apps...'],
+                [70, 'Loading audio...'],
+                [90, 'Almost ready...'],
+            ];
+            let i = 0;
+            const iv = setInterval(() => {
+                if (i < steps.length && bar && txt) {
+                    bar.style.width = steps[i][0] + '%';
+                    txt.textContent = steps[i][1];
+                    i++;
+                } else {
+                    clearInterval(iv);
+                }
+            }, 300);
+        })();
 
     </script>
 </body>

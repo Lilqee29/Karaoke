@@ -99,12 +99,11 @@ function updateZodiac() {
 
 // Fix 6: News - Moved to newapps.js (Algolia API with category tabs)
 
-// Fix 7: Music Player — now powered by YouTube/Invidious (see newapps.js top)
-// These stubs are kept for backward compatibility with app.js cleanup
+// Fix 7: Music Player — now powered by iTunes Search API (see newapps.js top)
 window.nextMusicTrack = function() { if (typeof nextMusic === 'function') nextMusic(); };
 window.prevMusicTrack = function() { if (typeof prevMusic === 'function') prevMusic(); };
 window.stopMusic = function() {
-  if (typeof ytPlayer !== 'undefined' && ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+  if (typeof currentAudio !== 'undefined' && currentAudio) { currentAudio.pause(); currentAudio = null; }
   if (typeof stopVinyl === 'function') stopVinyl();
   if (typeof stopProgress === 'function') stopProgress();
   isMusicPlaying = false;

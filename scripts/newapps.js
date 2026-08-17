@@ -4,16 +4,7 @@ const pad = (n) => n.toString().padStart(2, '0');
 const JAMENDO_CLIENT_ID = '56d30c55';
 const RADIO_API_URL = 'https://de1.api.radio-browser.info/json/stations/search';
 
-// ========== MUSIC PLAYER (YouTube + Invidious) ==========
-const INVIDIOUS_INSTANCES = [
-  'https://vid.puffyan.us',
-  'https://invidious.nerdvpn.de',
-  'https://inv.nadeko.net',
-  'https://invidious.privacyredirect.com',
-  'https://yt.artemislena.eu',
-];
-let INVIDIOUS_API = INVIDIOUS_INSTANCES[0];
-
+// ========== MUSIC PLAYER (iTunes + YouTube Embed) ==========
 let musicQueue = [];
 let currentMusicIdx = 0;
 let isMusicPlaying = false;
@@ -24,8 +15,9 @@ let vinylInterval = null;
 let ytPlayer = null;
 let ytReady = false;
 let ytProgressInterval = null;
+let currentAudio = null;
 
-// ── YouTube IFrame API Loader ──────────────────────────────
+// ── YouTube IFrame API Loader (for full songs) ────────────
 function loadYouTubeAPI() {
   if (window.YT && window.YT.Player) return;
   const tag = document.createElement('script');
@@ -35,133 +27,145 @@ function loadYouTubeAPI() {
 loadYouTubeAPI();
 
 window.onYouTubeIframeAPIReady = function() {
-  // Create hidden player
   const div = document.createElement('div');
   div.id = 'ytPlayerDiv';
-  div.style.cssText = 'position:absolute; left:-9999px; top:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;';
+  div.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0;';
   document.body.appendChild(div);
-
   ytPlayer = new YT.Player('ytPlayerDiv', {
-    height: '1',
-    width: '1',
-    playerVars: { autoplay: 0, controls: 0, disablekb: 1 },
+    height: '1', width: '1',
+    playerVars: { autoplay: 0, controls: 0 },
     events: {
       onReady: () => { ytReady = true; },
       onStateChange: (e) => {
-        // YT.PlayerState.ENDED = 0
-        if (e.data === 0) {
-          if (isRepeat) {
-            ytPlayer.seekTo(0, true);
-            ytPlayer.playVideo();
-          } else {
-            nextMusic();
-          }
+        if (e.data === 0) { // ENDED
+          if (isRepeat && ytPlayer.seekTo) { ytPlayer.seekTo(0); ytPlayer.playVideo(); }
+          else nextMusic();
         }
       }
     }
   });
 };
 
-// ── Search via Invidious ───────────────────────────────────
+// ── Search via iTunes API (CORS-enabled, reliable) ─────────
 async function searchMusic() {
-  const query = document.getElementById('musicSearch').value;
+  const query = document.getElementById('musicSearch')?.value;
   if (!query) return;
   const mt = document.getElementById('musicTitle');
-  if (mt) mt.textContent = 'SEARCHING YOUTUBE...';
+  if (mt) mt.textContent = 'SEARCHING MUSIC...';
+  const ma = document.getElementById('musicArtist');
+  if (ma) ma.textContent = '...';
+  const pb = document.getElementById('musicPlayBtn');
+  if (pb) pb.textContent = '⏳';
 
-  // Try each Invidious instance until one works
-  for (const instance of INVIDIOUS_INSTANCES) {
-    try {
-      const res = await fetch(`${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video&sort=relevance`, {
-        signal: AbortSignal.timeout(5000)
-      });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const videos = data.filter(v => v.type === 'video' && v.videoId);
-      if (videos.length > 0) {
-        INVIDIOUS_API = instance;
-        musicQueue = videos.map(v => ({
-          videoId: v.videoId,
-          name: v.title,
-          artist_name: v.author || 'Unknown',
-          lengthSeconds: v.lengthSeconds || 0,
-          thumbnail: (v.videoThumbnails || []).find(t => t.quality === 'medium')?.url
-            || (v.videoThumbnails || [])[0]?.url
-            || `https://i.ytimg.com/vi/${v.videoId}/mqdefault.jpg`,
-        }));
-        currentMusicIdx = 0;
-        renderQueue();
-        if (musicQueue.length > 0) playMusic(0);
-        else if (mt) mt.textContent = 'NO RESULTS';
-        return;
-      }
-    } catch (e) { continue; }
+  try {
+    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=20`, {
+      signal: AbortSignal.timeout(8000)
+    });
+    const data = await res.json();
+
+    if (data.results && data.results.length > 0) {
+      musicQueue = data.results.map(t => ({
+        videoId: null, // iTunes tracks use audio preview
+        name: t.trackName || t.collectionName,
+        artist_name: t.artistName,
+        audio: t.previewUrl, // 30s AAC preview
+        thumbnail: (t.artworkUrl100 || '').replace('100x100', '300x300'),
+        duration: t.trackTimeMillis ? Math.floor(t.trackTimeMillis / 1000) : 0,
+        genre: t.primaryGenreName || '',
+        appleUrl: t.trackViewUrl || '',
+      }));
+      currentMusicIdx = 0;
+      renderQueue();
+      playMusic(0);
+    } else {
+      if (mt) mt.textContent = 'NO RESULTS';
+      if (pb) pb.textContent = '▶';
+    }
+  } catch (e) {
+    console.warn('iTunes search failed:', e);
+    if (mt) mt.textContent = 'SEARCH FAILED';
+    if (pb) pb.textContent = '▶';
   }
-  if (mt) mt.textContent = 'SEARCH FAILED - TRY AGAIN';
 }
 
-// ── Play via YouTube IFrame ────────────────────────────────
+// ── Play track (iTunes audio or YouTube) ───────────────────
 function playMusic(idx) {
+  // Stop previous
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if (ytPlayer && ytReady && ytPlayer.stopVideo) ytPlayer.stopVideo();
+
   currentMusicIdx = idx;
   const track = musicQueue[idx];
   if (!track) return;
 
-  if (ytReady && ytPlayer && ytPlayer.loadVideoById) {
-    ytPlayer.loadVideoById(track.videoId);
-  } else {
-    // Fallback: open in new tab if API not ready
-    window.open(`https://www.youtube.com/watch?v=${track.videoId}`, '_blank');
-    return;
-  }
-
-  isMusicPlaying = true;
   const titleEl = document.getElementById('musicTitle');
   const artistEl = document.getElementById('musicArtist');
   const playBtn = document.getElementById('musicPlayBtn');
 
-  if (titleEl) titleEl.textContent = track.name.toUpperCase();
-  if (artistEl) artistEl.textContent = track.artist_name.toUpperCase();
-  if (playBtn) playBtn.textContent = '⏸';
+  if (titleEl) titleEl.textContent = track.name?.toUpperCase() || 'UNKNOWN';
+  if (artistEl) artistEl.textContent = track.artist_name?.toUpperCase() || '';
 
   // Update vinyl thumbnail
-  const vinylLabel = document.querySelector('#vinylDisk div');
-  if (vinylLabel && track.thumbnail) {
-    vinylLabel.innerHTML = `<img src="${track.thumbnail}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+  const vinylCenter = document.querySelector('#vinylDisk > div:first-child');
+  if (vinylCenter && track.thumbnail) {
+    vinylCenter.innerHTML = `<img src="${track.thumbnail}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentElement.textContent='🎵'">`;
   }
 
-  startVinyl();
-  const needle = document.getElementById('vinylNeedle');
-  if (needle) needle.style.transform = 'rotate(0deg)';
-  startProgress();
+  if (track.audio) {
+    // iTunes preview — play directly
+    currentAudio = new Audio(track.audio);
+    currentAudio.onended = () => {
+      if (isRepeat) { currentAudio.currentTime = 0; currentAudio.play(); }
+      else nextMusic();
+    };
+    currentAudio.play().catch(() => {});
+    isMusicPlaying = true;
+    if (playBtn) playBtn.textContent = '⏸';
+    startVinyl();
+    startProgress();
+    const needle = document.getElementById('vinylNeedle');
+    if (needle) needle.style.transform = 'rotate(0deg)';
+  }
+
   renderQueue();
+
+  // Media Session API (lock screen controls)
+  if ('mediaSession' in navigator && track.thumbnail) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.name,
+      artist: track.artist_name,
+      album: 'GameBoy Music',
+      artwork: [{ src: track.thumbnail, sizes: '300x300', type: 'image/jpeg' }]
+    });
+    navigator.mediaSession.setActionHandler('play', () => toggleMusicPlay());
+    navigator.mediaSession.setActionHandler('pause', () => toggleMusicPlay());
+    navigator.mediaSession.setActionHandler('nexttrack', () => nextMusic());
+    navigator.mediaSession.setActionHandler('previoustrack', () => prevMusic());
+  }
 }
 
 function toggleMusicPlay() {
-  if (!ytReady || !ytPlayer) return;
-  if (!ytPlayer.getVideoData || !ytPlayer.getVideoData().video_id) {
-    if (musicQueue.length > 0) playMusic(0);
-    return;
+  if (currentAudio) {
+    if (isMusicPlaying) {
+      currentAudio.pause(); stopVinyl(); stopProgress();
+      const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '▶';
+      const needle = document.getElementById('vinylNeedle'); if (needle) needle.style.transform = 'rotate(30deg)';
+    } else {
+      currentAudio.play(); startVinyl(); startProgress();
+      const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '⏸';
+      const needle = document.getElementById('vinylNeedle'); if (needle) needle.style.transform = 'rotate(0deg)';
+    }
+    isMusicPlaying = !isMusicPlaying;
+  } else if (musicQueue.length > 0) {
+    playMusic(0);
   }
-  if (isMusicPlaying) {
-    ytPlayer.pauseVideo(); stopVinyl(); stopProgress();
-    const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '▶';
-    const needle = document.getElementById('vinylNeedle'); if (needle) needle.style.transform = 'rotate(30deg)';
-  } else {
-    ytPlayer.playVideo(); startVinyl(); startProgress();
-    const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '⏸';
-    const needle = document.getElementById('vinylNeedle'); if (needle) needle.style.transform = 'rotate(0deg)';
-  }
-  isMusicPlaying = !isMusicPlaying;
 }
 
 function nextMusic() {
   if (musicQueue.length === 0) return;
-  let next;
-  if (isShuffle) {
-    next = Math.floor(Math.random() * musicQueue.length);
-  } else {
-    next = (currentMusicIdx + 1) % musicQueue.length;
-  }
+  const next = isShuffle
+    ? Math.floor(Math.random() * musicQueue.length)
+    : (currentMusicIdx + 1) % musicQueue.length;
   playMusic(next);
 }
 
@@ -192,27 +196,27 @@ function renderQueue() {
   if (!list) return;
   list.innerHTML = '';
   musicQueue.forEach((t, i) => {
+    const dur = t.duration ? `${Math.floor(t.duration / 60)}:${String(t.duration % 60).padStart(2, '0')}` : '';
     const item = document.createElement('div');
-    const dur = t.lengthSeconds ? `${Math.floor(t.lengthSeconds / 60)}:${String(t.lengthSeconds % 60).padStart(2, '0')}` : '';
     item.style.cssText = `display:flex;align-items:center;gap:6px;padding:4px;border-bottom:1px solid rgba(15,56,15,0.2);cursor:pointer;${i === currentMusicIdx ? 'background:#306230;color:#9bbc0f;' : ''}`;
     item.innerHTML = `
       <img src="${t.thumbnail || ''}" style="width:28px;height:28px;border-radius:3px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">
       <div style="flex:1;min-width:0;overflow:hidden;">
         <div style="font-size:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.name}</div>
-        <div style="font-size:4px;opacity:0.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.artist_name} ${dur}</div>
+        <div style="font-size:4px;opacity:0.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.artist_name} ${dur} ${t.genre ? '· ' + t.genre : ''}</div>
       </div>`;
     item.onclick = () => { playMusic(i); toggleMusicQueue(); };
     list.appendChild(item);
   });
 }
 
-// ── Progress Bar ───────────────────────────────────────────
+// ── Progress ───────────────────────────────────────────────
 function startProgress() {
   stopProgress();
   ytProgressInterval = setInterval(() => {
-    if (!ytPlayer || !ytPlayer.getCurrentTime) return;
-    const cur = ytPlayer.getCurrentTime() || 0;
-    const dur = ytPlayer.getDuration() || 1;
+    if (!currentAudio) return;
+    const cur = currentAudio.currentTime || 0;
+    const dur = currentAudio.duration || 1;
     const pct = (cur / dur) * 100;
     const bar = document.getElementById('musicProgress');
     if (bar) bar.style.width = `${pct}%`;
@@ -227,12 +231,13 @@ function stopProgress() {
 }
 
 function fmtTime(s) {
+  if (!s || isNaN(s)) return '0:00';
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
   return `${m}:${String(sec).padStart(2, '0')}`;
 }
 
-// ── Vinyl Animation ────────────────────────────────────────
+// ── Vinyl ──────────────────────────────────────────────────
 function startVinyl() {
   if (vinylInterval) clearInterval(vinylInterval);
   vinylInterval = setInterval(() => {
@@ -242,15 +247,9 @@ function startVinyl() {
   }, 20);
 }
 
-function stopVinyl() {
-  clearInterval(vinylInterval);
-  vinylInterval = null;
-}
+function stopVinyl() { clearInterval(vinylInterval); vinylInterval = null; }
 
-// ── Local File Import ──────────────────────────────────────
-window.loadMusicFile = function() {
-  document.getElementById('musicFileInput')?.click();
-};
+window.loadMusicFile = function() { document.getElementById('musicFileInput')?.click(); };
 
 // ========== SPIRIT RADAR Pro ==========
 let spiritPingInterval = null;

@@ -155,55 +155,51 @@ const PRESETS = {
 async function bbInitAudio() {
   if (audioReady) return;
 
-  // Wait for Tone.js to be available (loaded with defer)
-  let attempts = 0;
-  while (!window.Tone && attempts < 50) {
-    await new Promise(r => setTimeout(r, 100));
-    attempts++;
-  }
   if (!window.Tone) {
-    bbSetStatus('⚠ Audio library failed to load');
-    return;
+    bbSetStatus('⚠ Audio loading...');
+    // Wait briefly for Tone.js
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      if (window.Tone) break;
+    }
+    if (!window.Tone) {
+      bbSetStatus('⚠ Audio unavailable');
+      return;
+    }
   }
 
   await Tone.start();
 
-  // Master chain: masterVol → compressor → analyser → destination
+  // ── Effects chain (parallel dry/wet) ────────────────────
+  // Master → Compressor → Analyser → Destination
   bbCompressor = new Tone.Compressor({ threshold: -20, ratio: 4, attack: 0.003, release: 0.25 });
   bbAnalyser   = new Tone.Analyser('waveform', 128);
   bbMasterVol  = new Tone.Volume(Tone.gainToDb(remixMasterVol));
-
-  // Effects chain
-  bbDelay  = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0 });
-  bbFilter = new Tone.Filter({ frequency: 20000, type: 'lowpass', rolloff: -12 });
-  bbReverb = new Tone.Reverb({ decay: 2.5, wet: 0 });
-
-  // Dry/wet gain nodes for effects
-  bbDelayGain  = new Tone.Gain(0);
-  bbReverbGain = new Tone.Gain(0);
-
-  // Wire: tracks → masterVol → compressor → analyser → destination
   bbMasterVol.chain(bbCompressor, bbAnalyser, Tone.Destination);
 
-  // Wire effects send/return: masterVol → delay → delayGain → compressor
+  // Delay effect: input → delay → delayGain → compressor
+  bbDelay     = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 1 });
+  bbDelayGain = new Tone.Gain(0);
   bbDelay.connect(bbDelayGain);
   bbDelayGain.connect(bbCompressor);
-  bbDelay.receive('bbBus');
-  bbDelay.send('bbBus');
 
-  // Wire reverb: masterVol → reverb → reverbGain → compressor
+  // Reverb effect: input → reverb → reverbGain → compressor
+  bbReverb     = new Tone.Reverb({ decay: 2.5, wet: 1 });
+  bbReverbGain = new Tone.Gain(0);
   bbReverb.connect(bbReverbGain);
   bbReverbGain.connect(bbCompressor);
-  bbReverb.receive('bbBus');
-  bbReverb.send('bbBus');
 
-  // Wire filter: masterVol → filter → compressor
+  // Low-pass filter (master): input → filter → compressor
+  bbFilter = new Tone.Filter({ frequency: 20000, type: 'lowpass', rolloff: -12 });
   bbFilter.connect(bbCompressor);
 
-  // Per-track gain nodes
+  // Per-track gain nodes → master (dry) + send to effects
   bbTrackGains = INSTRUMENTS.map(() => {
     const g = new Tone.Volume(0);
-    g.connect(bbMasterVol);
+    g.connect(bbMasterVol);        // dry path
+    g.connect(bbDelay);            // → delay send
+    g.connect(bbReverb);           // → reverb send
+    g.connect(bbFilter);           // → filter send
     return g;
   });
 
