@@ -385,3 +385,16 @@
   margin-top: 1px;
   pointer-events: none;
 }
+
+/* ── Sample Browser ─────────────────────────────────────────── */
+#bbSampleBrowser button {
+  transition: background 0.1s, border-color 0.1s;
+}
+#bbSampleBrowser button:hover {
+  background: #1a1a2e !important;
+  border-color: #0ff !important;
+  color: #0ff !important;
+}
+#bbSampleBrowser button:active {
+  transform: scale(0.95);
+}

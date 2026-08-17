@@ -350,6 +350,15 @@
                         <button class="bb-kit-btn"        data-kit="4OP-FM"   onclick="switchKit('4OP-FM')">4OP-FM</button>
                         </div>
 
+                        <!-- ── Sample Library Browser ──────────────────────────────── -->
+                        <div style="display:flex; align-items:center; gap:4px; margin-bottom:5px;">
+                        <span class="bb-section-label">SAMPLES:</span>
+                        <button onclick="toggleSampleBrowser()" style="font-size:5px; padding:2px 6px; background:#1a1a2e; color:#0ff; border:1px solid #0ff; border-radius:2px; cursor:pointer;">📦 BROWSE</button>
+                        <button onclick="resetSamples()" style="font-size:5px; padding:2px 6px; background:#1a1a2e; color:#f80; border:1px solid #f80; border-radius:2px; cursor:pointer;">🔄 RESET</button>
+                        <span id="sampleBrowserTrack" style="font-size:4.5px; color:#888;"></span>
+                        </div>
+                        <div id="bbSampleBrowser" style="display:none; background:#0a0a14; border:1px solid #333; border-radius:4px; padding:5px; margin-bottom:5px; max-height:160px; overflow-y:auto;"></div>
+
                         <!-- ── Step Sequencer Grid (injected by beat-boy.js) ─────── -->
                         <div id="remixGrid" class="beat-boy-grid"></div>
 

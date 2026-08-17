@@ -45,11 +45,75 @@ let trackVols      = INSTRUMENTS.map(() => 80);
 let currentKit     = 'CR78';
 let vizAnimFrame   = null;
 let audioReady     = false;
+let trackSamples   = INSTRUMENTS.map(() => null); // custom sample per track (overrides kit)
 
 // Swing (0–100%) — delays odd 16th notes
 let remixSwing     = 0;
 // Note division: '16n' (default), '8n', '32n'
 let remixDivision  = '16n';
+
+// ── Sample Library (free, CDN-hosted + Web Audio synthesized) ──
+const BB_SAMPLE_LIB = {
+  '🔊 DRUMS': {
+    '808 Kick':     { url: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3',    type: 'sample' },
+    '808 Snare':    { url: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3',   type: 'sample' },
+    '808 HiHat':    { url: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3',   type: 'sample' },
+    'Linn Kick':    { url: 'https://tonejs.github.io/audio/drum-samples/LINN/kick.mp3',    type: 'sample' },
+    'Linn Snare':   { url: 'https://tonejs.github.io/audio/drum-samples/LINN/snare.mp3',   type: 'sample' },
+    'Linn HiHat':   { url: 'https://tonejs.github.io/audio/drum-samples/LINN/hihat.mp3',   type: 'sample' },
+    'Techno Kick':  { url: 'https://tonejs.github.io/audio/drum-samples/Techno/kick.mp3',  type: 'sample' },
+    'Techno Snare': { url: 'https://tonejs.github.io/audio/drum-samples/Techno/snare.mp3', type: 'sample' },
+    'Acoustic Kick':{ url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/kick.mp3',  type: 'sample' },
+    'Acoustic Snare':{url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/snare.mp3', type: 'sample' },
+    'FM Kick':      { url: 'https://tonejs.github.io/audio/drum-samples/4OP-FM/kick.mp3',  type: 'sample' },
+    'FM Snare':     { url: 'https://tonejs.github.io/audio/drum-samples/4OP-FM/snare.mp3', type: 'sample' },
+    'FM HiHat':     { url: 'https://tonejs.github.io/audio/drum-samples/4OP-FM/hihat.mp3', type: 'sample' },
+    'KPR Kick':     { url: 'https://tonejs.github.io/audio/drum-samples/KPR77/kick.mp3',   type: 'sample' },
+    'KPR Snare':    { url: 'https://tonejs.github.io/audio/drum-samples/KPR77/snare.mp3',  type: 'sample' },
+  },
+  '🎵 PERCUSSION': {
+    'Cowbell':      { url: 'https://tonejs.github.io/audio/drum-samples/CR78/cowbell.mp3',  type: 'sample' },
+    'Rimshot':      { url: 'https://tonejs.github.io/audio/drum-samples/CR78/rimshot.mp3',  type: 'sample' },
+    'Clap':         { url: 'https://tonejs.github.io/audio/drum-samples/LINN/clap.mp3',     type: 'sample' },
+    'Tambourine':   { url: 'https://tonejs.github.io/audio/drum-samples/LINN/tambourine.mp3', type: 'sample' },
+    'Conga':        { url: 'https://tonejs.github.io/audio/drum-samples/LINN/conga.mp3',    type: 'sample' },
+    'Maracas':      { url: 'https://tonejs.github.io/audio/drum-samples/LINN/maracas.mp3',  type: 'sample' },
+    'Guiro':        { url: 'https://tonejs.github.io/audio/drum-samples/LINN/guiro.mp3',    type: 'sample' },
+    'Agogo':        { url: 'https://tonejs.github.io/audio/drum-samples/LINN/agogo.mp3',    type: 'sample' },
+    'Cuica':        { url: 'https://tonejs.github.io/audio/drum-samples/LINN/cuica.mp3',    type: 'sample' },
+    'Cabasa':       { url: 'https://tonejs.github.io/audio/drum-samples/LINN/cabasa.mp3',   type: 'sample' },
+  },
+  '🎤 VOICES': {
+    'Hey':          { synth: 'hey',      type: 'synth' },
+    'Yeah':         { synth: 'yeah',     type: 'synth' },
+    'Oh':           { synth: 'oh',       type: 'synth' },
+    'Uh':           { synth: 'uh',       type: 'synth' },
+    'Yo':           { synth: 'yo',       type: 'synth' },
+    'Woah':         { synth: 'woah',     type: 'synth' },
+    'Ha':           { synth: 'ha',       type: 'synth' },
+    'Chant':        { synth: 'chant',    type: 'synth' },
+  },
+  '✨ FX': {
+    'Riser Up':     { synth: 'riser',    type: 'synth' },
+    'Zap Down':     { synth: 'zap',      type: 'synth' },
+    'Laser':        { synth: 'laser',    type: 'synth' },
+    'Impact':       { synth: 'impact',   type: 'synth' },
+    'Sweep':        { synth: 'sweep',    type: 'synth' },
+    'Noise Burst':  { synth: 'noise',    type: 'synth' },
+    'Crash':        { synth: 'crash',    type: 'synth' },
+    'Reverse':      { synth: 'reverse',  type: 'synth' },
+  },
+  '🎹 SYNTHS': {
+    '808 Bass':     { synth: 'bass808',  type: 'synth' },
+    'Synth Stab':   { synth: 'stab',     type: 'synth' },
+    'Pad Hit':      { synth: 'pad',      type: 'synth' },
+    'Pluck':        { synth: 'pluck',    type: 'synth' },
+    'Bell':         { synth: 'bell',     type: 'synth' },
+    'Organ':        { synth: 'organ',    type: 'synth' },
+    'Brass':        { synth: 'brass',    type: 'synth' },
+    'Strings':      { synth: 'strings',  type: 'synth' },
+  },
+};
 
 // Tone.js nodes
 let bbMasterVol   = null;
@@ -279,12 +343,373 @@ function bbSetStatus(msg) {
 
 // ── Sound Trigger ─────────────────────────────────────────
 
+// Custom sample buffers (loaded from URLs)
+const bbCustomBuffers = {};
+
+// Synthesized sounds (voices, FX, synths)
+function bbPlaySynthSound(name) {
+  if (!audioReady) return;
+  const now = Tone.now();
+  const ctx = Tone.context;
+
+  switch(name) {
+    // ── VOICES (formant synthesis) ──
+    case 'hey': {
+      const o1 = ctx.createOscillator(); const g = ctx.createGain();
+      o1.type = 'sawtooth'; o1.frequency.setValueAtTime(180, now);
+      o1.frequency.linearRampToValueAtTime(220, now + 0.08);
+      o1.frequency.linearRampToValueAtTime(160, now + 0.15);
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.start(now); o1.stop(now + 0.2);
+      break;
+    }
+    case 'yeah': {
+      const o1 = ctx.createOscillator(); const g = ctx.createGain();
+      o1.type = 'sawtooth'; o1.frequency.setValueAtTime(200, now);
+      o1.frequency.linearRampToValueAtTime(280, now + 0.1);
+      o1.frequency.linearRampToValueAtTime(200, now + 0.25);
+      g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.start(now); o1.stop(now + 0.3);
+      break;
+    }
+    case 'oh': {
+      const o1 = ctx.createOscillator(); const g = ctx.createGain();
+      o1.type = 'sine'; o1.frequency.setValueAtTime(250, now);
+      o1.frequency.linearRampToValueAtTime(180, now + 0.2);
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.start(now); o1.stop(now + 0.25);
+      break;
+    }
+    case 'uh': {
+      const o1 = ctx.createOscillator(); const g = ctx.createGain();
+      o1.type = 'square'; o1.frequency.setValueAtTime(150, now);
+      o1.frequency.linearRampToValueAtTime(120, now + 0.08);
+      g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.start(now); o1.stop(now + 0.1);
+      break;
+    }
+    case 'yo': {
+      const o1 = ctx.createOscillator(); const g = ctx.createGain();
+      o1.type = 'sawtooth'; o1.frequency.setValueAtTime(160, now);
+      o1.frequency.linearRampToValueAtTime(300, now + 0.06);
+      o1.frequency.linearRampToValueAtTime(180, now + 0.15);
+      g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.start(now); o1.stop(now + 0.2);
+      break;
+    }
+    case 'woah': {
+      const o1 = ctx.createOscillator(); const o2 = ctx.createOscillator();
+      const g = ctx.createGain();
+      o1.type = 'sawtooth'; o1.frequency.setValueAtTime(200, now);
+      o1.frequency.linearRampToValueAtTime(250, now + 0.15);
+      o1.frequency.linearRampToValueAtTime(150, now + 0.35);
+      o2.type = 'sine'; o2.frequency.setValueAtTime(202, now);
+      g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      o1.connect(g); o2.connect(g); g.connect(bbTrackGains[0]);
+      o1.start(now); o2.start(now); o1.stop(now + 0.4); o2.stop(now + 0.4);
+      break;
+    }
+    case 'ha': {
+      const o1 = ctx.createOscillator(); const g = ctx.createGain();
+      o1.type = 'sawtooth'; o1.frequency.setValueAtTime(250, now);
+      o1.frequency.linearRampToValueAtTime(180, now + 0.1);
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.start(now); o1.stop(now + 0.12);
+      break;
+    }
+    case 'chant': {
+      for (let i = 0; i < 3; i++) {
+        const o1 = ctx.createOscillator(); const g = ctx.createGain();
+        o1.type = 'sawtooth'; o1.frequency.setValueAtTime(180 + i * 10, now + i * 0.06);
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.15, now + i * 0.06);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        o1.connect(g); g.connect(bbTrackGains[0]);
+        o1.start(now + i * 0.06); o1.stop(now + 0.3);
+      }
+      break;
+    }
+
+    // ── FX ──
+    case 'riser': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(100, now);
+      o.frequency.exponentialRampToValueAtTime(2000, now + 0.5);
+      g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.5);
+      break;
+    }
+    case 'zap': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(1500, now);
+      o.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.15);
+      break;
+    }
+    case 'laser': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(3000, now);
+      o.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.12);
+      break;
+    }
+    case 'impact': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(100, now);
+      o.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+      g.gain.setValueAtTime(0.5, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.4);
+      break;
+    }
+    case 'sweep': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      const f = ctx.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(200, now);
+      f.type = 'lowpass'; f.frequency.setValueAtTime(100, now);
+      f.frequency.exponentialRampToValueAtTime(8000, now + 0.3);
+      f.frequency.exponentialRampToValueAtTime(100, now + 0.6);
+      g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+      o.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.6);
+      break;
+    }
+    case 'noise': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+      const src = ctx.createBufferSource(); const g = ctx.createGain();
+      src.buffer = buf;
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      src.connect(g); g.connect(bbTrackGains[0]);
+      src.start(now);
+      break;
+    }
+    case 'crash': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.15));
+      const src = ctx.createBufferSource(); const g = ctx.createGain();
+      const f = ctx.createBiquadFilter();
+      src.buffer = buf; f.type = 'highpass'; f.frequency.value = 3000;
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      src.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+      src.start(now);
+      break;
+    }
+    case 'reverse': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(i / data.length, 2);
+      const src = ctx.createBufferSource(); const g = ctx.createGain();
+      src.buffer = buf;
+      g.gain.setValueAtTime(0.01, now); g.gain.linearRampToValueAtTime(0.3, now + 0.25);
+      g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      src.connect(g); g.connect(bbTrackGains[0]);
+      src.start(now);
+      break;
+    }
+
+    // ── SYNTHS ──
+    case 'bass808': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(150, now);
+      o.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+      g.gain.setValueAtTime(0.4, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.3);
+      break;
+    }
+    case 'stab': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(440, now);
+      g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.08);
+      break;
+    }
+    case 'pad': {
+      const o = ctx.createOscillator(); const o2 = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 330;
+      o2.type = 'sine'; o2.frequency.value = 415;
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.15, now + 0.1);
+      g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      o.connect(g); o2.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o2.start(now); o.stop(now + 0.5); o2.stop(now + 0.5);
+      break;
+    }
+    case 'pluck': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = 440;
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.15);
+      break;
+    }
+    case 'bell': {
+      const o = ctx.createOscillator(); const o2 = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 880;
+      o2.type = 'sine'; o2.frequency.value = 1320;
+      g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+      o.connect(g); o2.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o2.start(now); o.stop(now + 0.6); o2.stop(now + 0.6);
+      break;
+    }
+    case 'organ': {
+      [262, 330, 392, 523].forEach((freq, i) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.08, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        o.connect(g); g.connect(bbTrackGains[0]);
+        o.start(now); o.stop(now + 0.3);
+      });
+      break;
+    }
+    case 'brass': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(350, now);
+      o.frequency.linearRampToValueAtTime(330, now + 0.05);
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.25, now + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.2);
+      break;
+    }
+    case 'strings': {
+      [262, 330, 392].forEach(freq => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.06, now + 0.15);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+        o.connect(g); g.connect(bbTrackGains[0]);
+        o.start(now); o.stop(now + 0.5);
+      });
+      break;
+    }
+  }
+}
+
+// ── Sample Browser UI ─────────────────────────────────────
+let sampleBrowserTrack = 0; // which track is selected for assignment
+
+window.selectSampleTrack = function(r) {
+  sampleBrowserTrack = r;
+  const el = document.getElementById('sampleBrowserTrack');
+  if (el) el.textContent = `→ Track ${r + 1}: ${INSTRUMENTS[r].name}`;
+  // If browser is open, refresh it
+  const browser = document.getElementById('bbSampleBrowser');
+  if (browser && browser.style.display !== 'none') renderSampleBrowser();
+};
+
+window.toggleSampleBrowser = function() {
+  const browser = document.getElementById('bbSampleBrowser');
+  if (!browser) return;
+  if (browser.style.display === 'none') {
+    renderSampleBrowser();
+    browser.style.display = 'block';
+  } else {
+    browser.style.display = 'none';
+  }
+};
+
+window.resetSamples = function() {
+  trackSamples[sampleBrowserTrack] = null;
+  delete bbCustomBuffers[sampleBrowserTrack];
+  const inst = INSTRUMENTS[sampleBrowserTrack];
+  const label = document.querySelector(`#track-${sampleBrowserTrack}`)?.closest('.beat-boy-track')?.querySelector('.beat-boy-track-header span');
+  if (label) label.innerHTML = `<span style="color:${inst.color}">${inst.emoji} ${inst.name}</span>`;
+};
+
+function renderSampleBrowser() {
+  const browser = document.getElementById('bbSampleBrowser');
+  if (!browser) return;
+  let html = '';
+  for (const [category, samples] of Object.entries(BB_SAMPLE_LIB)) {
+    html += `<div style="margin-bottom:6px;">`;
+    html += `<div style="font-size:5px; color:#0ff; font-weight:bold; margin-bottom:3px; border-bottom:1px solid #222; padding-bottom:2px;">${category}</div>`;
+    html += `<div style="display:flex; flex-wrap:wrap; gap:3px;">`;
+    for (const [name, data] of Object.entries(samples)) {
+      const isAssigned = trackSamples[sampleBrowserTrack]?.name === name;
+      const btnBg = isAssigned ? '#004400' : '#111';
+      const btnBorder = isAssigned ? '#0f0' : '#333';
+      const btnColor = isAssigned ? '#0f0' : '#aaa';
+      html += `<button onclick="bbPreviewSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})" 
+        ondblclick="bbAssignSample(${sampleBrowserTrack}, '${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
+        style="font-size:4.5px; padding:2px 4px; background:${btnBg}; color:${btnColor}; border:1px solid ${btnBorder}; border-radius:2px; cursor:pointer;"
+        title="Click to preview, double-click to assign">${name}</button>`;
+    }
+    html += `</div></div>`;
+  }
+  html += `<div style="font-size:4px; color:#666; margin-top:4px;">Click to preview • Double-click to assign to Track ${sampleBrowserTrack + 1}</div>`;
+  browser.innerHTML = html;
+}
+
+// Preview a sample (for the browser)
+window.bbPreviewSample = function(name, data) {
+  if (!audioReady) return;
+  if (data.type === 'sample' && data.url) {
+    const player = new Tone.Player(data.url).toDestination();
+    player.volume.value = -6;
+    player.start();
+  } else if (data.type === 'synth' && data.synth) {
+    bbPlaySynthSound(data.synth);
+  }
+};
+
+// Assign a sample to a track
+window.bbAssignSample = function(trackIdx, name, data) {
+  if (data.type === 'sample' && data.url) {
+    trackSamples[trackIdx] = { type: 'url', url: data.url, name };
+    // Load buffer
+    const buf = new Tone.ToneAudioBuffer(data.url, () => {
+      bbCustomBuffers[trackIdx] = buf;
+    });
+  } else if (data.type === 'synth' && data.synth) {
+    trackSamples[trackIdx] = { type: 'synth', synth: data.synth, name };
+  }
+  // Update track label
+  const label = document.querySelector(`#track-${trackIdx}`)?.closest('.beat-boy-track')?.querySelector('.beat-boy-track-header span');
+  if (label) {
+    const inst = INSTRUMENTS[trackIdx];
+    label.innerHTML = `<span style="color:${inst.color}">${inst.emoji} ${name.toUpperCase()}</span>`;
+  }
+  // Close browser
+  const bb = document.getElementById('bbSampleBrowser');
+  if (bb) bb.style.display = 'none';
+};
+
 function bbTrigger(r, step) {
   const vol = (trackVols[r] ?? 80) / 100;
   if (vol === 0 || !bbTrackGains[r]) return;
   bbTrackGains[r].volume.value = Tone.gainToDb(vol);
 
   const now = Tone.now();
+
+  // Check for custom sample first
+  const custom = trackSamples[r];
+  if (custom) {
+    if (custom.type === 'url' && bbCustomBuffers[r]) {
+      try {
+        const player = new Tone.Player(bbCustomBuffers[r]).connect(bbTrackGains[r]);
+        player.start(now);
+      } catch(e) {}
+    } else if (custom.type === 'synth') {
+      bbPlaySynthSound(custom.synth);
+    }
+    return;
+  }
 
   if (r <= 4) {
     const names = ['kick','snare','hihat','tom1','tom2'];
@@ -329,12 +754,12 @@ window.initRemix = async function() {
     trackDiv.className = 'beat-boy-track';
 
     trackDiv.innerHTML = `
-      <div class="beat-boy-track-header">
+      <div class="beat-boy-track-header" onclick="selectSampleTrack(${r})" style="cursor:pointer;">
         <span style="color:${inst.color}">${inst.emoji} ${inst.name}</span>
         <div class="track-vol-row">
           <span class="bb-key-hint">[${inst.key}]</span>
           <input type="range" class="track-vol-slider" min="0" max="100" value="80"
-            oninput="updateTrackVol(${r}, this.value)">
+            oninput="updateTrackVol(${r}, this.value); event.stopPropagation();">
           <span id="track-vol-${r}" class="track-vol-label">80</span>
         </div>
       </div>
