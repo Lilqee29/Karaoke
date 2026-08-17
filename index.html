@@ -1972,59 +1972,11 @@
     
     <!-- Service Worker Registration -->
     <script>
-        const SW_EXPECTED = 'gbos-v17';
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', async () => {
-                // STEP 1: Check if active SW is stale → force kill it
-                try {
-                    const regs = await navigator.serviceWorker.getRegistrations();
-                    for (const reg of regs) {
-                        if (reg.active) {
-                            const channel = new MessageChannel();
-                            const versionPromise = new Promise(resolve => {
-                                channel.port1.onmessage = (e) => resolve(e.data);
-                                setTimeout(() => resolve(null), 1500);
-                            });
-                            reg.active.postMessage({ type: 'CHECK_VERSION' }, [channel.port2]);
-                            const swVersion = await versionPromise;
-                            if (swVersion && swVersion !== SW_EXPECTED) {
-                                console.log(`🔄 Stale SW v${swVersion} — unregistering`);
-                                await reg.unregister();
-                                window.location.reload(true);
-                                return;
-                            }
-                            if (!swVersion) {
-                                console.log('🔄 Old SW no response — unregistering');
-                                await reg.unregister();
-                                window.location.reload(true);
-                                return;
-                            }
-                            console.log('✅ SW version OK:', swVersion);
-                        }
-                    }
-                } catch(e) { console.warn('SW version check error:', e); }
-
-                // STEP 2: Register new SW (only reload if a genuinely new SW is found)
+            window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(reg => {
-                        console.log('✅ Service Worker registered');
-                        // Only reload when a NEW SW is found (not every update check)
-                        let hasReloaded = false;
-                        reg.addEventListener('updatefound', () => {
-                            if (hasReloaded) return;
-                            const newWorker = reg.installing;
-                            if (newWorker) {
-                                newWorker.addEventListener('statechange', () => {
-                                    if (newWorker.state === 'activated' && !hasReloaded) {
-                                        hasReloaded = true;
-                                        console.log('🔄 New SW activated — reloading');
-                                        window.location.reload();
-                                    }
-                                });
-                            }
-                        });
-                    })
-                    .catch(err => console.log('❌ Service Worker failed:', err));
+                    .then(reg => console.log('✅ SW registered'))
+                    .catch(err => console.log('❌ SW failed:', err));
             });
         }
         
