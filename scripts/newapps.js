@@ -69,14 +69,18 @@ function loadMusicQueue() {
     if (saved.length > 0) {
       musicQueue = saved;
       currentMusicIdx = savedIdx || 0;
-      renderQueue();
-      // Update title display
+      renderMusicResults();
+      // Show now-playing bar with last track info
       const track = musicQueue[currentMusicIdx];
       if (track) {
+        const npBar = document.getElementById('nowPlayingBar');
+        if (npBar) npBar.style.display = 'block';
         const titleEl = document.getElementById('musicTitle');
         const artistEl = document.getElementById('musicArtist');
         if (titleEl) titleEl.textContent = track.name?.toUpperCase() || '';
         if (artistEl) artistEl.textContent = track.artist_name?.toUpperCase() || '';
+        const npThumb = document.getElementById('npThumb');
+        if (npThumb && track.thumbnail) { npThumb.src = track.thumbnail; npThumb.style.display = 'block'; }
       }
     }
   } catch(e) {}
@@ -118,44 +122,51 @@ window.onYouTubeIframeAPIReady = function() {
 async function searchMusic() {
   const query = document.getElementById('musicSearch')?.value;
   if (!query) return;
-  const mt = document.getElementById('musicTitle');
-  if (mt) mt.textContent = 'SEARCHING MUSIC...';
-  const ma = document.getElementById('musicArtist');
-  if (ma) ma.textContent = '...';
-  const pb = document.getElementById('musicPlayBtn');
-  if (pb) pb.textContent = '⏳';
+  const resultsEl = document.getElementById('musicResults');
+  if (resultsEl) resultsEl.innerHTML = '<div style="color:#9bbc0f;font-size:7px;text-align:center;padding:10px;">SEARCHING...</div>';
 
   try {
-    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=20`, {
+    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30`, {
       signal: AbortSignal.timeout(8000)
     });
     const data = await res.json();
 
     if (data.results && data.results.length > 0) {
       musicQueue = data.results.map(t => ({
-        videoId: null, // iTunes tracks use audio preview
         trackId: t.trackId || t.collectionId || `${t.trackName}-${t.artistName}`.replace(/\s+/g,'-'),
         name: t.trackName || t.collectionName,
         artist_name: t.artistName,
-        audio: t.previewUrl, // 30s AAC preview
+        audio: t.previewUrl,
         thumbnail: (t.artworkUrl100 || '').replace('100x100', '300x300'),
         duration: t.trackTimeMillis ? Math.floor(t.trackTimeMillis / 1000) : 0,
         genre: t.primaryGenreName || '',
         appleUrl: t.trackViewUrl || '',
       }));
-      currentMusicIdx = 0;
       saveMusicQueue();
-      renderQueue();
-      playMusic(0);
+      renderMusicResults();
     } else {
-      if (mt) mt.textContent = 'NO RESULTS';
-      if (pb) pb.textContent = '▶';
+      if (resultsEl) resultsEl.innerHTML = '<div style="color:#306230;font-size:7px;text-align:center;padding:20px 0;">NO RESULTS</div>';
     }
   } catch (e) {
     console.warn('iTunes search failed:', e);
-    if (mt) mt.textContent = 'SEARCH FAILED';
-    if (pb) pb.textContent = '▶';
+    if (resultsEl) resultsEl.innerHTML = '<div style="color:#306230;font-size:7px;text-align:center;padding:20px 0;">SEARCH FAILED</div>';
   }
+}
+
+// ── Render search results as clickable list ─────────────────
+function renderMusicResults() {
+  const el = document.getElementById('musicResults');
+  if (!el) return;
+  el.innerHTML = musicQueue.map((t, i) => `
+    <div onclick="playMusic(${i})" style="display:flex;align-items:center;gap:6px;padding:5px 4px;cursor:pointer;border-bottom:1px solid #1a1a2e;border-radius:3px;transition:background 0.15s;" onmouseenter="this.style.background='#1a2a1a'" onmouseleave="this.style.background='transparent'">
+      <img src="${t.thumbnail || ''}" style="width:28px;height:28px;border-radius:3px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">
+      <div style="flex:1;overflow:hidden;">
+        <div style="font-size:7px;font-weight:bold;color:#9bbc0f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(t.name||'UNKNOWN').toUpperCase()}</div>
+        <div style="font-size:5px;color:#306230;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(t.artist_name||'').toUpperCase()}</div>
+      </div>
+      <div style="font-size:5px;color:#306230;flex-shrink:0;">${t.genre || ''}</div>
+    </div>
+  `).join('');
 }
 
 // ── Play track (iTunes audio or YouTube) ───────────────────
@@ -183,33 +194,38 @@ function playMusic(idx) {
   }
 
   if (track.audio) {
-    // iTunes preview — play directly
+    // Show now-playing bar
+    const npBar = document.getElementById('nowPlayingBar');
+    if (npBar) npBar.style.display = 'block';
+    const npThumb = document.getElementById('npThumb');
+    if (npThumb && track.thumbnail) { npThumb.src = track.thumbnail; npThumb.style.display = 'block'; }
+    else if (npThumb) npThumb.style.display = 'none';
+
     currentAudio = new Audio(track.audio);
     currentAudio.onended = () => {
       if (isRepeat) { currentAudio.currentTime = 0; currentAudio.play(); }
       else nextMusic();
     };
     currentAudio.onerror = () => {
-      // Track failed to load — auto-advance to next
       console.warn('Track failed:', track.name);
       if (musicQueue.length > 1) nextMusic();
     };
     currentAudio.play().catch(() => {
-      // Playback blocked — auto-advance
       if (musicQueue.length > 1) nextMusic();
     });
     isMusicPlaying = true;
     if (playBtn) playBtn.textContent = '⏸';
-    startVinyl();
     startProgress();
-    const needle = document.getElementById('vinylNeedle');
-    if (needle) needle.style.transform = 'rotate(0deg)';
+
+    // Highlight active track in results list
+    document.querySelectorAll('#musicResults > div').forEach((el, i) => {
+      el.style.background = i === idx ? '#1a2a1a' : 'transparent';
+      el.style.borderLeft = i === idx ? '2px solid #9bbc0f' : '2px solid transparent';
+    });
 
     // Add to recently played
     addToRecentlyPlayed(track);
   }
-
-  renderQueue();
 
   // Media Session API (lock screen controls)
   if ('mediaSession' in navigator && track.thumbnail) {
@@ -229,13 +245,11 @@ function playMusic(idx) {
 function toggleMusicPlay() {
   if (currentAudio) {
     if (isMusicPlaying) {
-      currentAudio.pause(); stopVinyl(); stopProgress();
+      currentAudio.pause(); stopProgress();
       const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '▶';
-      const needle = document.getElementById('vinylNeedle'); if (needle) needle.style.transform = 'rotate(30deg)';
     } else {
-      currentAudio.play(); startVinyl(); startProgress();
+      currentAudio.play(); startProgress();
       const pb = document.getElementById('musicPlayBtn'); if (pb) pb.textContent = '⏸';
-      const needle = document.getElementById('vinylNeedle'); if (needle) needle.style.transform = 'rotate(0deg)';
     }
     isMusicPlaying = !isMusicPlaying;
   } else if (musicQueue.length > 0) {
@@ -319,17 +333,9 @@ function fmtTime(s) {
   return `${m}:${String(sec).padStart(2, '0')}`;
 }
 
-// ── Vinyl ──────────────────────────────────────────────────
-function startVinyl() {
-  if (vinylInterval) clearInterval(vinylInterval);
-  vinylInterval = setInterval(() => {
-    vinylRotation = (vinylRotation + 2) % 360;
-    const vc = document.getElementById('vinylContainer');
-    if (vc) vc.style.transform = `rotate(${vinylRotation}deg)`;
-  }, 20);
-}
-
-function stopVinyl() { clearInterval(vinylInterval); vinylInterval = null; }
+// ── Vinyl (removed — kept for compat) ──────────────────────
+function startVinyl() {}
+function stopVinyl() {}
 
 window.loadMusicFile = function() { document.getElementById('musicFileInput')?.click(); };
 

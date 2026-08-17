@@ -2,7 +2,7 @@
 // D-pad: Up=accelerate, Down=brake, Left/Right=steer
 // A button: use item | B button: drift/brake
 
-const KRCanvas = document.getElementById('chameleonCanvas') || document.createElement('canvas');
+const KRCanvas = document.getElementById('kartCanvas') || document.createElement('canvas');
 let krCtx = KRCanvas.getContext('2d');
 
 // ── Game State ────────────────────────────────────────────────────────
@@ -641,7 +641,7 @@ function krStartRace() {
 
 // ── Init ──────────────────────────────────────────────────────────────
 window.initKart = function() {
-    const screen = document.getElementById('chameleonScreen');
+    const screen = document.getElementById('kartScreen');
     if (screen) {
         screen.innerHTML = '';
         KRCanvas.width = KW;
