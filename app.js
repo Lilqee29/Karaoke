@@ -88,7 +88,7 @@ const apps = [
     { id: 'duel', name: 'DUEL', icon: '🚀' },
     { id: 'void', name: 'MYSTERY', icon: '🔍' },
     { id: 'troll', name: 'TROLL', icon: '👺' },
-    { id: 'chameleon', name: 'CHAMELEON', icon: '🦎' },
+    { id: 'kart', name: 'KART RACING', icon: '🏎️' },
 
     // ── PUZZLE ────────────────────────────────────────────────────────────
     { id: 'adventure', name: 'PHYSICS', icon: '🧩' },
@@ -350,29 +350,41 @@ window.saveNotes = function() {
     }
 };
 
-// Physical Buttons (sustained press support)
+// Physical Buttons (sustained press + repeat support)
 const abBtns = document.querySelectorAll('.ab-btn');
 if(abBtns.length >= 2) {
     const btnB = abBtns[0]; // Left (B)
     const btnA = abBtns[1]; // Right (A)
 
+    let aHoldTimer = null, aRepeatTimer = null;
     const handleA = (down) => {
-        if (down && currentScreen === 'home') launchApp(displayedApps[selectedIndex].id);
-        else document.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup', { key: 'z', bubbles: true }));
-    };
-    const handleB = (down) => {
-        if (!down) {
-            document.dispatchEvent(new KeyboardEvent('keyup', { key: 'x', bubbles: true }));
-            return;
-        }
-        
-        // Define apps that use B for gameplay instead of Back
-        const gameModeApps = ['adventure', 'troll', 'racer', 'duel', 'brawl', 'void', 'chess', 'sync', 'chameleon'];
-        
-        if (gameModeApps.includes(currentScreen)) {
-            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }));
+        if (down) {
+            if (currentScreen === 'home') { launchApp(displayedApps[selectedIndex].id); return; }
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }));
+            clearTimeout(aHoldTimer); clearInterval(aRepeatTimer);
+            aHoldTimer = setTimeout(() => { aRepeatTimer = setInterval(() => {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', bubbles: true }));
+            }, 100); }, 250);
         } else {
-            goBack();
+            clearTimeout(aHoldTimer); clearInterval(aRepeatTimer);
+            aHoldTimer = null; aRepeatTimer = null;
+            document.dispatchEvent(new KeyboardEvent('keyup', { key: 'z', bubbles: true }));
+        }
+    };
+    let bHoldTimer = null, bRepeatTimer = null;
+    const handleB = (down) => {
+        const gameModeApps = ['adventure', 'troll', 'racer', 'duel', 'brawl', 'void', 'chess', 'sync', 'kart'];
+        if (down) {
+            if (!gameModeApps.includes(currentScreen)) { goBack(); return; }
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }));
+            clearTimeout(bHoldTimer); clearInterval(bRepeatTimer);
+            bHoldTimer = setTimeout(() => { bRepeatTimer = setInterval(() => {
+                document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', bubbles: true }));
+            }, 100); }, 250);
+        } else {
+            clearTimeout(bHoldTimer); clearInterval(bRepeatTimer);
+            bHoldTimer = null; bRepeatTimer = null;
+            document.dispatchEvent(new KeyboardEvent('keyup', { key: 'x', bubbles: true }));
         }
     };
 
@@ -423,13 +435,33 @@ if (startBtn) {
     };
 }
 
-// Universal Controller (D-Pad)sustained press
+// Universal Controller (D-Pad) — sustained press + repeat
 function bindHold(selector, key) {
     const el = document.querySelector(selector);
     if(!el) return;
+    let holdTimer = null;
+    let repeatTimer = null;
+    const fire = () => {
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true }));
+    };
     const press = (d) => {
-        document.dispatchEvent(new KeyboardEvent(d?'keydown':'keyup', { key: key, bubbles: true }));
-        if(d) el.classList.add('pressed'); else el.classList.remove('pressed');
+        if(d) {
+            fire();
+            el.classList.add('pressed');
+            // After initial delay, repeat every 80ms while held
+            clearTimeout(holdTimer);
+            clearInterval(repeatTimer);
+            holdTimer = setTimeout(() => {
+                repeatTimer = setInterval(fire, 80);
+            }, 200);
+        } else {
+            el.classList.remove('pressed');
+            clearTimeout(holdTimer);
+            clearInterval(repeatTimer);
+            holdTimer = null;
+            repeatTimer = null;
+            document.dispatchEvent(new KeyboardEvent('keyup', { key: key, bubbles: true }));
+        }
     };
     el.addEventListener('mousedown', () => press(true));
     el.addEventListener('mouseup', () => press(false));
