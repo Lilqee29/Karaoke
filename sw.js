@@ -72,13 +72,6 @@ self.addEventListener('activate', (e) => {
                     }
                 })
             );
-        }).then(() => {
-            // Reload clients safely — don't crash if navigate fails
-            return self.clients.matchAll().then(clients => {
-                clients.forEach(client => {
-                    try { client.reload(); } catch(e) { /* ignore */ }
-                });
-            });
         })
     );
     self.clients.claim();

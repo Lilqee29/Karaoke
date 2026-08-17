@@ -1980,7 +1980,6 @@
                     const regs = await navigator.serviceWorker.getRegistrations();
                     for (const reg of regs) {
                         if (reg.active) {
-                            // Send version check message
                             const channel = new MessageChannel();
                             const versionPromise = new Promise(resolve => {
                                 channel.port1.onmessage = (e) => resolve(e.data);
@@ -1989,40 +1988,41 @@
                             reg.active.postMessage({ type: 'CHECK_VERSION' }, [channel.port2]);
                             const swVersion = await versionPromise;
                             if (swVersion && swVersion !== SW_EXPECTED) {
-                                console.log(`🔄 Stale SW v${swVersion} detected — unregistering and reloading`);
+                                console.log(`🔄 Stale SW v${swVersion} — unregistering`);
                                 await reg.unregister();
                                 window.location.reload(true);
                                 return;
                             }
                             if (!swVersion) {
-                                // Old SW doesn't respond to version check = definitely stale
-                                console.log('🔄 Old SW not responding — unregistering');
+                                console.log('🔄 Old SW no response — unregistering');
                                 await reg.unregister();
                                 window.location.reload(true);
                                 return;
                             }
+                            console.log('✅ SW version OK:', swVersion);
                         }
                     }
                 } catch(e) { console.warn('SW version check error:', e); }
 
-                // STEP 2: Register new SW
+                // STEP 2: Register new SW (only reload if a genuinely new SW is found)
                 navigator.serviceWorker.register('sw.js')
                     .then(reg => {
-                        console.log('✅ Service Worker registered, scope:', reg.scope);
+                        console.log('✅ Service Worker registered');
+                        // Only reload when a NEW SW is found (not every update check)
+                        let hasReloaded = false;
                         reg.addEventListener('updatefound', () => {
+                            if (hasReloaded) return;
                             const newWorker = reg.installing;
                             if (newWorker) {
                                 newWorker.addEventListener('statechange', () => {
-                                    if (newWorker.state === 'activated') {
+                                    if (newWorker.state === 'activated' && !hasReloaded) {
+                                        hasReloaded = true;
                                         console.log('🔄 New SW activated — reloading');
                                         window.location.reload();
                                     }
                                 });
                             }
                         });
-                        // Periodic update check
-                        setInterval(() => { reg.update().catch(() => {}); }, 30000);
-                        reg.update().catch(() => {});
                     })
                     .catch(err => console.log('❌ Service Worker failed:', err));
             });
