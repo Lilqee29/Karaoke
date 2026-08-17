@@ -126,10 +126,15 @@ async function searchMusic() {
   if (resultsEl) resultsEl.innerHTML = '<div style="color:#9bbc0f;font-size:7px;text-align:center;padding:10px;">SEARCHING...</div>';
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
     const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30`, {
-      signal: AbortSignal.timeout(8000),
-      cache: 'no-store'
+      signal: controller.signal,
+      cache: 'no-store',
+      mode: 'cors'
     });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
     if (data.results && data.results.length > 0) {
@@ -150,8 +155,11 @@ async function searchMusic() {
       if (resultsEl) resultsEl.innerHTML = '<div style="color:#306230;font-size:7px;text-align:center;padding:20px 0;">NO RESULTS</div>';
     }
   } catch (e) {
-    console.warn('iTunes search failed:', e);
-    if (resultsEl) resultsEl.innerHTML = '<div style="color:#306230;font-size:7px;text-align:center;padding:20px 0;">SEARCH FAILED</div>';
+    console.warn('iTunes search failed:', e.name, e.message, e);
+    let errMsg = 'SEARCH FAILED';
+    if (e.name === 'AbortError') errMsg = 'TIMEOUT (12s)';
+    else if (e.message) errMsg = `FAILED: ${e.message.substring(0, 40)}`;
+    if (resultsEl) resultsEl.innerHTML = `<div style="color:#306230;font-size:6px;text-align:center;padding:20px 0;">${errMsg}</div>`;
   }
 }
 

@@ -1978,17 +1978,23 @@
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
                     .then(reg => {
-                        console.log('✅ Service Worker registered');
+                        console.log('✅ Service Worker registered, scope:', reg.scope);
                         // Force reload when new SW activates (fixes stale iOS PWA cache)
                         reg.addEventListener('updatefound', () => {
                             const newWorker = reg.installing;
+                            console.log('🔄 New SW installing...');
                             newWorker.addEventListener('statechange', () => {
+                                console.log('🔄 SW state:', newWorker.state);
                                 if (newWorker.state === 'activated') {
-                                    console.log('🔄 New SW activated — reloading to apply');
+                                    console.log('🔄 New SW activated — reloading');
                                     window.location.reload();
                                 }
                             });
                         });
+                        // Periodic update check (catches stale iOS PWA)
+                        setInterval(() => { reg.update().catch(() => {}); }, 30000);
+                        // Also check immediately
+                        reg.update().catch(() => {});
                     })
                     .catch(err => console.log('❌ Service Worker failed:', err));
             });
