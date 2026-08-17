@@ -340,60 +340,201 @@ function toggleMusicRepeat() {
   if (btn) btn.style.opacity = isRepeat ? '1' : '0.5';
 }
 
-// ── YouTube Full Song — opens YouTube search in new tab ────
-window.playFullSong = function(idx) {
+// ── YouTube Full Song — plays directly in-app via InnerTube ──
+window.playFullSong = async function(idx) {
   const track = musicQueue[idx];
   if (!track) return;
 
   // Stop any preview audio
   if (currentAudio) { currentAudio.pause(); currentAudio.src = ''; currentAudio = null; isMusicPlaying = false; }
 
-  const q = encodeURIComponent(track.youtubeQuery || `${track.name} ${track.artist_name}`);
+  const titleEl = document.getElementById('musicTitle');
+  const artistEl = document.getElementById('musicArtist');
+  const pb = document.getElementById('musicPlayBtn');
+  const container = document.getElementById('musicResults');
 
-  // Try embed first (works on desktop Chrome)
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if (isIOS) {
-    // iOS: open YouTube directly — embeds are unreliable
-    window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank');
-    const titleEl = document.getElementById('musicTitle');
-    if (titleEl) titleEl.textContent = '▶ OPENED YOUTUBE';
-    return;
-  }
-
-  // Desktop: try embed
-  currentMusicIdx = idx;
-  saveMusicQueue();
+  if (titleEl) titleEl.textContent = '▶ ' + (track.name?.toUpperCase() || 'SEARCHING...');
+  if (artistEl) artistEl.textContent = 'LOADING FULL SONG...';
+  if (pb) pb.textContent = '⏸';
 
   const npBar = document.getElementById('nowPlayingBar');
   if (npBar) npBar.style.display = 'block';
   const npThumb = document.getElementById('npThumb');
   if (npThumb && track.thumbnail) { npThumb.src = track.thumbnail; npThumb.style.display = 'block'; }
-  const titleEl = document.getElementById('musicTitle');
-  const artistEl = document.getElementById('musicArtist');
-  if (titleEl) titleEl.textContent = '▶ ' + (track.name?.toUpperCase() || 'YOUTUBE');
-  if (artistEl) artistEl.textContent = 'FULL SONG — ' + (track.artist_name?.toUpperCase() || '');
-  const pb = document.getElementById('musicPlayBtn');
-  if (pb) pb.textContent = '⏸';
-  isMusicPlaying = true;
 
-  const container = document.getElementById('musicResults');
-  if (!container) return;
+  currentMusicIdx = idx;
+  saveMusicQueue();
 
-  container.innerHTML = `
-    <div style="text-align:center;padding:6px;">
-      <div style="font-size:6px;color:#9bbc0f;margin-bottom:6px;">▶▶ PLAYING FULL SONG</div>
-      <iframe id="ytFullEmbed" src="https://www.youtube.com/embed?listType=search&list=${q}&autoplay=1" 
-        style="width:100%;height:180px;border:1px solid #306230;border-radius:4px;background:#000;" 
-        allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
-      <div style="font-size:5px;color:#306230;margin-top:4px;">YouTube • Full songs</div>
-      <div style="display:flex;gap:6px;justify-content:center;margin-top:6px;">
-        <button onclick="restoreMusicResults()" style="font-size:5px;padding:4px 10px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">← RESULTS</button>
-        <button onclick="playFullSong((currentMusicIdx + 1) % musicQueue.length)" style="font-size:5px;padding:4px 10px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">NEXT ▶</button>
-      </div>
-    </div>
-  `;
+  try {
+    const query = track.youtubeQuery || `${track.name} ${track.artist_name}`;
 
-  addToRecentlyPlayed(track);
+    // Step 1: Search YouTube via InnerTube API
+    const searchBody = {
+      context: {
+        client: {
+          clientName: 'ANDROID_MUSIC',
+          clientVersion: '5.16.51',
+          hl: 'en',
+          gl: 'US',
+          androidSdkVersion: 30,
+        }
+      },
+      query: query,
+      params: 'EgWKAQIIAWoKEAMQBBAJEAoQBQ%3D%3D'
+    };
+
+    const searchRes = await fetch('https://music.youtube.com/youtubei/v1/search?prettyPrint=false', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(searchBody)
+    });
+
+    if (!searchRes.ok) throw new Error(`Search failed: ${searchRes.status}`);
+    const searchData = await searchRes.json();
+
+    // Find first song result
+    const contents = searchData?.contents?.tabbedSearchResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents || [];
+    let videoId = null;
+    let songTitle = '';
+    let songArtist = '';
+
+    for (const section of contents) {
+      const items = section?.musicShelfRenderer?.contents || [];
+      for (const item of items) {
+        const run = item?.musicResponsiveListItemRenderer;
+        if (run?.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint?.videoId) {
+          videoId = run.overlay.musicItemThumbnailOverlayRenderer.content.musicPlayButtonRenderer.playNavigationEndpoint.watchEndpoint.videoId;
+          const texts = run.flexColumns?.[0]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs || [];
+          songTitle = texts.map(r => r.text).join('');
+          const artistRuns = run.flexColumns?.[1]?.musicResponsiveListItemFlexColumnRenderer?.text?.runs || [];
+          songArtist = artistRuns.map(r => r.text).join('');
+          break;
+        }
+      }
+      if (videoId) break;
+    }
+
+    // Fallback: try browseId search
+    if (!videoId) {
+      const contents2 = searchData?.contents?.tabbedSearchResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer?.contents || [];
+      for (const section of contents2) {
+        const items = section?.musicShelfRenderer?.contents || [];
+        for (const item of items) {
+          const btn = item?.musicResponsiveListItemRenderer;
+          const endpoint = btn?.playlistItemData?.playlistSetVideoId;
+          // Try watchEndpoint on the whole item
+          const flex = btn?.flexColumns;
+          if (flex) {
+            // Look for videoId in any endpoint
+            const nav = btn?.tappableOverlay?.onTap?.watchEndpoint?.videoId;
+            if (nav) { videoId = nav; break; }
+          }
+        }
+        if (videoId) break;
+      }
+    }
+
+    if (!videoId) throw new Error('No results found');
+
+    // Step 2: Get audio stream URL via InnerTube player
+    const playerBody = {
+      context: {
+        client: {
+          clientName: 'ANDROID_VR',
+          clientVersion: '1.57.29',
+          hl: 'en',
+          gl: 'US',
+          androidSdkVersion: 30,
+        }
+      },
+      videoId: videoId,
+    };
+
+    const playerRes = await fetch('https://www.youtube.com/youtubei/v1/player?prettyPrint=false', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(playerBody)
+    });
+
+    if (!playerRes.ok) throw new Error(`Player failed: ${playerRes.status}`);
+    const playerData = await playerRes.json();
+
+    // Find best audio stream
+    const formats = playerData?.streamingData?.adaptiveFormats || [];
+    const audioStream = formats
+      .filter(f => f.mimeType?.startsWith('audio/'))
+      .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+
+    if (!audioStream?.url) throw new Error('No audio stream found');
+
+    // Step 3: Play the audio
+    currentAudio = new Audio();
+    currentAudio.crossOrigin = 'anonymous';
+    currentAudio.src = audioStream.url;
+
+    if (titleEl) titleEl.textContent = '▶ ' + (songTitle || track.name || '').toUpperCase();
+    if (artistEl) artistEl.textContent = 'FULL SONG — ' + (songArtist || track.artist_name || '').toUpperCase();
+    if (pb) pb.textContent = '⏸';
+    isMusicPlaying = true;
+
+    currentAudio.onended = () => {
+      isMusicPlaying = false;
+      if (pb) pb.textContent = '▶';
+      if (isRepeat) { currentAudio.currentTime = 0; currentAudio.play(); isMusicPlaying = true; if (pb) pb.textContent = '⏸'; }
+      else nextMusic();
+    };
+
+    currentAudio.onerror = (e) => {
+      console.warn('Full song error:', e);
+      isMusicPlaying = false;
+      if (titleEl) titleEl.textContent = '❌ STREAM FAILED';
+    };
+
+    currentAudio.play().catch(e => {
+      console.warn('Autoplay blocked:', e);
+      isMusicPlaying = false;
+      if (pb) pb.textContent = '▶';
+    });
+
+    startProgress();
+
+    // Show player in results area
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:8px;">
+          <div style="font-size:6px;color:#9bbc0f;margin-bottom:4px;">▶▶ PLAYING FULL SONG</div>
+          <div style="font-size:8px;color:#0f0;margin-bottom:4px;">${(songTitle || track.name || '').toUpperCase()}</div>
+          <div style="font-size:6px;color:#306230;margin-bottom:6px;">${(songArtist || track.artist_name || '').toUpperCase()}</div>
+          <div style="display:flex;gap:6px;justify-content:center;">
+            <button onclick="restoreMusicResults()" style="font-size:5px;padding:4px 10px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">← RESULTS</button>
+            <button onclick="playFullSong((currentMusicIdx + 1) % musicQueue.length)" style="font-size:5px;padding:4px 10px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">NEXT ▶</button>
+          </div>
+        </div>
+      `;
+    }
+
+    addToRecentlyPlayed(track);
+
+    // Media Session
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: songTitle || track.name, artist: songArtist || track.artist_name, album: 'GameBoy Music',
+        artwork: track.thumbnail ? [{ src: track.thumbnail, sizes: '300x300', type: 'image/jpeg' }] : []
+      });
+      navigator.mediaSession.setActionHandler('play', () => toggleMusicPlay());
+      navigator.mediaSession.setActionHandler('pause', () => toggleMusicPlay());
+      navigator.mediaSession.setActionHandler('nexttrack', () => nextMusic());
+      navigator.mediaSession.setActionHandler('previoustrack', () => prevMusic());
+    }
+
+  } catch (e) {
+    console.warn('Full song failed, falling back to YouTube:', e.message);
+    // Fallback: open YouTube in new tab
+    const q = encodeURIComponent(track.youtubeQuery || `${track.name} ${track.artist_name}`);
+    window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank');
+    if (titleEl) titleEl.textContent = '▶ OPENED YOUTUBE';
+    if (artistEl) artistEl.textContent = 'FULL SONG — ' + (track.artist_name?.toUpperCase() || '');
+  }
 };
 
 window.restoreMusicResults = function() {
