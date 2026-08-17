@@ -340,7 +340,7 @@ function toggleMusicRepeat() {
   if (btn) btn.style.opacity = isRepeat ? '1' : '0.5';
 }
 
-// ── YouTube Full Song Player ────────────────────────────────
+// ── YouTube Full Song — opens YouTube search in new tab ────
 window.playFullSong = function(idx) {
   const track = musicQueue[idx];
   if (!track) return;
@@ -348,10 +348,22 @@ window.playFullSong = function(idx) {
   // Stop any preview audio
   if (currentAudio) { currentAudio.pause(); currentAudio.src = ''; currentAudio = null; isMusicPlaying = false; }
 
+  const q = encodeURIComponent(track.youtubeQuery || `${track.name} ${track.artist_name}`);
+
+  // Try embed first (works on desktop Chrome)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    // iOS: open YouTube directly — embeds are unreliable
+    window.open(`https://www.youtube.com/results?search_query=${q}`, '_blank');
+    const titleEl = document.getElementById('musicTitle');
+    if (titleEl) titleEl.textContent = '▶ OPENED YOUTUBE';
+    return;
+  }
+
+  // Desktop: try embed
   currentMusicIdx = idx;
   saveMusicQueue();
 
-  // Update now playing bar
   const npBar = document.getElementById('nowPlayingBar');
   if (npBar) npBar.style.display = 'block';
   const npThumb = document.getElementById('npThumb');
@@ -364,20 +376,15 @@ window.playFullSong = function(idx) {
   if (pb) pb.textContent = '⏸';
   isMusicPlaying = true;
 
-  // Show YouTube embed
   const container = document.getElementById('musicResults');
   if (!container) return;
-
-  const q = encodeURIComponent(track.youtubeQuery || `${track.name} ${track.artist_name}`);
-  const embedUrl = `https://www.youtube.com/embed?listType=search&list=${q}&autoplay=1`;
 
   container.innerHTML = `
     <div style="text-align:center;padding:6px;">
       <div style="font-size:6px;color:#9bbc0f;margin-bottom:6px;">▶▶ PLAYING FULL SONG</div>
-      <iframe id="ytFullEmbed" src="${embedUrl}" 
+      <iframe id="ytFullEmbed" src="https://www.youtube.com/embed?listType=search&list=${q}&autoplay=1" 
         style="width:100%;height:180px;border:1px solid #306230;border-radius:4px;background:#000;" 
-        allow="autoplay; encrypted-media; fullscreen" allowfullscreen
-        sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+        allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
       <div style="font-size:5px;color:#306230;margin-top:4px;">YouTube • Full songs</div>
       <div style="display:flex;gap:6px;justify-content:center;margin-top:6px;">
         <button onclick="restoreMusicResults()" style="font-size:5px;padding:4px 10px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">← RESULTS</button>
