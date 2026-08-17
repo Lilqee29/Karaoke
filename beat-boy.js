@@ -47,6 +47,10 @@ let vizAnimFrame   = null;
 let audioReady     = false;
 let trackSamples   = INSTRUMENTS.map(() => null); // custom sample per track (overrides kit)
 
+// Dynamic sample rows (added from browser)
+let dynamicRows    = [];  // [{name, color, type, url/synth, grid:[], vol:80, player: null}]
+const DYNAMIC_COLORS = ['#ff4488','#44ff88','#4488ff','#ffff44','#ff88ff','#88ffff','#ff8844','#88ff44'];
+
 // Swing (0–100%) — delays odd 16th notes
 let remixSwing     = 0;
 // Note division: '16n' (default), '8n', '32n'
@@ -343,10 +347,6 @@ function bbSetStatus(msg) {
 
 // ── Sound Trigger ─────────────────────────────────────────
 
-// Custom sample buffers (loaded from URLs)
-const bbCustomBuffers = {};
-const bbCustomPlayers = {};
-
 // Synthesized sounds (voices, FX, synths)
 function bbPlaySynthSound(name) {
   if (!audioReady) return;
@@ -603,17 +603,6 @@ function bbPlaySynthSound(name) {
 }
 
 // ── Sample Browser UI ─────────────────────────────────────
-let sampleBrowserTrack = 0; // which track is selected for assignment
-
-window.selectSampleTrack = function(r) {
-  sampleBrowserTrack = r;
-  const el = document.getElementById('sampleBrowserTrack');
-  if (el) el.textContent = `→ Track ${r + 1}: ${INSTRUMENTS[r].name}`;
-  // If browser is open, refresh it
-  const browser = document.getElementById('bbSampleBrowser');
-  if (browser && browser.style.display !== 'none') renderSampleBrowser();
-};
-
 window.toggleSampleBrowser = function() {
   const browser = document.getElementById('bbSampleBrowser');
   if (!browser) return;
@@ -625,17 +614,106 @@ window.toggleSampleBrowser = function() {
   }
 };
 
-window.resetSamples = function() {
-  trackSamples[sampleBrowserTrack] = null;
-  delete bbCustomBuffers[sampleBrowserTrack];
-  if (bbCustomPlayers[sampleBrowserTrack]) {
-    try { bbCustomPlayers[sampleBrowserTrack].dispose(); } catch(e) {}
-    delete bbCustomPlayers[sampleBrowserTrack];
+// Add a sample as a NEW row in the sequencer grid
+window.bbAddSample = async function(name, data) {
+  // Init audio if needed
+  if (!audioReady) {
+    bbSetStatus('⟳ Loading audio…');
+    try { await bbInitAudio(); } catch(e) {
+      bbSetStatus('✗ Audio failed — tap play first');
+      return;
+    }
   }
-  const inst = INSTRUMENTS[sampleBrowserTrack];
-  const label = document.querySelector(`#track-${sampleBrowserTrack}`)?.closest('.beat-boy-track')?.querySelector('.beat-boy-track-header span');
-  if (label) label.innerHTML = `<span style="color:${inst.color}">${inst.emoji} ${inst.name}</span>`;
+
+  const color = DYNAMIC_COLORS[dynamicRows.length % DYNAMIC_COLORS.length];
+  const rowData = new Array(16).fill(false);
+  const row = { name, color, data, grid: rowData, vol: 80, player: null };
+  dynamicRows.push(row);
+
+  // Load sample player if it's a URL sample
+  if (data.type === 'sample' && data.url) {
+    try {
+      const player = new Tone.Player(data.url).connect(bbMasterVol);
+      player.volume.value = 0;
+      row.player = player;
+    } catch(e) {
+      console.warn('Dynamic sample load:', e);
+    }
+  }
+
+  // Add row to grid DOM
+  const gridEl = document.getElementById('remixGrid');
+  if (!gridEl) return;
+  const r = INSTRUMENTS.length + dynamicRows.length - 1;
+  const trackDiv = document.createElement('div');
+  trackDiv.className = 'beat-boy-track dynamic-track';
+  trackDiv.id = `dynamic-track-${dynamicRows.length - 1}`;
+  trackDiv.innerHTML = `
+    <div class="beat-boy-track-header">
+      <span style="color:${color}">📦 ${name}</span>
+      <div class="track-vol-row">
+        <button onclick="bbRemoveDynamic(${dynamicRows.length - 1})" style="font-size:4px; padding:1px 3px; background:#300; color:#f44; border:1px solid #f44; border-radius:2px; cursor:pointer;">✕</button>
+        <input type="range" class="track-vol-slider" min="0" max="100" value="80"
+          oninput="bbSetDynamicVol(${dynamicRows.length - 1}, this.value)">
+        <span id="dyn-vol-${dynamicRows.length - 1}" class="track-vol-label">80</span>
+      </div>
+    </div>
+    <div class="beat-boy-steps" id="dynamic-steps-${dynamicRows.length - 1}"></div>
+  `;
+
+  const stepsEl = trackDiv.querySelector('.beat-boy-steps');
+  for (let c = 0; c < 16; c++) {
+    const step = document.createElement('div');
+    step.className = 'beat-boy-step';
+    if (c > 0 && c % 4 === 0) step.classList.add('beat-group-start');
+    step.dataset.r = r;
+    step.dataset.c = c;
+    step.onclick = async function() {
+      if (!audioReady) { bbSetStatus('⟳ Loading audio…'); try { await bbInitAudio(); } catch(e) {} }
+      rowData[c] = !rowData[c];
+      this.classList.toggle('active');
+      if (rowData[c] && audioReady) bbTriggerDynamic(dynamicRows.length - 1, c);
+    };
+    stepsEl.appendChild(step);
+  }
+
+  gridEl.appendChild(trackDiv);
+  bbSetStatus(`✓ Added: ${name}`);
+
+  // Scroll to new row
+  trackDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
+
+window.bbRemoveDynamic = function(idx) {
+  const row = dynamicRows[idx];
+  if (row?.player) { try { row.player.dispose(); } catch(e) {} }
+  dynamicRows.splice(idx, 1);
+  const el = document.getElementById(`dynamic-track-${idx}`);
+  if (el) el.remove();
+};
+
+window.bbSetDynamicVol = function(idx, val) {
+  if (dynamicRows[idx]) dynamicRows[idx].vol = parseInt(val);
+  const label = document.getElementById(`dyn-vol-${idx}`);
+  if (label) label.textContent = val;
+};
+
+function bbTriggerDynamic(idx, step) {
+  const row = dynamicRows[idx];
+  if (!row) return;
+  const vol = row.vol / 100;
+  if (vol === 0) return;
+
+  const now = Tone.now();
+  if (row.data.type === 'sample' && row.player) {
+    try {
+      row.player.volume.value = Tone.gainToDb(vol);
+      if (row.player.loaded) { row.player.stop(now); row.player.start(now); }
+    } catch(e) {}
+  } else if (row.data.type === 'synth') {
+    bbPlaySynthSound(row.data.synth);
+  }
+}
 
 function renderSampleBrowser() {
   const browser = document.getElementById('bbSampleBrowser');
@@ -646,18 +724,15 @@ function renderSampleBrowser() {
     html += `<div style="font-size:5px; color:#0ff; font-weight:bold; margin-bottom:3px; border-bottom:1px solid #222; padding-bottom:2px;">${category}</div>`;
     html += `<div style="display:flex; flex-wrap:wrap; gap:3px;">`;
     for (const [name, data] of Object.entries(samples)) {
-      const isAssigned = trackSamples[sampleBrowserTrack]?.name === name;
-      const btnBg = isAssigned ? '#004400' : '#111';
-      const btnBorder = isAssigned ? '#0f0' : '#333';
-      const btnColor = isAssigned ? '#0f0' : '#aaa';
-      html += `<button onclick="bbPreviewSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})" 
-        ondblclick="bbAssignSample(${sampleBrowserTrack}, '${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
-        style="font-size:4.5px; padding:2px 4px; background:${btnBg}; color:${btnColor}; border:1px solid ${btnBorder}; border-radius:2px; cursor:pointer;"
-        title="Click to preview, double-click to assign">${name}</button>`;
+      const bgColor = '#111';
+      html += `<button onclick="bbPreviewSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')}); event.stopPropagation();" 
+        ondblclick="bbAddSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
+        style="font-size:4.5px; padding:2px 4px; background:${bgColor}; color:#ccc; border:1px solid #333; border-radius:2px; cursor:pointer;"
+        title="Click = preview, Double-click = add to grid">${name} +</button>`;
     }
     html += `</div></div>`;
   }
-  html += `<div style="font-size:4px; color:#666; margin-top:4px;">Click to preview • Double-click to assign to Track ${sampleBrowserTrack + 1}</div>`;
+  html += `<div style="font-size:4px; color:#666; margin-top:4px;">Click to preview • Double-click to add as new row in grid</div>`;
   browser.innerHTML = html;
 }
 
@@ -669,40 +744,11 @@ window.bbPreviewSample = function(name, data) {
       const player = new Tone.Player(data.url).toDestination();
       player.volume.value = -6;
       player.start();
-      // Dispose after playback to avoid memory leak
       setTimeout(() => { try { player.dispose(); } catch(e) {} }, 5000);
     } catch(e) { console.warn('Preview error:', e); }
   } else if (data.type === 'synth' && data.synth) {
     bbPlaySynthSound(data.synth);
   }
-};
-
-// Assign a sample to a track
-window.bbAssignSample = function(trackIdx, name, data) {
-  if (data.type === 'sample' && data.url) {
-    trackSamples[trackIdx] = { type: 'url', url: data.url, name };
-    // Create a reusable Player connected to the track gain
-    try {
-      const player = new Tone.Player(data.url, () => {
-        bbCustomPlayers[trackIdx] = player;
-        bbSetStatus(`✓ Loaded: ${name}`);
-      }).connect(bbTrackGains[trackIdx]);
-    } catch(e) {
-      console.warn('Sample load error:', e);
-      bbSetStatus(`✗ Failed: ${name}`);
-    }
-  } else if (data.type === 'synth' && data.synth) {
-    trackSamples[trackIdx] = { type: 'synth', synth: data.synth, name };
-  }
-  // Update track label
-  const label = document.querySelector(`#track-${trackIdx}`)?.closest('.beat-boy-track')?.querySelector('.beat-boy-track-header span');
-  if (label) {
-    const inst = INSTRUMENTS[trackIdx];
-    label.innerHTML = `<span style="color:${inst.color}">${inst.emoji} ${name.toUpperCase()}</span>`;
-  }
-  // Close browser
-  const bb = document.getElementById('bbSampleBrowser');
-  if (bb) bb.style.display = 'none';
 };
 
 function bbTrigger(r, step) {
@@ -711,20 +757,6 @@ function bbTrigger(r, step) {
   bbTrackGains[r].volume.value = Tone.gainToDb(vol);
 
   const now = Tone.now();
-
-  // Check for custom sample first
-  const custom = trackSamples[r];
-  if (custom) {
-    if (custom.type === 'url' && bbCustomPlayers[r]) {
-      try {
-        const p = bbCustomPlayers[r];
-        if (p.loaded) { p.stop(now); p.start(now); }
-      } catch(e) { console.warn('Custom sample trigger:', e); }
-    } else if (custom.type === 'synth') {
-      bbPlaySynthSound(custom.synth);
-    }
-    return;
-  }
 
   if (r <= 4) {
     const names = ['kick','snare','hihat','tom1','tom2'];
@@ -769,12 +801,12 @@ window.initRemix = async function() {
     trackDiv.className = 'beat-boy-track';
 
     trackDiv.innerHTML = `
-      <div class="beat-boy-track-header" onclick="selectSampleTrack(${r})" style="cursor:pointer;">
+      <div class="beat-boy-track-header">
         <span style="color:${inst.color}">${inst.emoji} ${inst.name}</span>
         <div class="track-vol-row">
           <span class="bb-key-hint">[${inst.key}]</span>
           <input type="range" class="track-vol-slider" min="0" max="100" value="80"
-            oninput="updateTrackVol(${r}, this.value); event.stopPropagation();">
+            oninput="updateTrackVol(${r}, this.value)">
           <span id="track-vol-${r}" class="track-vol-label">80</span>
         </div>
       </div>
@@ -880,8 +912,14 @@ function bbPlayStep() {
     s.classList.toggle('highlight', parseInt(s.dataset.c) === remixStep);
   });
 
+  // Trigger fixed tracks
   for (let r = 0; r < INSTRUMENTS.length; r++) {
     if (remixGrid[r]?.[remixStep]) bbTrigger(r, remixStep);
+  }
+
+  // Trigger dynamic sample rows
+  for (let i = 0; i < dynamicRows.length; i++) {
+    if (dynamicRows[i].grid[remixStep]) bbTriggerDynamic(i, remixStep);
   }
 
   remixStep = (remixStep + 1) % 16;

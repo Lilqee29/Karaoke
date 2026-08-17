@@ -353,9 +353,7 @@
                         <!-- ── Sample Library Browser ──────────────────────────────── -->
                         <div style="display:flex; align-items:center; gap:4px; margin-bottom:5px;">
                         <span class="bb-section-label">SAMPLES:</span>
-                        <button onclick="toggleSampleBrowser()" style="font-size:5px; padding:2px 6px; background:#1a1a2e; color:#0ff; border:1px solid #0ff; border-radius:2px; cursor:pointer;">📦 BROWSE</button>
-                        <button onclick="resetSamples()" style="font-size:5px; padding:2px 6px; background:#1a1a2e; color:#f80; border:1px solid #f80; border-radius:2px; cursor:pointer;">🔄 RESET</button>
-                        <span id="sampleBrowserTrack" style="font-size:4.5px; color:#888;"></span>
+                        <button onclick="toggleSampleBrowser()" style="font-size:5px; padding:2px 6px; background:#1a1a2e; color:#0ff; border:1px solid #0ff; border-radius:2px; cursor:pointer;">📦 BROWSE LIBRARY</button>
                         </div>
                         <div id="bbSampleBrowser" style="display:none; background:#0a0a14; border:1px solid #333; border-radius:4px; padding:5px; margin-bottom:5px; max-height:160px; overflow-y:auto;"></div>
 
@@ -1974,26 +1972,56 @@
     
     <!-- Service Worker Registration -->
     <script>
+        const SW_EXPECTED = 'gbos-v16';
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            window.addEventListener('load', async () => {
+                // STEP 1: Check if active SW is stale → force kill it
+                try {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (const reg of regs) {
+                        if (reg.active) {
+                            // Send version check message
+                            const channel = new MessageChannel();
+                            const versionPromise = new Promise(resolve => {
+                                channel.port1.onmessage = (e) => resolve(e.data);
+                                setTimeout(() => resolve(null), 1500);
+                            });
+                            reg.active.postMessage({ type: 'CHECK_VERSION' }, [channel.port2]);
+                            const swVersion = await versionPromise;
+                            if (swVersion && swVersion !== SW_EXPECTED) {
+                                console.log(`🔄 Stale SW v${swVersion} detected — unregistering and reloading`);
+                                await reg.unregister();
+                                window.location.reload(true);
+                                return;
+                            }
+                            if (!swVersion) {
+                                // Old SW doesn't respond to version check = definitely stale
+                                console.log('🔄 Old SW not responding — unregistering');
+                                await reg.unregister();
+                                window.location.reload(true);
+                                return;
+                            }
+                        }
+                    }
+                } catch(e) { console.warn('SW version check error:', e); }
+
+                // STEP 2: Register new SW
                 navigator.serviceWorker.register('sw.js')
                     .then(reg => {
                         console.log('✅ Service Worker registered, scope:', reg.scope);
-                        // Force reload when new SW activates (fixes stale iOS PWA cache)
                         reg.addEventListener('updatefound', () => {
                             const newWorker = reg.installing;
-                            console.log('🔄 New SW installing...');
-                            newWorker.addEventListener('statechange', () => {
-                                console.log('🔄 SW state:', newWorker.state);
-                                if (newWorker.state === 'activated') {
-                                    console.log('🔄 New SW activated — reloading');
-                                    window.location.reload();
-                                }
-                            });
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', () => {
+                                    if (newWorker.state === 'activated') {
+                                        console.log('🔄 New SW activated — reloading');
+                                        window.location.reload();
+                                    }
+                                });
+                            }
                         });
-                        // Periodic update check (catches stale iOS PWA)
+                        // Periodic update check
                         setInterval(() => { reg.update().catch(() => {}); }, 30000);
-                        // Also check immediately
                         reg.update().catch(() => {});
                     })
                     .catch(err => console.log('❌ Service Worker failed:', err));

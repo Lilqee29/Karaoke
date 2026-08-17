@@ -81,6 +81,14 @@ self.addEventListener('activate', (e) => {
     self.clients.claim();
 });
 
+// Version check — client sends CHECK_VERSION, we respond with our version
+// Old SWs won't have this handler, so client knows they're stale
+self.addEventListener('message', (e) => {
+    if (e.data?.type === 'CHECK_VERSION' && e.ports?.[0]) {
+        e.ports[0].postMessage(CACHE_NAME.replace('gbos-v', 'v'));
+    }
+});
+
 self.addEventListener('fetch', (e) => {
     const url = e.request.url;
 
