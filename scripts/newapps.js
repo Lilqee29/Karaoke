@@ -127,7 +127,8 @@ async function searchMusic() {
 
   try {
     const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30`, {
-      signal: AbortSignal.timeout(8000)
+      signal: AbortSignal.timeout(8000),
+      cache: 'no-store'
     });
     const data = await res.json();
 

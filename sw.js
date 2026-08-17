@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gbos-v14';
+const CACHE_NAME = 'gbos-v15';
 const ASSETS = [
     './',
     './index.html',
@@ -58,18 +58,23 @@ self.addEventListener('install', (e) => {
     self.skipWaiting();
 });
 
-// Clean up old caches on activation
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((name) => {
+                    // Delete ALL old caches (not just different name)
                     if (name !== CACHE_NAME) {
                         console.log('Deleting old cache:', name);
                         return caches.delete(name);
                     }
                 })
             );
+        }).then(() => {
+            // Force all clients to reload after SW activates
+            return self.clients.matchAll().then(clients => {
+                clients.forEach(client => client.navigate(client.url));
+            });
         })
     );
     self.clients.claim();
