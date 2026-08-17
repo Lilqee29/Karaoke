@@ -99,73 +99,14 @@ function updateZodiac() {
 
 // Fix 6: News - Moved to newapps.js (Algolia API with category tabs)
 
-// Fix 7: Better Music Player using RapidAPI Deezer (or fallback to Jamendo)
-window.initMusic = function() {
-    const _el = document.getElementById('musicStatus'); if(_el) if(_el) _el.textContent = 'READY';
-};
-
-let musicTracks = [];
-let musicIndex = 0;
-
-window.searchMusic = async function() {
-    const query = document.getElementById('musicSearch').value;
-    const status = document.getElementById('musicStatus');
-    
-    if(!query) return;
-    
-    if(status) status.textContent = 'SEARCHING...';
-    sounds.click();
-    
-    try {
-        // Using Jamendo API (free)
-        const res = await fetch(`https://api.jamendo.com/v3.0/tracks/?client_id=56d30c95&format=json&limit=10&search=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        
-        if(data.results && data.results.length > 0) {
-            musicTracks = data.results;
-            musicIndex = 0;
-            playMusicTrack();
-        } else {
-            if(status) status.textContent = 'NO RESULTS';
-        }
-    } catch(e) {
-        if(status) status.textContent = 'MUSIC SERVER OFFLINE';
-    }
-};
-
-function playMusicTrack() {
-    if(musicTracks.length === 0) return;
-    
-    const track = musicTracks[musicIndex];
-    const audio = document.getElementById('musicAudio');
-    const status = document.getElementById('musicStatus');
-    
-    if(audio && track.audio) {
-        audio.src = track.audio;
-        audio.play();
-        if(status) status.textContent = `PLAYING: ${track.name.toUpperCase()}`;
-        sounds.launch();
-    }
-}
-
-window.nextMusicTrack = function() {
-    if(musicTracks.length === 0) return;
-    musicIndex = (musicIndex + 1) % musicTracks.length;
-    playMusicTrack();
-};
-
-window.prevMusicTrack = function() {
-    if(musicTracks.length === 0) return;
-    musicIndex = (musicIndex - 1 + musicTracks.length) % musicTracks.length;
-    playMusicTrack();
-};
-
+// Fix 7: Music Player — now powered by YouTube/Invidious (see newapps.js top)
+// These stubs are kept for backward compatibility with app.js cleanup
+window.nextMusicTrack = function() { if (typeof nextMusic === 'function') nextMusic(); };
+window.prevMusicTrack = function() { if (typeof prevMusic === 'function') prevMusic(); };
 window.stopMusic = function() {
-    const audio = document.getElementById('musicAudio');
-    if(audio) {
-        audio.pause();
-        audio.currentTime = 0;
-    }
-    const _el = document.getElementById('musicStatus'); if(_el) if(_el) _el.textContent = 'STOPPED';
-    sounds.back();
+  if (typeof ytPlayer !== 'undefined' && ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+  if (typeof stopVinyl === 'function') stopVinyl();
+  if (typeof stopProgress === 'function') stopProgress();
+  isMusicPlaying = false;
+  sounds.back();
 };

@@ -154,6 +154,18 @@ const PRESETS = {
 
 async function bbInitAudio() {
   if (audioReady) return;
+
+  // Wait for Tone.js to be available (loaded with defer)
+  let attempts = 0;
+  while (!window.Tone && attempts < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
+  if (!window.Tone) {
+    bbSetStatus('⚠ Audio library failed to load');
+    return;
+  }
+
   await Tone.start();
 
   // Master chain: masterVol → compressor → analyser → destination
