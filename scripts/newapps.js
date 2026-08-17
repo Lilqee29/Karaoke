@@ -102,16 +102,21 @@ async function searchMusic() {
   const resultsEl = document.getElementById('musicResults');
   if (resultsEl) resultsEl.innerHTML = '<div style="color:#9bbc0f;font-size:7px;text-align:center;padding:10px;">SEARCHING...</div>';
 
-  // Try direct first, then CORS proxies
-  const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30`;
-  const urls = [itunesUrl, ...CORS_PROXIES.map(p => p + encodeURIComponent(itunesUrl))];
+  // Cache-bust + CORS proxies (old SW caches 503 responses, need unique URLs)
+  const t = Date.now();
+  const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30&_=${t}`;
+  const urls = [
+    `https://corsproxy.io/?${encodeURIComponent(itunesUrl)}&_t=${t}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(itunesUrl)}&_t=${t}`,
+    itunesUrl, // direct as last resort
+  ];
 
   let lastError = null;
   for (const url of urls) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
@@ -138,17 +143,54 @@ async function searchMusic() {
       }
     } catch (e) {
       lastError = e;
-      continue; // try next proxy
+      console.warn('Search attempt failed:', url.substring(0, 50), e.message);
+      continue; // try next
     }
   }
 
   // All methods failed
   console.warn('All search methods failed:', lastError);
   let errMsg = 'SEARCH FAILED';
-  if (lastError?.name === 'AbortError') errMsg = 'TIMEOUT';
+  if (lastError?.name === 'AbortError') errMsg = 'TIMEOUT — try again';
   else if (lastError?.message) errMsg = lastError.message.substring(0, 40);
   if (resultsEl) resultsEl.innerHTML = `<div style="color:#306230;font-size:6px;text-align:center;padding:20px 0;">${errMsg}</div>`;
 }
+
+// ── Nuclear Reset — kills all SWs and caches on device ─────
+window.nuclearReset = async function() {
+  const resultsEl = document.getElementById('musicResults');
+  if (resultsEl) resultsEl.innerHTML = '<div style="color:#f55;font-size:7px;text-align:center;padding:10px;">NUCLEAR RESET — CLEARING EVERYTHING...</div>';
+
+  try {
+    // Unregister ALL service workers
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) {
+      await reg.unregister();
+      console.log('Unregistered SW:', reg.scope);
+    }
+
+    // Clear ALL caches
+    const cacheNames = await caches.keys();
+    for (const name of cacheNames) {
+      await caches.delete(name);
+      console.log('Deleted cache:', name);
+    }
+
+    // Clear localStorage music data (in case it's corrupted)
+    localStorage.removeItem('gbMusicQueue');
+    localStorage.removeItem('gbMusicIdx');
+    localStorage.removeItem('gbRecentlyPlayed');
+
+    console.log('✅ All SWs and caches cleared');
+    if (resultsEl) resultsEl.innerHTML = '<div style="color:#0f0;font-size:7px;text-align:center;padding:10px;">✅ DONE — RELOADING...</div>';
+
+    // Hard reload after 1 second
+    setTimeout(() => { window.location.href = window.location.href.split('?')[0] + '?_t=' + Date.now(); }, 1000);
+  } catch(e) {
+    console.error('Nuclear reset failed:', e);
+    if (resultsEl) resultsEl.innerHTML = '<div style="color:#f55;font-size:7px;text-align:center;padding:10px;">RESET FAILED — REMOVE APP AND RE-ADD</div>';
+  }
+};
 
 // ── Render search results ──────────────────────────────────
 function renderMusicResults() {
