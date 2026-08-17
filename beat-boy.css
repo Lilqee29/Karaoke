@@ -324,3 +324,64 @@
 .bb-saved-del:hover {
   color: #ff0;
 }
+
+/* ── Drum Pads (Mobile) ─────────────────────────────────── */
+
+.bb-drum-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  background: rgba(0,0,0,0.6);
+  border: 2px solid var(--pad-color, #0f0);
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: transform 0.05s, box-shadow 0.05s;
+  position: relative;
+  overflow: hidden;
+}
+
+.bb-drum-pad:active,
+.bb-pad-flash {
+  transform: scale(0.92);
+  box-shadow: 0 0 18px var(--pad-color, #0f0),
+              inset 0 0 20px rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.08);
+}
+
+.bb-pad-flash {
+  animation: bbPadFlash 0.15s ease-out;
+}
+
+@keyframes bbPadFlash {
+  0%   { box-shadow: 0 0 24px var(--pad-color, #fff), inset 0 0 30px rgba(255,255,255,0.3); }
+  100% { box-shadow: 0 0 6px var(--pad-color, #0f0); }
+}
+
+.bb-pad-emoji {
+  font-size: 22px;
+  line-height: 1;
+  margin-bottom: 2px;
+  pointer-events: none;
+}
+
+.bb-pad-name {
+  font-size: 6px;
+  color: var(--pad-color, #0f0);
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+.bb-pad-key {
+  font-size: 4px;
+  color: #555;
+  font-family: "VT323", monospace;
+  margin-top: 1px;
+  pointer-events: none;
+}

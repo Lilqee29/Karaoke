@@ -258,6 +258,10 @@
                             🎛 BEAT BOY™ v5
                         </div>
                         <div style="display:flex; gap:4px; align-items:center;">
+                            <button id="bbPadToggleBtn" onclick="bbTogglePad()"
+                                style="font-size:5px; padding:3px 6px; background:#0a0a0a; color:#0f0; border:1px solid #0f0; border-radius:3px; cursor:pointer;">
+                                🥁 PADS
+                            </button>
                             <div id="remixBpmDisplay">120 BPM</div>
                             <div id="remixStepIndicator">STEP 1</div>
                         </div>
@@ -332,6 +336,9 @@
 
                         <!-- ── Step Sequencer Grid (injected by beat-boy.js) ─────── -->
                         <div id="remixGrid" class="beat-boy-grid"></div>
+
+                        <!-- ── Drum Pad Overlay (mobile) ────────────────────────── -->
+                        <div id="bbPadOverlay" style="display:none; flex-wrap:wrap; gap:6px; justify-content:center; align-content:flex-start; padding:8px 0; max-height:310px; overflow-y:auto;"></div>
 
                         <!-- ── Waveform Visualizer ────────────────────────────────── -->
                         <canvas id="beatVizCanvas" width="320" height="28"></canvas>

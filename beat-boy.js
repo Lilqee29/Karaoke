@@ -746,7 +746,86 @@ window.stopRemix = function() {
   const btn = document.getElementById('remixPlayBtn');
   if (btn) { btn.textContent = '▶ PLAY'; btn.style.background = '#0f0'; btn.style.color = '#000'; }
   document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('highlight'));
+  // Hide pad mode
+  const pad = document.getElementById('bbPadOverlay');
+  if (pad) pad.style.display = 'none';
+  bbPadActive = false;
 };
+
+// ── On-Screen Drum Pads (Mobile) ──────────────────────────
+
+let bbPadActive = false;
+
+window.bbTogglePad = async function() {
+  if (!audioReady) { bbSetStatus('⟳ Loading…'); await bbInitAudio(); }
+
+  bbPadActive = !bbPadActive;
+  const pad = document.getElementById('bbPadOverlay');
+  const grid = document.getElementById('remixGrid');
+  const viz = document.getElementById('beatVizCanvas');
+
+  if (bbPadActive) {
+    // Hide grid, show pads
+    if (grid) grid.style.display = 'none';
+    if (viz) viz.style.display = 'none';
+    if (pad) pad.style.display = 'flex';
+    bbBuildPads();
+  } else {
+    if (grid) grid.style.display = '';
+    if (viz) viz.style.display = '';
+    if (pad) pad.style.display = 'none';
+  }
+
+  const toggleBtn = document.getElementById('bbPadToggleBtn');
+  if (toggleBtn) {
+    toggleBtn.textContent = bbPadActive ? '🎹 GRID' : '🥁 PADS';
+    toggleBtn.style.background = bbPadActive ? '#ff0' : '#0a0a0a';
+    toggleBtn.style.color = bbPadActive ? '#000' : '#0f0';
+  }
+};
+
+function bbBuildPads() {
+  const container = document.getElementById('bbPadOverlay');
+  if (!container) return;
+  container.innerHTML = '';
+
+  INSTRUMENTS.forEach((inst, r) => {
+    const pad = document.createElement('div');
+    pad.className = 'bb-drum-pad';
+    pad.style.setProperty('--pad-color', inst.color);
+    pad.innerHTML = `
+      <span class="bb-pad-emoji">${inst.emoji}</span>
+      <span class="bb-pad-name">${inst.name}</span>
+      <span class="bb-pad-key">${inst.key}</span>
+    `;
+
+    // Touch/click handlers
+    const triggerPad = async (e) => {
+      e.preventDefault();
+      if (!audioReady) { bbSetStatus('⟳ Loading…'); await bbInitAudio(); }
+
+      // Trigger the sound
+      bbTrigger(r, remixStep);
+
+      // Visual flash
+      pad.classList.add('bb-pad-flash');
+      setTimeout(() => pad.classList.remove('bb-pad-flash'), 150);
+
+      // If playing, also record into the current step
+      if (isRemixPlaying && remixGrid[r]) {
+        remixGrid[r][remixStep] = true;
+        const gridPad = document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${remixStep}"]`);
+        if (gridPad) gridPad.classList.add('active');
+      }
+    };
+
+    // Support both touch and mouse
+    pad.addEventListener('touchstart', triggerPad, { passive: false });
+    pad.addEventListener('mousedown', triggerPad);
+
+    container.appendChild(pad);
+  });
+}
 
 // Auto-init saved list on load
 setTimeout(() => { if (typeof bbRefreshSavedList === 'function') bbRefreshSavedList(); }, 500);
