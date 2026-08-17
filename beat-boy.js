@@ -312,9 +312,7 @@ window.initRemix = async function() {
   const gridEl = document.getElementById('remixGrid');
   if (!gridEl) return;
 
-  bbSetStatus('⟳ Starting audio…');
-  try { await bbInitAudio(); } catch(e) { console.error(e); }
-
+  // Build grid FIRST so user sees it immediately (don't block on audio)
   gridEl.innerHTML = '';
   remixGrid      = [];
   trackVols      = INSTRUMENTS.map(() => 80);
@@ -351,10 +349,10 @@ window.initRemix = async function() {
       step.dataset.r = r;
       step.dataset.c = c;
       step.onclick = async function() {
-        if (!audioReady) { bbSetStatus('⟳ Loading…'); await bbInitAudio(); }
+        if (!audioReady) { bbSetStatus('⟳ Loading audio…'); try { await bbInitAudio(); } catch(e) {} }
         rowData[c] = !rowData[c];
         this.classList.toggle('active');
-        if (rowData[c]) bbTrigger(r, c);
+        if (rowData[c] && audioReady) bbTrigger(r, c);
         if (typeof sounds !== 'undefined') sounds.click?.();
       };
       stepsEl.appendChild(step);
@@ -366,6 +364,12 @@ window.initRemix = async function() {
 
   bbInitViz();
   bbBindKeyboard();
+
+  // Init audio in background (don't block grid render)
+  if (!audioReady) {
+    bbSetStatus('⟳ Loading audio…');
+    bbInitAudio().then(() => bbSetStatus('')).catch(() => bbSetStatus('⚠ Audio will load on first tap'));
+  }
 };
 
 // ── Transport Controls ────────────────────────────────────
