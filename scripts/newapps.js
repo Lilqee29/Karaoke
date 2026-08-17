@@ -141,6 +141,7 @@ async function searchMusic() {
         duration: t.trackTimeMillis ? Math.floor(t.trackTimeMillis / 1000) : 0,
         genre: t.primaryGenreName || '',
         appleUrl: t.trackViewUrl || '',
+        youtubeQuery: `${t.trackName} ${t.artistName} official`.trim(),
       }));
       saveMusicQueue();
       renderMusicResults();
@@ -164,7 +165,9 @@ function renderMusicResults() {
         <div style="font-size:7px;font-weight:bold;color:#9bbc0f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(t.name||'UNKNOWN').toUpperCase()}</div>
         <div style="font-size:5px;color:#306230;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(t.artist_name||'').toUpperCase()}</div>
       </div>
-      <div style="font-size:5px;color:#306230;flex-shrink:0;">${t.genre || ''}</div>
+      <div style="display:flex;gap:3px;flex-shrink:0;">
+        <div onclick="event.stopPropagation();playFullSong(${i})" title="Play full song on YouTube" style="font-size:5px;padding:2px 4px;background:#300;color:#f55;border:1px solid #600;border-radius:2px;cursor:pointer;">▶ YT</div>
+      </div>
     </div>
   `).join('');
 }
@@ -186,12 +189,6 @@ function playMusic(idx) {
 
   if (titleEl) titleEl.textContent = track.name?.toUpperCase() || 'UNKNOWN';
   if (artistEl) artistEl.textContent = track.artist_name?.toUpperCase() || '';
-
-  // Update vinyl thumbnail
-  const vinylCenter = document.querySelector('#vinylDisk > div:first-child');
-  if (vinylCenter && track.thumbnail) {
-    vinylCenter.innerHTML = `<img src="${track.thumbnail}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.parentElement.textContent='🎵'">`;
-  }
 
   if (track.audio) {
     // Show now-playing bar
@@ -281,6 +278,77 @@ function toggleMusicRepeat() {
   const btn = document.getElementById('repeatBtn');
   if (btn) btn.style.opacity = isRepeat ? '1' : '0.5';
 }
+
+// ── YouTube Full Song Player ────────────────────────────────
+let ytFullFrame = null;
+
+window.playFullSong = function(idx) {
+  const track = musicQueue[idx];
+  if (!track) return;
+
+  // Stop any iTunes preview
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; isMusicPlaying = false; }
+
+  currentMusicIdx = idx;
+  saveMusicQueue();
+
+  // Update now playing bar
+  const npBar = document.getElementById('nowPlayingBar');
+  if (npBar) npBar.style.display = 'block';
+  const npThumb = document.getElementById('npThumb');
+  if (npThumb && track.thumbnail) { npThumb.src = track.thumbnail; npThumb.style.display = 'block'; }
+  const titleEl = document.getElementById('musicTitle');
+  const artistEl = document.getElementById('musicArtist');
+  if (titleEl) titleEl.textContent = '▶ ' + (track.name?.toUpperCase() || 'YOUTUBE');
+  if (artistEl) artistEl.textContent = 'FULL SONG — ' + (track.artist_name?.toUpperCase() || '');
+  const pb = document.getElementById('musicPlayBtn');
+  if (pb) pb.textContent = '⏸';
+
+  // Create or reuse YouTube embed iframe
+  const container = document.getElementById('musicResults');
+  if (!container) return;
+
+  const q = encodeURIComponent(track.youtubeQuery || `${track.name} ${track.artist_name}`);
+  const embedUrl = `https://www.youtube.com/embed?listType=search&list=${q}&autoplay=1`;
+
+  // Replace results with YouTube embed
+  container.innerHTML = `
+    <div style="text-align:center;padding:4px;">
+      <div style="font-size:6px;color:#9bbc0f;margin-bottom:4px;">▶ PLAYING FULL SONG ON YOUTUBE</div>
+      <iframe id="ytFullEmbed" src="${embedUrl}" style="width:100%;height:150px;border:1px solid #306230;border-radius:4px;" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <div style="font-size:5px;color:#306230;margin-top:4px;">Powered by YouTube • Full songs</div>
+      <button onclick="restoreMusicResults()" style="margin-top:6px;font-size:5px;padding:3px 8px;background:#1a1a2e;color:#9bbc0f;border:1px solid #306230;border-radius:3px;cursor:pointer;">← BACK TO RESULTS</button>
+    </div>
+  `;
+
+  // Highlight active track
+  addToRecentlyPlayed(track);
+};
+
+window.restoreMusicResults = function() {
+  renderMusicResults();
+};
+
+// ── Auto-shuffle (auto-advance random tracks) ───────────────
+let autoShuffleInterval = null;
+
+window.toggleAutoShuffle = function() {
+  const btn = document.getElementById('autoShuffleBtn');
+  if (autoShuffleInterval) {
+    clearInterval(autoShuffleInterval);
+    autoShuffleInterval = null;
+    if (btn) { btn.style.opacity = '0.5'; btn.textContent = '🔀 AUTO: OFF'; }
+  } else {
+    // Every 35 seconds (slightly after 30s preview ends), advance to random track
+    autoShuffleInterval = setInterval(() => {
+      if (musicQueue.length > 1) {
+        const next = Math.floor(Math.random() * musicQueue.length);
+        playMusic(next);
+      }
+    }, 35000);
+    if (btn) { btn.style.opacity = '1'; btn.textContent = '🔀 AUTO: ON'; }
+  }
+};
 
 function toggleMusicQueue() {
   const q = document.getElementById('musicQueue');

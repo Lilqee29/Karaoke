@@ -130,6 +130,7 @@
                                 <input type="text" id="musicSearch" placeholder="SEARCH MUSIC..." style="flex: 1; font-size: 6px;"
                                     onkeydown="if(event.key==='Enter')searchMusic()">
                                 <button onclick="searchMusic()" style="font-size: 5px;">🔍</button>
+                                <button onclick="toggleAutoShuffle()" id="autoShuffleBtn" style="font-size: 4px; opacity: 0.5;">🔀 AUTO: OFF</button>
                                 <button onclick="document.getElementById('recentlyPlayedPanel').style.display=document.getElementById('recentlyPlayedPanel').style.display==='none'?'block':'none'; renderRecentlyPlayed();" style="font-size: 5px;">🕐</button>
                             </div>
 

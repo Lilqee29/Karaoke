@@ -156,19 +156,25 @@ async function bbInitAudio() {
   if (audioReady) return;
 
   if (!window.Tone) {
-    bbSetStatus('⚠ Audio loading...');
+    bbSetStatus('⏳ Loading Tone.js...');
     // Wait briefly for Tone.js
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 100));
       if (window.Tone) break;
     }
     if (!window.Tone) {
-      bbSetStatus('⚠ Audio unavailable');
+      bbSetStatus('⚠ Tone.js failed to load — reload page');
       return;
     }
   }
 
-  await Tone.start();
+  try {
+    await Tone.start();
+  } catch(e) {
+    bbSetStatus('⚠ Audio blocked by browser — tap anywhere first');
+    return;
+  }
+  console.log('Tone.js started, context:', Tone.context.state);
 
   // ── Effects chain (parallel dry/wet) ────────────────────
   // Master → Compressor → Analyser → Destination
@@ -365,7 +371,14 @@ window.initRemix = async function() {
 // ── Transport Controls ────────────────────────────────────
 
 window.toggleRemixPlay = async function() {
-  if (!audioReady) { bbSetStatus('⟳ Loading…'); await bbInitAudio(); }
+  if (!audioReady) {
+    bbSetStatus('⟳ Loading audio…');
+    try { await bbInitAudio(); } catch(e) { console.error('Beat Boy audio init failed:', e); }
+  }
+  if (!audioReady) {
+    bbSetStatus('⚠ Audio failed — tap again or reload');
+    return;
+  }
   const btn = document.getElementById('remixPlayBtn');
 
   if (isRemixPlaying) {
