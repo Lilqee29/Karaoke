@@ -1624,31 +1624,42 @@ select:focus {
   color: var(--gb-bg) !important;
 }
 
-/* SYNTH Pattern Steps */
-#synthPattern {
-  scrollbar-width: none;
-}
-#synthPattern::-webkit-scrollbar {
-  display: none;
+/* ── Creative Apps (GLITCH / WAVE / NOISE / MAZE) ──────────────── */
+
+/* GLITCH Canvas */
+#glitchCanvas {
+  image-rendering: pixelated;
+  cursor: crosshair;
 }
 
-/* FLOW Stat Cards */
-#flowContent > div > div[style*="background:rgba"] {
-  transition: transform 0.1s ease;
-}
-#flowContent > div > div[style*="background:rgba"]:hover {
-  transform: scale(1.02);
+/* WAVE Canvas */
+#waveCanvas {
+  image-rendering: pixelated;
 }
 
-/* Mobile overrides for Creative Hub */
+/* NOISE */
+#noiseInput {
+  outline: none;
+}
+#noiseInput:focus {
+  border-color: var(--gb-text) !important;
+  box-shadow: 0 0 4px rgba(15, 56, 15, 0.3);
+}
+
+/* MAZE */
+#mazeContent span {
+  transition: background 0.1s ease;
+}
+#mazeContent button {
+  touch-action: manipulation;
+}
+
+/* Mobile overrides for Creative Apps */
 @media (max-width: 768px) {
-  #synthKeyboard button {
-    width: 32px;
-    height: 40px;
-    font-size: 5px;
+  #glitchCanvas {
+    min-height: 180px;
   }
-  
-  #pulseFeed > div {
-    padding: 6px !important;
+#visualCanvas {
+    min-height: 120px;
   }
 }

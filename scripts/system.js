@@ -418,3 +418,30 @@ function addGems(amount)   { state.gems += amount; saveState(); }
 function resetData() {
     if (confirm("WIPE ALL DATA?")) { localStorage.clear(); location.reload(); }
 }
+
+async function checkForUpdate() {
+    try {
+        // Kill any running audio
+        if (typeof killAllCreativeAudio === 'function') killAllCreativeAudio();
+        
+        // Unregister all service workers
+        if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (const reg of regs) await reg.unregister();
+        }
+        
+        // Clear all caches
+        if ('caches' in window) {
+            const names = await caches.keys();
+            for (const name of names) await caches.delete(name);
+        }
+        
+        // Clear localStorage
+        localStorage.clear();
+        
+        // Force reload from server
+        location.href = location.pathname + '?v=' + Date.now();
+    } catch(e) {
+        location.reload();
+    }
+}
