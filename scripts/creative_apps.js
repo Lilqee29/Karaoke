@@ -1426,9 +1426,14 @@ function renderSandUI(container) {
 
 function sandSetElement(el) {
   _sandElement = el;
-  renderSandUI(document.getElementById('sandContent'));
-  _sandCanvas = document.getElementById('sandCanvas');
-  if (_sandCanvas) _sandCtx = _sandCanvas.getContext('2d');
+  // Just update button highlights and label — don't recreate the canvas
+  const label = document.querySelector('#sandContent span[style*="font-size:5px"]');
+  if (label) label.textContent = el.toUpperCase();
+  document.querySelectorAll('#sandContent button').forEach(b => {
+    const isActive = b.textContent.includes(SAND_ELEMENTS.find(e => e.id === el)?.icon || '');
+    b.style.background = isActive ? 'var(--gb-text)' : '';
+    b.style.color = isActive ? 'var(--gb-bg)' : '';
+  });
 }
 function sandSetBrush(v) { _sandBrush = Number(v); }
 
@@ -1479,19 +1484,24 @@ function _sandLoop() {
 
         case CELL.FIRE:
           _sandColorIdx[idx] = Math.floor(Math.random() * 4);
-          if (Math.random() < 0.05) { _sandGrid[idx] = CELL.SMOKE; _sandColorIdx[idx] = Math.floor(Math.random() * 4); break; }
-          if (Math.random() < 0.02) { _sandGrid[idx] = CELL.EMPTY; break; }
-          if (isEmpty(above)) { swap(idx, (y - 1) * _sandW + x); }
-          else if (isEmpty(above) && Math.random() < 0.3) {
+          if (Math.random() < 0.03) { _sandGrid[idx] = CELL.SMOKE; _sandColorIdx[idx] = Math.floor(Math.random() * 4); break; }
+          if (Math.random() < 0.01) { _sandGrid[idx] = CELL.EMPTY; break; }
+          // Rise up with some horizontal drift
+          if (Math.random() < 0.6 && isEmpty(above)) {
+            swap(idx, (y - 1) * _sandW + x);
+          } else if (Math.random() < 0.4) {
             const nx = x + (Math.random() < 0.5 ? -1 : 1);
-            if (nx >= 0 && nx < _sandW && isEmpty((y - 1) * _sandW + nx))
+            if (nx >= 0 && nx < _sandW && y - 1 >= 0 && isEmpty((y - 1) * _sandW + nx))
               swap(idx, (y - 1) * _sandW + nx);
+            else if (isEmpty(above)) swap(idx, (y - 1) * _sandW + x);
           }
+          // Burn adjacent cells
           [[y-1,x],[y+1,x],[y,x-1],[y,x+1]].forEach(([ny,nx]) => {
             if (ny >= 0 && ny < _sandH && nx >= 0 && nx < _sandW) {
               const ni = ny * _sandW + nx;
-              if (_sandGrid[ni] === CELL.PLANT && Math.random() < 0.15) { _sandGrid[ni] = CELL.FIRE; _sandColorIdx[ni] = Math.floor(Math.random() * 4); }
-              if (_sandGrid[ni] === CELL.OIL && Math.random() < 0.1) { _sandGrid[ni] = CELL.FIRE; _sandColorIdx[ni] = Math.floor(Math.random() * 4); }
+              if (_sandGrid[ni] === CELL.PLANT && Math.random() < 0.2) { _sandGrid[ni] = CELL.FIRE; _sandColorIdx[ni] = Math.floor(Math.random() * 4); }
+              if (_sandGrid[ni] === CELL.OIL && Math.random() < 0.15) { _sandGrid[ni] = CELL.FIRE; _sandColorIdx[ni] = Math.floor(Math.random() * 4); }
+              if (_sandGrid[ni] === CELL.WATER && Math.random() < 0.3) { _sandGrid[ni] = CELL.SMOKE; _sandColorIdx[ni] = Math.floor(Math.random() * 4); }
             }
           });
           break;

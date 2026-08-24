@@ -376,32 +376,433 @@ function calculateCalc() {
 }
 
 // ========== PAINT ==========
+// ── Paint State ────────────────────────────────────────────
+let _paintMode = 'normal';
+let _paintShape = 'circle';
+let _paintPrimary = '#000000';
+let _paintSecondary = '#ff0000';
+let _paintTertiary = '#00ff00';
+let _paintTertiaryIdx = 0;
+let _paintHue = 0;
+let _paintLastX = null;
+let _paintLastY = null;
+let _paintUndoStack = [];
+let _paintMaxUndo = 20;
+let _paintShapeStart = null;
+let _paintShapePreview = null;
+
+const TERTIARY_PRESETS = ['#00ff00','#00ccff','#ff00ff','#ffff00','#ff8800','#88ff00','#00ffaa','#ff0088'];
+
+function paintSetMode(mode) {
+    _paintMode = mode;
+    document.querySelectorAll('.paint-mode-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+        b.style.background = b.dataset.mode === mode ? 'var(--gb-text)' : 'transparent';
+        b.style.color = b.dataset.mode === mode ? 'var(--gb-bg)' : 'var(--gb-text)';
+        b.style.borderColor = b.dataset.mode === mode ? 'var(--gb-text)' : '#444';
+    });
+    // Show/hide shape buttons
+    document.querySelectorAll('.paint-shape-btn').forEach(b => {
+        b.style.display = mode === 'shape' ? '' : 'none';
+    });
+}
+
+function paintSetShape(shape) {
+    _paintShape = shape;
+    document.querySelectorAll('.paint-shape-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.shape === shape);
+        b.style.background = b.dataset.shape === shape ? '#333' : 'transparent';
+        b.style.color = b.dataset.shape === shape ? '#fff' : '#aaa';
+    });
+}
+
+function paintSetBlendColor(slot, color) {
+    if (slot === 'primary') _paintPrimary = color;
+    else if (slot === 'secondary') _paintSecondary = color;
+    paintUpdateTertiary();
+}
+
+function paintCycleTertiary() {
+    _paintTertiaryIdx = (_paintTertiaryIdx + 1) % TERTIARY_PRESETS.length;
+    _paintTertiary = TERTIARY_PRESETS[_paintTertiaryIdx];
+    paintUpdateTertiary();
+}
+
+function paintUpdateTertiary() {
+    // Mix primary + secondary to get tertiary
+    const p = hexToRgb(_paintPrimary);
+    const s = hexToRgb(_paintSecondary);
+    const t = hexToRgb(_paintTertiary);
+    // Blend tertiary from the preset
+    const blend = parseInt(document.getElementById('paintBlendAmount')?.value || 50) / 100;
+    const mr = Math.round(p.r * (1-blend) + s.r * blend);
+    const mg = Math.round(p.g * (1-blend) + s.g * blend);
+    const mb = Math.round(p.b * (1-blend) + s.b * blend);
+    // The tertiary preview shows a mix of the mix with the preset
+    const fr = Math.round(mr * 0.5 + t.r * 0.5);
+    const fg = Math.round(mg * 0.5 + t.g * 0.5);
+    const fb = Math.round(mb * 0.5 + t.b * 0.5);
+    const el = document.getElementById('paintTertiaryPreview');
+    if (el) el.style.background = `rgb(${fr},${fg},${fb})`;
+}
+
+function hexToRgb(hex) {
+    const h = hex.replace('#','');
+    return {
+        r: parseInt(h.substring(0,2),16) || 0,
+        g: parseInt(h.substring(2,4),16) || 0,
+        b: parseInt(h.substring(4,6),16) || 0
+    };
+}
+
+function rgbToHex(r,g,b) {
+    return '#' + [r,g,b].map(v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+}
+
+function lerpColor(c1, c2, t) {
+    const a = hexToRgb(c1), b = hexToRgb(c2);
+    return rgbToHex(
+        a.r + (b.r - a.r) * t,
+        a.g + (b.g - a.g) * t,
+        a.b + (b.b - a.b) * t
+    );
+}
+
 function initPaint() {
     const canvas = document.getElementById('paintCanvas');
     const ctx = canvas.getContext('2d');
     let painting = false;
-    
-    canvas.addEventListener('mousedown', () => painting = true);
-    canvas.addEventListener('mouseup', () => painting = false);
-    canvas.addEventListener('mouseleave', () => painting = false);
-    
-    canvas.addEventListener('mousemove', (e) => {
+    _paintUndoStack = [];
+    _paintLastX = null;
+    _paintLastY = null;
+
+    // Fill white
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Save initial state
+    _paintSaveUndo(ctx, canvas);
+
+    // Brush size label
+    const sizeSlider = document.getElementById('brushSize');
+    const sizeLabel = document.getElementById('brushSizeLabel');
+    if (sizeSlider && sizeLabel) {
+        sizeSlider.oninput = () => { sizeLabel.textContent = sizeSlider.value; };
+    }
+
+    // Hide shape buttons initially
+    document.querySelectorAll('.paint-shape-btn').forEach(b => { b.style.display = 'none'; });
+
+    function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        const t = e.touches ? e.touches[0] : e;
+        return { x: t.clientX - r.left, y: t.clientY - r.top };
+    }
+
+    function paintAt(x, y) {
+        const size = parseInt(sizeSlider.value);
+        const mode = _paintMode;
+
+        ctx.save();
+
+        if (mode === 'normal') {
+            ctx.fillStyle = _paintPrimary;
+            ctx.globalAlpha = 1;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+
+        } else if (mode === 'gradient') {
+            // Linear gradient from primary → secondary based on position
+            const grad = ctx.createLinearGradient(x - size, y, x + size, y);
+            grad.addColorStop(0, _paintPrimary);
+            grad.addColorStop(0.5, lerpColor(_paintPrimary, _paintSecondary, 0.5));
+            grad.addColorStop(1, _paintSecondary);
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+
+        } else if (mode === 'rainbow') {
+            _paintHue = (_paintHue + 3) % 360;
+            ctx.fillStyle = `hsl(${_paintHue}, 100%, 55%)`;
+            ctx.globalAlpha = 0.9;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+
+        } else if (mode === 'glow') {
+            ctx.shadowColor = _paintPrimary;
+            ctx.shadowBlur = size * 2;
+            ctx.fillStyle = _paintPrimary;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.7, 0, Math.PI * 2);
+            ctx.fill();
+            // Inner bright core
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 0.9;
+            ctx.fillStyle = lerpColor(_paintPrimary, '#ffffff', 0.5);
+            ctx.beginPath();
+            ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+        } else if (mode === 'blur') {
+            // Paint with semi-transparent overlapping circles for blur effect
+            ctx.globalAlpha = 0.08;
+            ctx.fillStyle = _paintPrimary;
+            for (let i = 0; i < 5; i++) {
+                const ox = (Math.random() - 0.5) * size;
+                const oy = (Math.random() - 0.5) * size;
+                ctx.beginPath();
+                ctx.arc(x + ox, y + oy, size * 0.8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (mode === 'spray') {
+            // Spray paint / airbrush
+            ctx.fillStyle = _paintPrimary;
+            const density = size * 2;
+            for (let i = 0; i < density; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = Math.random() * size;
+                const px = x + Math.cos(angle) * radius;
+                const py = y + Math.sin(angle) * radius;
+                ctx.globalAlpha = Math.random() * 0.4 + 0.1;
+                ctx.fillRect(px, py, 1, 1);
+            }
+
+        } else if (mode === 'neon') {
+            // Neon glow — bright center + multiple shadow layers
+            const colors = [_paintPrimary, lerpColor(_paintPrimary, '#ffffff', 0.4), '#ffffff'];
+            const sizes = [size * 1.5, size * 0.8, size * 0.3];
+            colors.forEach((c, i) => {
+                ctx.shadowColor = c;
+                ctx.shadowBlur = sizes[i] * 2;
+                ctx.fillStyle = c;
+                ctx.globalAlpha = i === 2 ? 1 : 0.5;
+                ctx.beginPath();
+                ctx.arc(x, y, sizes[i], 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+        } else if (mode === 'shape') {
+            // Shape mode — handled by drag (mousedown → mouseup)
+            // This is a preview dot
+            ctx.fillStyle = _paintPrimary;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    function drawShape(x0, y0, x1, y1) {
+        const size = parseInt(sizeSlider.value);
+        const dx = x1 - x0, dy = y1 - y0;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+
+        ctx.save();
+        ctx.fillStyle = _paintPrimary;
+        ctx.strokeStyle = _paintPrimary;
+        ctx.lineWidth = Math.max(1, size / 3);
+        ctx.globalAlpha = 0.8;
+
+        // Gradient fill
+        const grad = ctx.createLinearGradient(x0, y0, x1, y1);
+        grad.addColorStop(0, _paintPrimary);
+        grad.addColorStop(0.5, _paintSecondary);
+        grad.addColorStop(1, _paintTertiary);
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = _paintPrimary;
+
+        const shape = _paintShape;
+        if (shape === 'circle') {
+            ctx.beginPath();
+            ctx.arc(cx, cy, dist / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        } else if (shape === 'square') {
+            ctx.fillRect(cx - dist/2, cy - dist/2, dist, dist);
+            ctx.strokeRect(cx - dist/2, cy - dist/2, dist, dist);
+        } else if (shape === 'triangle') {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - dist/2);
+            ctx.lineTo(cx - dist/2, cy + dist/2);
+            ctx.lineTo(cx + dist/2, cy + dist/2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        } else if (shape === 'star') {
+            ctx.beginPath();
+            for (let i = 0; i < 10; i++) {
+                const r = i % 2 === 0 ? dist/2 : dist/5;
+                const a = (Math.PI / 5) * i - Math.PI / 2;
+                const sx = cx + r * Math.cos(a);
+                const sy = cy + r * Math.sin(a);
+                i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        } else if (shape === 'line') {
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x1, y1);
+            ctx.stroke();
+            // Glow
+            ctx.shadowColor = _paintPrimary;
+            ctx.shadowBlur = size;
+            ctx.stroke();
+        } else if (shape === 'diamond') {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - dist/2);
+            ctx.lineTo(cx + dist/2, cy);
+            ctx.lineTo(cx, cy + dist/2);
+            ctx.lineTo(cx - dist/2, cy);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
+
+    // Interpolate between points for smooth lines
+    function linePaint(x0, y0, x1, y1) {
+        const dist = Math.sqrt((x1-x0)**2 + (y1-y0)**2);
+        const steps = Math.max(1, Math.ceil(dist / 2));
+        for (let i = 0; i <= steps; i++) {
+            const t = i / steps;
+            paintAt(x0 + (x1-x0)*t, y0 + (y1-y0)*t);
+        }
+    }
+
+    function onDown(e) {
+        e.preventDefault();
+        painting = true;
+        const p = getPos(e);
+        _paintLastX = p.x;
+        _paintLastY = p.y;
+
+        if (_paintMode === 'shape') {
+            _paintShapeStart = p;
+            // Save canvas for preview
+            _paintShapePreview = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        } else {
+            paintAt(p.x, p.y);
+        }
+    }
+
+    function onMove(e) {
         if (!painting) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        ctx.fillStyle = document.getElementById('paintColor').value;
-        ctx.beginPath();
-        ctx.arc(x, y, document.getElementById('brushSize').value, 0, Math.PI * 2);
-        ctx.fill();
-    });
+        e.preventDefault();
+        const p = getPos(e);
+
+        if (_paintMode === 'shape' && _paintShapeStart && _paintShapePreview) {
+            // Preview shape by restoring canvas and drawing shape
+            ctx.putImageData(_paintShapePreview, 0, 0);
+            drawShape(_paintShapeStart.x, _paintShapeStart.y, p.x, p.y);
+        } else {
+            linePaint(_paintLastX, _paintLastY, p.x, p.y);
+        }
+
+        _paintLastX = p.x;
+        _paintLastY = p.y;
+    }
+
+    function onUp(e) {
+        if (!painting) return;
+        painting = false;
+
+        if (_paintMode === 'shape' && _paintShapeStart) {
+            const p = e.changedTouches ? 
+                { x: e.changedTouches[0].clientX - canvas.getBoundingClientRect().left,
+                  y: e.changedTouches[0].clientY - canvas.getBoundingClientRect().top } :
+                getPos(e);
+            ctx.putImageData(_paintShapePreview, 0, 0);
+            drawShape(_paintShapeStart.x, _paintShapeStart.y, p.x, p.y);
+            _paintShapeStart = null;
+            _paintShapePreview = null;
+        }
+
+        _paintSaveUndo(ctx, canvas);
+        _paintLastX = null;
+        _paintLastY = null;
+    }
+
+    canvas.addEventListener('mousedown', onDown);
+    canvas.addEventListener('mousemove', onMove);
+    canvas.addEventListener('mouseup', onUp);
+    canvas.addEventListener('mouseleave', onUp);
+    canvas.addEventListener('touchstart', onDown, { passive: false });
+    canvas.addEventListener('touchmove', onMove, { passive: false });
+    canvas.addEventListener('touchend', onUp);
+}
+
+function _paintSaveUndo(ctx, canvas) {
+    _paintUndoStack.push(canvas.toDataURL());
+    if (_paintUndoStack.length > _paintMaxUndo) _paintUndoStack.shift();
+}
+
+function paintFunc(action) {
+    const canvas = document.getElementById('paintCanvas');
+    const ctx = canvas.getContext('2d');
+    if (action === 'undo') {
+        if (_paintUndoStack.length > 1) {
+            _paintUndoStack.pop();
+            const img = new Image();
+            img.onload = () => { ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0); };
+            img.src = _paintUndoStack[_paintUndoStack.length - 1];
+        }
+    } else if (action === 'clear') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        _paintSaveUndo(ctx, canvas);
+    } else if (action === 'eraser') {
+        const btn = document.getElementById('paintEraserBtn');
+        if (_paintMode === 'eraser') {
+            _paintMode = 'normal';
+            btn.style.background = '';
+            btn.style.color = '';
+        } else {
+            _paintMode = 'eraser';
+            btn.style.background = 'var(--gb-text)';
+            btn.style.color = 'var(--gb-bg)';
+        }
+        // Override paint to use eraser
+        if (_paintMode === 'eraser') {
+            // Monkey-patch: set primary to canvas bg
+            _paintPrimary = '#ffffff';
+            paintSetMode('normal');
+            _paintMode = 'eraser'; // keep eraser state
+        }
+    } else if (action === 'save') {
+        const link = document.createElement('a');
+        link.download = `paint-${Date.now()}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+}
+
+function setPaintColor(color) {
+    _paintPrimary = color;
+    document.getElementById('paintPrimary').value = color;
+    const btn = document.getElementById('paintEraserBtn');
+    if (_paintMode === 'eraser') {
+        _paintMode = 'normal';
+        if (btn) { btn.style.background = ''; btn.style.color = ''; }
+    }
 }
 
 function clearPaint() {
     const canvas = document.getElementById('paintCanvas');
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 // ========== MINESWEEPER ==========

@@ -56,36 +56,35 @@ let remixSwing     = 0;
 // Note division: '16n' (default), '8n', '32n'
 let remixDivision  = '16n';
 
-// ── Sample Library (free, CDN-hosted + Web Audio synthesized) ──
+// ── Sample Library — 100% Web Audio synthesized (no external URLs) ──
+// Each entry is type:'synth' so bbPlaySynthSound handles it
 const BB_SAMPLE_LIB = {
   '🔊 DRUMS': {
-    '808 Kick':     { url: 'https://tonejs.github.io/audio/drum-samples/CR78/kick.mp3',    type: 'sample' },
-    '808 Snare':    { url: 'https://tonejs.github.io/audio/drum-samples/CR78/snare.mp3',   type: 'sample' },
-    '808 HiHat':    { url: 'https://tonejs.github.io/audio/drum-samples/CR78/hihat.mp3',   type: 'sample' },
-    'Linn Kick':    { url: 'https://tonejs.github.io/audio/drum-samples/LINN/kick.mp3',    type: 'sample' },
-    'Linn Snare':   { url: 'https://tonejs.github.io/audio/drum-samples/LINN/snare.mp3',   type: 'sample' },
-    'Linn HiHat':   { url: 'https://tonejs.github.io/audio/drum-samples/LINN/hihat.mp3',   type: 'sample' },
-    'Techno Kick':  { url: 'https://tonejs.github.io/audio/drum-samples/Techno/kick.mp3',  type: 'sample' },
-    'Techno Snare': { url: 'https://tonejs.github.io/audio/drum-samples/Techno/snare.mp3', type: 'sample' },
-    'Acoustic Kick':{ url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/kick.mp3',  type: 'sample' },
-    'Acoustic Snare':{url: 'https://tonejs.github.io/audio/drum-samples/acoustic-kit/snare.mp3', type: 'sample' },
-    'FM Kick':      { url: 'https://tonejs.github.io/audio/drum-samples/4OP-FM/kick.mp3',  type: 'sample' },
-    'FM Snare':     { url: 'https://tonejs.github.io/audio/drum-samples/4OP-FM/snare.mp3', type: 'sample' },
-    'FM HiHat':     { url: 'https://tonejs.github.io/audio/drum-samples/4OP-FM/hihat.mp3', type: 'sample' },
-    'KPR Kick':     { url: 'https://tonejs.github.io/audio/drum-samples/KPR77/kick.mp3',   type: 'sample' },
-    'KPR Snare':    { url: 'https://tonejs.github.io/audio/drum-samples/KPR77/snare.mp3',  type: 'sample' },
+    '808 Kick':     { synth: 'lib_kick808',  type: 'synth' },
+    'Linn Kick':    { synth: 'lib_kicklinn', type: 'synth' },
+    'Techno Kick':  { synth: 'lib_kicktech', type: 'synth' },
+    'Acoustic Kick':{ synth: 'lib_kickacous', type: 'synth' },
+    'FM Kick':      { synth: 'lib_kickfm',   type: 'synth' },
+    '808 Snare':    { synth: 'lib_snare808',  type: 'synth' },
+    'Linn Snare':   { synth: 'lib_snarelinn', type: 'synth' },
+    'Tight Snare':  { synth: 'lib_snaretight',type: 'synth' },
+    'Fat Snare':    { synth: 'lib_snarefat',  type: 'synth' },
+    '808 HiHat':    { synth: 'lib_hh808',    type: 'synth' },
+    'Linn HiHat':   { synth: 'lib_hhlinn',   type: 'synth' },
+    'Tight HiHat':  { synth: 'lib_hhtight',  type: 'synth' },
+    'Open HiHat':   { synth: 'lib_hhopen',   type: 'synth' },
   },
   '🎵 PERCUSSION': {
-    'Cowbell':      { url: 'https://tonejs.github.io/audio/drum-samples/CR78/cowbell.mp3',  type: 'sample' },
-    'Rimshot':      { url: 'https://tonejs.github.io/audio/drum-samples/CR78/rimshot.mp3',  type: 'sample' },
-    'Clap':         { url: 'https://tonejs.github.io/audio/drum-samples/LINN/clap.mp3',     type: 'sample' },
-    'Tambourine':   { url: 'https://tonejs.github.io/audio/drum-samples/LINN/tambourine.mp3', type: 'sample' },
-    'Conga':        { url: 'https://tonejs.github.io/audio/drum-samples/LINN/conga.mp3',    type: 'sample' },
-    'Maracas':      { url: 'https://tonejs.github.io/audio/drum-samples/LINN/maracas.mp3',  type: 'sample' },
-    'Guiro':        { url: 'https://tonejs.github.io/audio/drum-samples/LINN/guiro.mp3',    type: 'sample' },
-    'Agogo':        { url: 'https://tonejs.github.io/audio/drum-samples/LINN/agogo.mp3',    type: 'sample' },
-    'Cuica':        { url: 'https://tonejs.github.io/audio/drum-samples/LINN/cuica.mp3',    type: 'sample' },
-    'Cabasa':       { url: 'https://tonejs.github.io/audio/drum-samples/LINN/cabasa.mp3',   type: 'sample' },
+    'Cowbell':      { synth: 'lib_cowbell',  type: 'synth' },
+    'Rimshot':      { synth: 'lib_rimshot',  type: 'synth' },
+    'Clap':         { synth: 'lib_clap',     type: 'synth' },
+    'Tambourine':   { synth: 'lib_tamb',     type: 'synth' },
+    'Conga':        { synth: 'lib_conga',    type: 'synth' },
+    'Bongo':        { synth: 'lib_bongo',    type: 'synth' },
+    'Shaker':       { synth: 'lib_shaker',   type: 'synth' },
+    'Cymbal':       { synth: 'lib_cymbal',   type: 'synth' },
+    'Woodblock':    { synth: 'lib_wood',     type: 'synth' },
+    'Triangle':     { synth: 'lib_triangle',  type: 'synth' },
   },
   '🎤 VOICES': {
     'Hey':          { synth: 'hey',      type: 'synth' },
@@ -453,24 +452,32 @@ async function bbLoadKit(kitFolder) {
 
   const base = `${BB_SAMPLE_BASE}${kitFolder}/`;
 
-  bbDrumPlayers = new Tone.Players(
-    {
-      kick:  `${base}kick.mp3`,
-      snare: `${base}snare.mp3`,
-      hihat: `${base}hihat.mp3`,
-      tom1:  `${base}tom1.mp3`,
-      tom2:  `${base}tom2.mp3`,
-    },
-    {
-      onerror: (e) => console.warn('Sample error:', e),
-    }
-  );
+  try {
+    bbDrumPlayers = new Tone.Players(
+      {
+        kick:  `${base}kick.mp3`,
+        snare: `${base}snare.mp3`,
+        hihat: `${base}hihat.mp3`,
+        tom1:  `${base}tom1.mp3`,
+        tom2:  `${base}tom2.mp3`,
+      },
+      {
+        onerror: (e) => console.warn('Sample error (will use synth fallback):', e),
+      }
+    );
 
-  await Promise.race([Tone.loaded(), new Promise(r => setTimeout(r, 5000))]);
+    await Promise.race([Tone.loaded(), new Promise(r => setTimeout(r, 5000))]);
 
-  ['kick','snare','hihat','tom1','tom2'].forEach((name, i) => {
-    try { bbDrumPlayers.player(name).connect(bbTrackGains[i]); } catch(e) {}
-  });
+    ['kick','snare','hihat','tom1','tom2'].forEach((name, i) => {
+      try {
+        const p = bbDrumPlayers.player(name);
+        if (p && p.loaded) p.connect(bbTrackGains[i]);
+      } catch(e) {}
+    });
+  } catch(e) {
+    console.warn('Kit load failed, using synth fallback:', e);
+    bbDrumPlayers = null;
+  }
 
   bbSetStatus('');
 }
@@ -864,6 +871,228 @@ function bbPlaySynthSound(name, targetGain) {
       });
       break;
     }
+    // ── Library synthesized drums ──────────────────────────
+    case 'lib_kick808': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.frequency.setValueAtTime(150, now); o.frequency.exponentialRampToValueAtTime(30, now + 0.12);
+      g.gain.setValueAtTime(0.9, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.5);
+      const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+      o2.frequency.value = 800; g2.gain.setValueAtTime(0.3, now); g2.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+      o2.connect(g2); g2.connect(dest); o2.start(now); o2.stop(now + 0.02);
+      break;
+    }
+    case 'lib_kicklinn': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.frequency.setValueAtTime(200, now); o.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+      g.gain.setValueAtTime(0.85, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.35);
+      break;
+    }
+    case 'lib_kicktech': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(120, now); o.frequency.exponentialRampToValueAtTime(25, now + 0.15);
+      g.gain.setValueAtTime(0.7, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.3);
+      break;
+    }
+    case 'lib_kickacous': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.frequency.setValueAtTime(100, now); o.frequency.exponentialRampToValueAtTime(35, now + 0.1);
+      g.gain.setValueAtTime(0.8, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.4);
+      // Beater click
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.01, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1)*0.5;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const ng = ctx.createGain(); ng.gain.setValueAtTime(0.4, now); ng.gain.exponentialRampToValueAtTime(0.001, now + 0.01);
+      n.connect(ng); ng.connect(dest); n.start(now); n.stop(now + 0.01);
+      break;
+    }
+    case 'lib_kickfm': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 60;
+      o2.type = 'sine'; o2.frequency.value = 300;
+      g2.gain.setValueAtTime(200, now); g2.gain.exponentialRampToValueAtTime(1, now + 0.1);
+      o2.connect(g2); g2.connect(o.frequency);
+      g.gain.setValueAtTime(0.8, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      o.connect(g); g.connect(dest); o.start(now); o2.start(now); o.stop(now + 0.4); o2.stop(now + 0.4);
+      break;
+    }
+    case 'lib_snare808': {
+      // Tone body
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = 180;
+      g.gain.setValueAtTime(0.6, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.1);
+      // Noise
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2000;
+      const ng = ctx.createGain(); ng.gain.setValueAtTime(0.5, now); ng.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      n.connect(f); f.connect(ng); ng.connect(dest); n.start(now); n.stop(now + 0.2);
+      break;
+    }
+    case 'lib_snarelinn': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.setValueAtTime(200, now); o.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+      g.gain.setValueAtTime(0.5, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.08);
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3000; f.Q.value = 1.5;
+      const ng = ctx.createGain(); ng.gain.setValueAtTime(0.5, now); ng.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      n.connect(f); f.connect(ng); ng.connect(dest); n.start(now); n.stop(now + 0.12);
+      break;
+    }
+    case 'lib_snaretight': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.08, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 4000; f.Q.value = 3;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.5, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.06);
+      break;
+    }
+    case 'lib_snarefat': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.setValueAtTime(250, now); o.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+      g.gain.setValueAtTime(0.6, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.15);
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500;
+      const ng = ctx.createGain(); ng.gain.setValueAtTime(0.6, now); ng.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      n.connect(f); f.connect(ng); ng.connect(dest); n.start(now); n.stop(now + 0.18);
+      break;
+    }
+    case 'lib_hh808': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.05);
+      break;
+    }
+    case 'lib_hhlinn': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.06, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 7000;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.06);
+      break;
+    }
+    case 'lib_hhtight': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.03, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 10000;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.03);
+      break;
+    }
+    case 'lib_hhopen': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6000;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.25);
+      break;
+    }
+    case 'lib_cowbell': {
+      [800, 540].forEach(freq => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'square'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.15);
+      });
+      break;
+    }
+    case 'lib_rimshot': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.03, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 3500; f.Q.value = 5;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.4, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.03);
+      break;
+    }
+    case 'lib_clap': {
+      for (let b = 0; b < 3; b++) {
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 0.01, ctx.sampleRate);
+        const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+        const n = ctx.createBufferSource(); n.buffer = buf;
+        const g = ctx.createGain(); const f = ctx.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = 1200; f.Q.value = 2;
+        n.connect(f); f.connect(g); g.connect(dest);
+        const t = now + b * 0.01;
+        g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        n.start(t); n.stop(t + 0.08);
+      }
+      break;
+    }
+    case 'lib_tamb': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 5000;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.15);
+      break;
+    }
+    case 'lib_conga': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.frequency.setValueAtTime(300, now); o.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+      g.gain.setValueAtTime(0.4, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.12);
+      break;
+    }
+    case 'lib_bongo': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.frequency.setValueAtTime(400, now); o.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+      g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.08);
+      break;
+    }
+    case 'lib_shaker': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 8000; f.Q.value = 2;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.04);
+      break;
+    }
+    case 'lib_cymbal': {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+      const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 3000;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      n.connect(f); f.connect(g); g.connect(dest); n.start(now); n.stop(now + 0.4);
+      break;
+    }
+    case 'lib_wood': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 800;
+      g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.03);
+      break;
+    }
+    case 'lib_triangle': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 2000;
+      g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      o.connect(g); g.connect(dest); o.start(now); o.stop(now + 0.5);
+      break;
+    }
   }
 }
 
@@ -1096,18 +1325,26 @@ function bbTrigger(r, step) {
   const now = _bbFallbackCtx ? _bbFallbackCtx.currentTime : Tone.now();
 
   if (r <= 4) {
-    // Fallback: use pure Web Audio synthesis
+    // Try sample-based kit first, fall back to synth
     if (_bbFallbackCtx) {
       _bbFallbackSynth(r, now, vol);
       return;
     }
     const names = ['kick','snare','hihat','tom1','tom2'];
     const name  = names[r];
-    if (!bbDrumPlayers) return;
-    try {
-      const p = bbDrumPlayers.player(name);
-      if (p.loaded) { p.stop(now); p.start(now); }
-    } catch(e) { console.warn('Drum trigger:', name, e); }
+    if (bbDrumPlayers) {
+      try {
+        const p = bbDrumPlayers.player(name);
+        if (p && p.loaded) {
+          bbTrackGains[r].volume.value = Tone.gainToDb(vol);
+          p.stop(now); p.start(now);
+          return;
+        }
+      } catch(e) {}
+    }
+    // Fallback: use the library synth sounds for drum channels
+    const fallbackNames = ['lib_kick808','lib_snare808','lib_hh808','lib_kicklinn','lib_snarelinn'];
+    bbPlaySynthSound(fallbackNames[r], bbTrackGains[r]);
 
   } else if (r === 5 && bbBassSynth) {
     const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;

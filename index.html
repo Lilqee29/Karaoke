@@ -226,31 +226,62 @@
                     <!-- PAINT -->
                     <div id="paintScreen" class="game-screen" style="padding: 0; flex-direction: column; height: 100%; box-sizing: border-box;">
                         <canvas id="paintCanvas" width="300" height="280" style="background: white; cursor: crosshair; flex: 1; width: 100%; border: none;"></canvas>
-                        <div style="flex-shrink: 0; padding: 6px; border-top: 2px solid var(--gb-text); background: var(--gb-bg);">
+                        <div style="flex-shrink: 0; padding: 5px 6px; border-top: 2px solid var(--gb-text); background: var(--gb-bg);">
+                            <!-- Color palette -->
                             <div class="paint-palette-row">
                                 <div id="paintPalette" style="display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none;">
-                                <div onclick="setPaintColor('#000000')" style="width:20px;height:20px;background:#000;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#ffffff')" style="width:20px;height:20px;background:#fff;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#ff0000')" style="width:20px;height:20px;background:#f00;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#00aa00')" style="width:20px;height:20px;background:#0a0;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#0044ff')" style="width:20px;height:20px;background:#04f;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#ffaa00')" style="width:20px;height:20px;background:#fa0;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#aa00ff')" style="width:20px;height:20px;background:#a0f;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#ff00aa')" style="width:20px;height:20px;background:#f0a;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#00ffcc')" style="width:20px;height:20px;background:#0fc;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#888888')" style="width:20px;height:20px;background:#888;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#ffcccc')" style="width:20px;height:20px;background:#fcc;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div onclick="setPaintColor('#884400')" style="width:20px;height:20px;background:#840;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                </div>
-                                <div id="scrollJump" class="scroll-jump" aria-live="polite">
-                                    <button id="scrollJumpButton" type="button" aria-label="Scroll to bottom" title="Scroll to bottom">↓</button>
+                                <div onclick="setPaintColor('#000000')" style="width:18px;height:18px;background:#000;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ffffff')" style="width:18px;height:18px;background:#fff;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ff0000')" style="width:18px;height:18px;background:#f00;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#00aa00')" style="width:18px;height:18px;background:#0a0;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#0044ff')" style="width:18px;height:18px;background:#04f;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ffaa00')" style="width:18px;height:18px;background:#fa0;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#aa00ff')" style="width:18px;height:18px;background:#a0f;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ff00aa')" style="width:18px;height:18px;background:#f0a;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#00ffcc')" style="width:18px;height:18px;background:#0fc;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#888888')" style="width:18px;height:18px;background:#888;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#ffcccc')" style="width:18px;height:18px;background:#fcc;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                <div onclick="setPaintColor('#884400')" style="width:18px;height:18px;background:#840;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 </div>
                             </div>
-                            
-                            <div style="display: flex; gap: 4px; align-items: center;">
-                                <input type="color" id="paintColor" value="#000000" style="width: 24px; height: 20px; padding: 0; border: none; cursor: pointer;">
-                                <input type="range" id="brushSize" min="1" max="20" value="3" style="flex: 1;">
-                                <span id="brushSizeLabel" style="font-size: 6px; min-width: 18px;">3</span>
+
+                            <!-- Blend colors: Primary / Secondary / Tertiary -->
+                            <div style="display:flex; gap:3px; align-items:center; margin:3px 0;">
+                                <span style="font-size:4px; color:#888;">1°</span>
+                                <input type="color" id="paintPrimary" value="#000000" onchange="paintSetBlendColor('primary', this.value)" style="width:18px; height:14px; padding:0; border:1px solid #555; cursor:pointer;">
+                                <span style="font-size:4px; color:#888;">2°</span>
+                                <input type="color" id="paintSecondary" value="#ff0000" onchange="paintSetBlendColor('secondary', this.value)" style="width:18px; height:14px; padding:0; border:1px solid #555; cursor:pointer;">
+                                <span style="font-size:4px; color:#888;">3°</span>
+                                <div id="paintTertiaryPreview" style="width:18px; height:14px; border:1px solid #555; border-radius:2px; background:#ff0000; cursor:pointer;" onclick="paintCycleTertiary()" title="Tap to cycle blend"></div>
+                                <span style="font-size:4px; color:#555;">mix</span>
+                                <input type="range" id="paintBlendAmount" min="0" max="100" value="50" oninput="document.getElementById('paintBlendLabel').textContent=this.value+'%'" style="flex:1; height:3px;">
+                                <span id="paintBlendLabel" style="font-size:4px; color:#aaa; min-width:14px; text-align:right;">50%</span>
+                            </div>
+
+                            <!-- Brush mode row -->
+                            <div style="display:flex; gap:2px; margin:3px 0; flex-wrap:wrap;">
+                                <button class="paint-mode-btn active" data-mode="normal" onclick="paintSetMode('normal')" style="font-size:4px; padding:2px 4px; background:var(--gb-text); color:var(--gb-bg); border:1px solid var(--gb-text); border-radius:2px; cursor:pointer;">🖌</button>
+                                <button class="paint-mode-btn" data-mode="gradient" onclick="paintSetMode('gradient')" style="font-size:4px; padding:2px 4px; background:transparent; color:var(--gb-text); border:1px solid #444; border-radius:2px; cursor:pointer;">🌈</button>
+                                <button class="paint-mode-btn" data-mode="rainbow" onclick="paintSetMode('rainbow')" style="font-size:4px; padding:2px 4px; background:transparent; color:var(--gb-text); border:1px solid #444; border-radius:2px; cursor:pointer;">🎨</button>
+                                <button class="paint-mode-btn" data-mode="glow" onclick="paintSetMode('glow')" style="font-size:4px; padding:2px 4px; background:transparent; color:var(--gb-text); border:1px solid #444; border-radius:2px; cursor:pointer;">✨</button>
+                                <button class="paint-mode-btn" data-mode="blur" onclick="paintSetMode('blur')" style="font-size:4px; padding:2px 4px; background:transparent; color:var(--gb-text); border:1px solid #444; border-radius:2px; cursor:pointer;">💧</button>
+                                <button class="paint-mode-btn" data-mode="spray" onclick="paintSetMode('spray')" style="font-size:4px; padding:2px 4px; background:transparent; color:var(--gb-text); border:1px solid #444; border-radius:2px; cursor:pointer;">☄</button>
+                                <button class="paint-mode-btn" data-mode="neon" onclick="paintSetMode('neon')" style="font-size:4px; padding:2px 4px; background:transparent; color:var(--gb-text); border:1px solid #444; border-radius:2px; cursor:pointer;">💡</button>
+                                <button class="paint-mode-btn" data-mode="shape" onclick="paintSetMode('shape')" style="font-size:4px; padding:2px 4px; background:transparent; color:var(--gb-text); border:1px solid #444; border-radius:2px; cursor:pointer;">⬡</button>
+                                <span style="font-size:4px; color:#555;">│</span>
+                                <button class="paint-shape-btn active" data-shape="circle" onclick="paintSetShape('circle')" style="font-size:5px; padding:1px 4px; background:#333; color:#aaa; border:1px solid #555; border-radius:2px; cursor:pointer;">○</button>
+                                <button class="paint-shape-btn" data-shape="square" onclick="paintSetShape('square')" style="font-size:5px; padding:1px 4px; background:transparent; color:#aaa; border:1px solid #444; border-radius:2px; cursor:pointer;">□</button>
+                                <button class="paint-shape-btn" data-shape="triangle" onclick="paintSetShape('triangle')" style="font-size:5px; padding:1px 4px; background:transparent; color:#aaa; border:1px solid #444; border-radius:2px; cursor:pointer;">△</button>
+                                <button class="paint-shape-btn" data-shape="star" onclick="paintSetShape('star')" style="font-size:5px; padding:1px 4px; background:transparent; color:#aaa; border:1px solid #444; border-radius:2px; cursor:pointer;">★</button>
+                                <button class="paint-shape-btn" data-shape="line" onclick="paintSetShape('line')" style="font-size:5px; padding:1px 4px; background:transparent; color:#aaa; border:1px solid #444; border-radius:2px; cursor:pointer;">╱</button>
+                                <button class="paint-shape-btn" data-shape="diamond" onclick="paintSetShape('diamond')" style="font-size:5px; padding:1px 4px; background:transparent; color:#aaa; border:1px solid #444; border-radius:2px; cursor:pointer;">◆</button>
+                            </div>
+
+                            <!-- Brush size + tools -->
+                            <div style="display: flex; gap: 3px; align-items: center;">
+                                <input type="range" id="brushSize" min="1" max="30" value="3" style="flex: 1;">
+                                <span id="brushSizeLabel" style="font-size: 6px; min-width: 16px;">3</span>
+                                <span style="font-size:4px; color:#555;">│</span>
                                 <button onclick="paintFunc('undo')" style="font-size: 6px; padding: 3px 5px;">↩</button>
                                 <button onclick="paintFunc('eraser')" id="paintEraserBtn" style="font-size: 6px; padding: 3px 5px;">⬜</button>
                                 <button onclick="paintFunc('clear')" style="font-size: 6px; padding: 3px 5px; color:#f00;">CLR</button>
