@@ -472,3 +472,186 @@
 .bb-lib-cat {
   transition: all 0.1s !important;
 }
+
+/* ── FX Tab Styling ────────────────────────────────────── */
+.bb-fx-panel {
+  padding: 4px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid #222;
+  border-radius: 4px;
+}
+
+.bb-fx-title {
+  font-size: 5px;
+  color: #0f0;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.bb-fx-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 3px;
+}
+
+.bb-fx-label {
+  font-size: 4px;
+  color: #888;
+  min-width: 18px;
+  text-align: right;
+  font-family: "VT323", monospace;
+  letter-spacing: 0.5px;
+}
+
+.bb-fx-btns {
+  display: flex;
+  gap: 1px;
+}
+
+.bb-fx-btn {
+  font-size: 4px !important;
+  padding: 2px 3px !important;
+  background: #0a0a0a !important;
+  color: #aaa !important;
+  border: 1px solid #333 !important;
+  border-radius: 2px !important;
+  cursor: pointer;
+  transition: all 0.08s;
+  line-height: 1;
+}
+
+.bb-fx-btn:hover {
+  background: rgba(0,255,0,0.1) !important;
+  border-color: #0f0 !important;
+}
+
+.bb-fx-btn.active {
+  background: #0f0 !important;
+  color: #000 !important;
+  border-color: #0f0 !important;
+}
+
+.bb-fx-slider {
+  flex: 1;
+  height: 4px;
+  background: #1a1a1a;
+  border: none;
+  padding: 0;
+  border-radius: 2px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.bb-fx-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  background: #0f0;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.3);
+  cursor: pointer;
+}
+
+.bb-fx-val {
+  font-size: 5px;
+  color: #0cf;
+  min-width: 14px;
+  text-align: right;
+  font-family: "VT323", monospace;
+}
+
+/* ── Mixer Mini-Tab ────────────────────────────────────── */
+.bb-mixer-tab-btn {
+  font-size: 4px !important;
+  padding: 2px 5px !important;
+  background: transparent !important;
+  color: #555 !important;
+  border: 1px solid #333 !important;
+  border-radius: 2px !important;
+  cursor: pointer;
+  transition: all 0.08s;
+  line-height: 1;
+}
+
+.bb-mixer-tab-btn.active {
+  background: #0f0 !important;
+  color: #000 !important;
+  border-color: #0f0 !important;
+  font-weight: bold !important;
+}
+
+.bb-mixer-reset-btn {
+  font-size: 5px !important;
+  padding: 1px 4px !important;
+  background: transparent !important;
+  color: #555 !important;
+  border: 1px solid #333 !important;
+  border-radius: 2px !important;
+  cursor: pointer;
+  transition: all 0.08s;
+  line-height: 1;
+}
+
+.bb-mixer-reset-btn:hover {
+  color: #f44 !important;
+  border-color: #f44 !important;
+}
+
+.bb-mixer-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 2px;
+  margin-bottom: 1px;
+}
+
+.bb-mixer-col-hdr {
+  font-size: 3px;
+  text-align: center;
+  flex: 1;
+  letter-spacing: 0.5px;
+  font-family: "VT323", monospace;
+}
+
+.bb-mixer-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 2px;
+  border-radius: 2px;
+  transition: background 0.08s;
+}
+
+.bb-mixer-row:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.bb-mixer-row .bb-mixer-emoji {
+  font-size: 5px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.bb-mixer-slider {
+  flex: 1;
+  height: 4px;
+  background: #1a1a1a;
+  border: none;
+  padding: 0;
+  border-radius: 2px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.bb-mixer-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 7px;
+  height: 7px;
+  background: #0f0;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+}

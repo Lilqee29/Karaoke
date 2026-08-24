@@ -2237,16 +2237,16 @@ function bbRenderTrackEQ() {
   if (!list) return;
   list.innerHTML = INSTRUMENTS.map((inst, i) => {
     const s = bbTrackEQSettings[i];
-    return `<div style="display:flex;align-items:center;gap:2px;font-size:4px;">
-      <span style="color:${inst.color};min-width:18px;">${inst.emoji}</span>
-      <input type="range" min="-12" max="12" value="${s.bass}" step="1"
-        oninput="bbSetTrackEQ(${i},'bass',this.value)" style="width:28px;height:2px;">
-      <input type="range" min="-12" max="12" value="${s.mid}" step="1"
-        oninput="bbSetTrackEQ(${i},'mid',this.value)" style="width:28px;height:2px;">
-      <input type="range" min="-12" max="12" value="${s.treble}" step="1"
-        oninput="bbSetTrackEQ(${i},'treble',this.value)" style="width:28px;height:2px;">
-      <input type="range" min="0" max="12" value="${s.compress}" step="1"
-        oninput="bbSetTrackEQ(${i},'compress',this.value)" style="width:28px;height:2px;">
+    return `<div class="bb-mixer-row">
+      <span class="bb-mixer-emoji" style="color:${inst.color};">${inst.emoji}</span>
+      <input type="range" class="bb-mixer-slider" min="-12" max="12" value="${s.bass}" step="1"
+        oninput="bbSetTrackEQ(${i},'bass',this.value)">
+      <input type="range" class="bb-mixer-slider" min="-12" max="12" value="${s.mid}" step="1"
+        oninput="bbSetTrackEQ(${i},'mid',this.value)">
+      <input type="range" class="bb-mixer-slider" min="-12" max="12" value="${s.treble}" step="1"
+        oninput="bbSetTrackEQ(${i},'treble',this.value)">
+      <input type="range" class="bb-mixer-slider" min="0" max="12" value="${s.compress}" step="1"
+        oninput="bbSetTrackEQ(${i},'compress',this.value)">
     </div>`;
   }).join('');
 }
@@ -2288,6 +2288,35 @@ window.bbSwitchTab = function(tab) {
   if (tab === 'fx') { bbRenderTrackEQ(); bbRenderTrackSends(); }
 };
 
+// ── Mixer Mini-Tab Switching ──────────────────────────────
+
+window.bbSwitchMixerTab = function(tab) {
+  document.getElementById('bbMixerEQ').style.display   = tab === 'eq'   ? 'flex' : 'none';
+  document.getElementById('bbMixerSend').style.display  = tab === 'send' ? 'flex' : 'none';
+  document.querySelectorAll('.bb-mixer-tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mixertab === tab);
+  });
+  if (typeof sounds !== 'undefined') sounds.click?.();
+};
+
+window.bbResetMixer = function() {
+  if (!confirm('Reset all EQ + Sends to default?')) return;
+  INSTRUMENTS.forEach((_, i) => {
+    bbTrackEQSettings[i] = { bass: 0, mid: 0, treble: 0, compress: 0 };
+    bbTrackSendSettings[i] = { delay: 0, reverb: 0, filter: 0 };
+    bbSetTrackEQ(i, 'bass', 0);
+    bbSetTrackEQ(i, 'mid', 0);
+    bbSetTrackEQ(i, 'treble', 0);
+    bbSetTrackEQ(i, 'compress', 0);
+    bbSetTrackSend(i, 'delay', 0);
+    bbSetTrackSend(i, 'reverb', 0);
+    bbSetTrackSend(i, 'filter', 0);
+  });
+  bbRenderTrackEQ();
+  bbRenderTrackSends();
+  if (typeof sounds !== 'undefined') sounds.back?.();
+};
+
 // ── Per-Track Effect Send Controls ────────────────────────
 
 function bbRenderTrackSends() {
@@ -2295,14 +2324,14 @@ function bbRenderTrackSends() {
   if (!list) return;
   list.innerHTML = INSTRUMENTS.map((inst, i) => {
     const s = bbTrackSendSettings[i];
-    return `<div style="display:flex;align-items:center;gap:2px;font-size:4px;">
-      <span style="color:${inst.color};min-width:18px;">${inst.emoji}</span>
-      <input type="range" min="0" max="100" value="${s.delay}" step="5"
-        oninput="bbSetTrackSend(${i},'delay',this.value)" style="width:30px;height:2px;">
-      <input type="range" min="0" max="100" value="${s.reverb}" step="5"
-        oninput="bbSetTrackSend(${i},'reverb',this.value)" style="width:30px;height:2px;">
-      <input type="range" min="0" max="100" value="${s.filter}" step="5"
-        oninput="bbSetTrackSend(${i},'filter',this.value)" style="width:30px;height:2px;">
+    return `<div class="bb-mixer-row">
+      <span class="bb-mixer-emoji" style="color:${inst.color};">${inst.emoji}</span>
+      <input type="range" class="bb-mixer-slider" min="0" max="100" value="${s.delay}" step="5"
+        oninput="bbSetTrackSend(${i},'delay',this.value)">
+      <input type="range" class="bb-mixer-slider" min="0" max="100" value="${s.reverb}" step="5"
+        oninput="bbSetTrackSend(${i},'reverb',this.value)">
+      <input type="range" class="bb-mixer-slider" min="0" max="100" value="${s.filter}" step="5"
+        oninput="bbSetTrackSend(${i},'filter',this.value)">
     </div>`;
   }).join('');
 }

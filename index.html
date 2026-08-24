@@ -420,55 +420,68 @@
 
                         <!-- ═══════════ TAB: FX ═══════════ -->
                         <div id="bbTabFx" style="display:none;">
-                            <div style="padding:4px; background:rgba(0,0,0,0.2); border:1px solid #222; border-radius:4px;">
-                            <div style="font-size:5px; color:#0f0; margin-bottom:5px; letter-spacing:1px;">🎛 EFFECTS RACK</div>
-                            <!-- Delay -->
-                            <div style="display:flex; align-items:center; gap:3px; margin-bottom:4px;">
-                                <span class="bb-section-label" style="min-width:20px;">DLY</span>
-                                <div style="display:flex; gap:2px;">
-                                <button class="bb-delay-time-btn" data-time="8n" onclick="bbSetDelayTime('8n')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px;">8n</button>
-                                <button class="bb-delay-time-btn active" data-time="8n." onclick="bbSetDelayTime('8n.')" style="font-size:4px; padding:2px 3px; background:#0f0; color:#000; border:1px solid #0f0; border-radius:2px;">8n.</button>
-                                <button class="bb-delay-time-btn" data-time="16n" onclick="bbSetDelayTime('16n')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px;">16n</button>
-                                <button class="bb-delay-time-btn" data-time="4n" onclick="bbSetDelayTime('4n')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px;">4n</button>
+                            <!-- GLOBAL FX — compact one-liner style -->
+                            <div class="bb-fx-panel">
+                            <div class="bb-fx-title">🎛 FX RACK</div>
+                            <div class="bb-fx-row">
+                                <span class="bb-fx-label">DLY</span>
+                                <div class="bb-fx-btns">
+                                <button class="bb-fx-btn bb-delay-time-btn" data-time="8n" onclick="bbSetDelayTime('8n')">8n</button>
+                                <button class="bb-fx-btn bb-delay-time-btn active" data-time="8n." onclick="bbSetDelayTime('8n.')">8n.</button>
+                                <button class="bb-fx-btn bb-delay-time-btn" data-time="16n" onclick="bbSetDelayTime('16n')">16n</button>
+                                <button class="bb-fx-btn bb-delay-time-btn" data-time="4n" onclick="bbSetDelayTime('4n')">4n</button>
                                 </div>
-                                <input type="range" min="0" max="100" value="0" oninput="bbSetDelay(this.value)" style="flex:1; height:3px; background:#222; border:none; padding:0;">
-                                <span id="delayLabel" style="font-size:5px; color:#0cf; min-width:14px; text-align:right;">0%</span>
+                                <input type="range" class="bb-fx-slider" min="0" max="100" value="0" oninput="bbSetDelay(this.value)">
+                                <span id="delayLabel" class="bb-fx-val">0%</span>
                             </div>
-                            <!-- Filter -->
-                            <div style="display:flex; align-items:center; gap:3px; margin-bottom:4px;">
-                                <span class="bb-section-label" style="min-width:20px;">FLT</span>
-                                <div style="display:flex; gap:2px;">
-                                <button class="bb-filter-type-btn active" data-ftype="lowpass" onclick="bbSetFilterType('lowpass')" style="font-size:4px; padding:2px 3px; background:#0f0; color:#000; border:1px solid #0f0; border-radius:2px;">LP</button>
-                                <button class="bb-filter-type-btn" data-ftype="highpass" onclick="bbSetFilterType('highpass')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px;">HP</button>
-                                <button class="bb-filter-type-btn" data-ftype="bandpass" onclick="bbSetFilterType('bandpass')" style="font-size:4px; padding:2px 3px; background:#0a0a0a; color:#aaa; border:1px solid #333; border-radius:2px;">BP</button>
+                            <div class="bb-fx-row">
+                                <span class="bb-fx-label">FLT</span>
+                                <div class="bb-fx-btns">
+                                <button class="bb-fx-btn bb-filter-type-btn active" data-ftype="lowpass" onclick="bbSetFilterType('lowpass')">LP</button>
+                                <button class="bb-fx-btn bb-filter-type-btn" data-ftype="highpass" onclick="bbSetFilterType('highpass')">HP</button>
+                                <button class="bb-fx-btn bb-filter-type-btn" data-ftype="bandpass" onclick="bbSetFilterType('bandpass')">BP</button>
                                 </div>
-                                <input type="range" min="100" max="20000" value="20000" step="100" oninput="bbSetFilter(this.value)" style="flex:1; height:3px; background:#222; border:none; padding:0;">
-                                <span id="filterLabel" style="font-size:5px; color:#0cf; min-width:16px; text-align:right;">20k</span>
+                                <input type="range" class="bb-fx-slider" min="100" max="20000" value="20000" step="100" oninput="bbSetFilter(this.value)">
+                                <span id="filterLabel" class="bb-fx-val">20k</span>
                             </div>
-                            <!-- Reverb -->
-                            <div style="display:flex; align-items:center; gap:3px;">
-                                <span class="bb-section-label" style="min-width:20px;">REV</span>
-                                <input type="range" min="0" max="100" value="0" oninput="bbSetReverb(this.value)" style="flex:1; height:3px; background:#222; border:none; padding:0;">
-                                <span id="reverbLabel" style="font-size:5px; color:#0cf; min-width:14px; text-align:right;">0%</span>
+                            <div class="bb-fx-row">
+                                <span class="bb-fx-label">REV</span>
+                                <input type="range" class="bb-fx-slider" min="0" max="100" value="0" oninput="bbSetReverb(this.value)">
+                                <span id="reverbLabel" class="bb-fx-val">0%</span>
                             </div>
                             </div>
 
-                            <!-- PER-TRACK EQ -->
-                            <div style="padding:4px; background:rgba(0,0,0,0.2); border:1px solid #222; border-radius:4px; margin-top:4px;">
-                            <div style="font-size:5px; color:#0f0; margin-bottom:4px; letter-spacing:1px;">🎚 TRACK EQ</div>
-                            <div id="bbTrackEQList" style="display:flex; flex-direction:column; gap:2px; max-height:180px; overflow-y:auto;">
-                                <!-- Populated by JS -->
+                            <!-- PER-TRACK MIXER — mini-tab EQ / SENDS -->
+                            <div class="bb-fx-panel" style="margin-top:4px;">
+                            <div style="display:flex; align-items:center; gap:3px; margin-bottom:4px;">
+                                <div class="bb-fx-title" style="margin:0;">🎚 TRACK MIXER</div>
+                                <div style="margin-left:auto; display:flex; gap:2px;">
+                                <button class="bb-mixer-tab-btn active" data-mixertab="eq" onclick="bbSwitchMixerTab('eq')">EQ</button>
+                                <button class="bb-mixer-tab-btn" data-mixertab="send" onclick="bbSwitchMixerTab('send')">SEND</button>
+                                <button class="bb-mixer-reset-btn" onclick="bbResetMixer()">↺</button>
+                                </div>
                             </div>
-                            <div style="font-size:4px; color:#444; margin-top:3px; text-align:center;">BASS · MID · TRE · COMP</div>
+                            <!-- EQ sub-tab -->
+                            <div id="bbMixerEQ" style="display:flex; flex-direction:column; gap:1px;">
+                                <div class="bb-mixer-header">
+                                    <span style="min-width:18px;"></span>
+                                    <span class="bb-mixer-col-hdr" style="color:#fa0;">BASS</span>
+                                    <span class="bb-mixer-col-hdr" style="color:#0f0;">MID</span>
+                                    <span class="bb-mixer-col-hdr" style="color:#0cf;">TRE</span>
+                                    <span class="bb-mixer-col-hdr" style="color:#f0f;">CMP</span>
+                                </div>
+                                <div id="bbTrackEQList"></div>
                             </div>
-
-                            <!-- PER-TRACK EFFECT SENDS -->
-                            <div style="padding:4px; background:rgba(0,0,0,0.2); border:1px solid #222; border-radius:4px; margin-top:4px;">
-                            <div style="font-size:5px; color:#0f0; margin-bottom:4px; letter-spacing:1px;">🔀 TRACK SENDS</div>
-                            <div id="bbTrackSendList" style="display:flex; flex-direction:column; gap:2px; max-height:180px; overflow-y:auto;">
-                                <!-- Populated by JS -->
+                            <!-- SEND sub-tab -->
+                            <div id="bbMixerSend" style="display:none; flex-direction:column; gap:1px;">
+                                <div class="bb-mixer-header">
+                                    <span style="min-width:18px;"></span>
+                                    <span class="bb-mixer-col-hdr" style="color:#0cf;">DLY</span>
+                                    <span class="bb-mixer-col-hdr" style="color:#88f;">REV</span>
+                                    <span class="bb-mixer-col-hdr" style="color:#0f0;">FLT</span>
+                                </div>
+                                <div id="bbTrackSendList"></div>
                             </div>
-                            <div style="font-size:4px; color:#444; margin-top:3px; text-align:center;">DLY · REV · FLT</div>
                             </div>
                         </div>
 
