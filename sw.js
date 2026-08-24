@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gbos-v21';
+const CACHE_NAME = 'gbos-v23';
 const ASSETS = [
     './',
     './index.html',
@@ -27,7 +27,8 @@ const ASSETS = [
     './scripts/kartracing.js',
     './scripts/newapps_utility.js',
     './scripts/app_upgrades.js',
-    './scripts/creative_hub.js',
+    './scripts/creative_apps.js',
+    './scripts/platformer.js',
     './beat-boy.js',
 ];
 

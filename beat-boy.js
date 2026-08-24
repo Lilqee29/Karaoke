@@ -240,6 +240,103 @@ const PRESETS = {
 
 // ── Audio Init ────────────────────────────────────────────
 
+// ── BeatForge Fallback: Pure Web Audio drum synthesis ─────────
+// Used when Tone.js CDN fails. Based on godfengliang/beatforge (MIT).
+let _bbFallbackCtx = null;
+let _bbFallbackAnalyser = null;
+
+function bbInitFallbackAudio() {
+  _bbFallbackCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_bbFallbackCtx.state === 'suspended') _bbFallbackCtx.resume();
+  _bbFallbackAnalyser = _bbFallbackCtx.createAnalyser();
+  _bbFallbackAnalyser.fftSize = 2048;
+  _bbFallbackAnalyser.connect(_bbFallbackCtx.destination);
+  audioReady = true;
+  bbSetStatus('');
+}
+
+function _bbFallbackSynth(channel, time, vol) {
+  const ctx = _bbFallbackCtx;
+  if (!ctx) return;
+  const v = vol * remixMasterVol;
+  if (v <= 0) return;
+  const dest = _bbFallbackAnalyser || ctx.destination;
+
+  if (channel === 0) { // Kick
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(dest);
+    o.frequency.setValueAtTime(150, time);
+    o.frequency.exponentialRampToValueAtTime(30, time + 0.12);
+    g.gain.setValueAtTime(v, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.4);
+    o.start(time); o.stop(time + 0.4);
+    const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+    o2.connect(g2); g2.connect(dest); o2.frequency.value = 800;
+    g2.gain.setValueAtTime(v * 0.3, time);
+    g2.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+    o2.start(time); o2.stop(time + 0.02);
+  } else if (channel === 1) { // Snare
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const n = ctx.createBufferSource(); n.buffer = buf;
+    const ng = ctx.createGain(); const f = ctx.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 2000;
+    n.connect(f); f.connect(ng); ng.connect(dest);
+    ng.gain.setValueAtTime(v * 0.7, time);
+    ng.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    n.start(time); n.stop(time + 0.15);
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(dest);
+    o.frequency.setValueAtTime(180, time);
+    o.frequency.exponentialRampToValueAtTime(60, time + 0.08);
+    g.gain.setValueAtTime(v * 0.6, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    o.start(time); o.stop(time + 0.08);
+  } else if (channel === 2) { // Hi-Hat
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const n = ctx.createBufferSource(); n.buffer = buf;
+    const g = ctx.createGain(); const f = ctx.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 8000;
+    n.connect(f); f.connect(g); g.connect(dest);
+    g.gain.setValueAtTime(v * 0.35, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    n.start(time); n.stop(time + 0.04);
+  } else if (channel === 3) { // Tom
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(dest);
+    o.frequency.setValueAtTime(200, time);
+    o.frequency.exponentialRampToValueAtTime(80, time + 0.15);
+    g.gain.setValueAtTime(v * 0.6, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+    o.start(time); o.stop(time + 0.2);
+  } else if (channel === 4) { // Clap
+    for (let b = 0; b < 3; b++) {
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 0.01, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const n = ctx.createBufferSource(); n.buffer = buf;
+      const g = ctx.createGain(); const f = ctx.createBiquadFilter();
+      f.type = 'bandpass'; f.frequency.value = 1200; f.Q.value = 2;
+      n.connect(f); f.connect(g); g.connect(dest);
+      const t = time + b * 0.01;
+      g.gain.setValueAtTime(v * 0.6, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      n.start(t); n.stop(t + 0.08);
+    }
+  } else { // Generic synth hit
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.connect(g); g.connect(dest);
+    o.frequency.setValueAtTime(440 + channel * 100, time);
+    o.frequency.exponentialRampToValueAtTime(100, time + 0.1);
+    g.gain.setValueAtTime(v * 0.4, time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    o.start(time); o.stop(time + 0.15);
+  }
+}
+
 async function bbInitAudio() {
   if (audioReady) return;
 
@@ -251,7 +348,9 @@ async function bbInitAudio() {
       if (window.Tone) break;
     }
     if (!window.Tone) {
-      bbSetStatus('⚠ Tone.js failed to load — reload page');
+      // FALLBACK: Use pure Web Audio API (BeatForge-style synthesis)
+      bbSetStatus('⟳ Using built-in synth engine...');
+      bbInitFallbackAudio();
       return;
     }
   }
@@ -370,10 +469,12 @@ function bbSetStatus(msg) {
 // ── Sound Trigger ─────────────────────────────────────────
 
 // Synthesized sounds (voices, FX, synths)
-function bbPlaySynthSound(name) {
+// targetGain: optional — route to a specific track gain instead of default (track 0)
+function bbPlaySynthSound(name, targetGain) {
   if (!audioReady) return;
   const now = Tone.now();
   const ctx = Tone.context;
+  const dest = targetGain || bbTrackGains[0];
 
   switch(name) {
     // ── VOICES (formant synthesis) ──
@@ -798,12 +899,22 @@ window.bbPreviewSample = function(name, data) {
 
 function bbTrigger(r, step) {
   const vol = (trackVols[r] ?? 80) / 100;
-  if (vol === 0 || !bbTrackGains[r]) return;
-  bbTrackGains[r].volume.value = Tone.gainToDb(vol);
+  if (vol === 0) return;
 
-  const now = Tone.now();
+  // Fallback mode: pure Web Audio synthesis
+  if (!_bbFallbackCtx) {
+    if (!bbTrackGains[r]) return;
+    bbTrackGains[r].volume.value = Tone.gainToDb(vol);
+  }
+
+  const now = _bbFallbackCtx ? _bbFallbackCtx.currentTime : Tone.now();
 
   if (r <= 4) {
+    // Fallback: use pure Web Audio synthesis
+    if (_bbFallbackCtx) {
+      _bbFallbackSynth(r, now, vol);
+      return;
+    }
     const names = ['kick','snare','hihat','tom1','tom2'];
     const name  = names[r];
     if (!bbDrumPlayers) return;
@@ -1308,14 +1419,26 @@ function bbInitViz() {
 
 function bbDrawViz() {
   const canvas = document.getElementById('beatVizCanvas');
-  if (!canvas || !bbAnalyser) return;
+  if (!canvas) return;
+  const activeAnalyser = bbAnalyser || _bbFallbackAnalyser;
+  if (!activeAnalyser) return;
   const ctx = canvas.getContext('2d');
   const W   = canvas.width;
   const H   = canvas.height;
 
   const draw = () => {
     vizAnimFrame = requestAnimationFrame(draw);
-    const data = bbAnalyser.getValue();
+
+    let data;
+    if (bbAnalyser) {
+      // Tone.js analyser
+      data = bbAnalyser.getValue();
+    } else if (_bbFallbackAnalyser) {
+      // Fallback: raw Web Audio analyser
+      const raw = new Float32Array(_bbFallbackAnalyser.frequencyBinCount);
+      _bbFallbackAnalyser.getFloatTimeDomainData(raw);
+      data = raw;
+    } else return;
 
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.fillRect(0, 0, W, H);

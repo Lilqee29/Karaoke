@@ -1278,6 +1278,8 @@ function _orbLoop() {
   }
   _orbCtx.shadowBlur = 0;
 
+  _orbAnim = requestAnimationFrame(_orbLoop);
+}
 
 // ================================================================
 //  SAND — Falling Sand Cellular Automata
@@ -1543,7 +1545,4 @@ function _sandLoop() {
 
   _sandCtx.putImageData(img, 0, 0);
   _sandAnim = requestAnimationFrame(_sandLoop);
-}
-
-  _orbAnim = requestAnimationFrame(_orbLoop);
 }

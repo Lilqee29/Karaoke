@@ -130,58 +130,44 @@ async function searchMusic() {
   const resultsEl = document.getElementById('musicResults');
   if (resultsEl) resultsEl.innerHTML = '<div style="color:#9bbc0f;font-size:7px;text-align:center;padding:10px;">SEARCHING...</div>';
 
-  // Cache-bust + CORS proxies (old SW caches 503 responses, need unique URLs)
+  // Direct iTunes API — it supports CORS
   const t = Date.now();
   const itunesUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=30&_=${t}`;
-  const urls = [
-    `https://corsproxy.io/?${encodeURIComponent(itunesUrl)}&_t=${t}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(itunesUrl)}&_t=${t}`,
-    itunesUrl, // direct as last resort
-  ];
 
-  let lastError = null;
-  for (const url of urls) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      const data = JSON.parse(text);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const res = await fetch(itunesUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-      if (data.results && data.results.length > 0) {
-        musicQueue = data.results.map(t => ({
-          trackId: t.trackId || t.collectionId || `${t.trackName}-${t.artistName}`.replace(/\s+/g,'-'),
-          name: t.trackName || t.collectionName,
-          artist_name: t.artistName,
-          audio: t.previewUrl,
-          thumbnail: (t.artworkUrl100 || '').replace('100x100', '300x300'),
-          duration: t.trackTimeMillis ? Math.floor(t.trackTimeMillis / 1000) : 0,
-          genre: t.primaryGenreName || '',
-          appleUrl: t.trackViewUrl || '',
-          youtubeQuery: `${t.trackName} ${t.artistName} official`.trim(),
-        }));
-        saveMusicQueue();
-        renderMusicResults();
-        return; // success!
-      } else {
-        if (resultsEl) resultsEl.innerHTML = '<div style="color:#306230;font-size:7px;text-align:center;padding:20px 0;">NO RESULTS</div>';
-        return;
-      }
-    } catch (e) {
-      lastError = e;
-      console.warn('Search attempt failed:', url.substring(0, 50), e.message);
-      continue; // try next
+    if (data.results && data.results.length > 0) {
+      musicQueue = data.results.map(t => ({
+        trackId: t.trackId || t.collectionId || `${t.trackName}-${t.artistName}`.replace(/\s+/g,'-'),
+        name: t.trackName || t.collectionName,
+        artist_name: t.artistName,
+        audio: t.previewUrl,
+        thumbnail: (t.artworkUrl100 || '').replace('100x100', '300x300'),
+        duration: t.trackTimeMillis ? Math.floor(t.trackTimeMillis / 1000) : 0,
+        genre: t.primaryGenreName || '',
+        appleUrl: t.trackViewUrl || '',
+        youtubeQuery: `${t.trackName} ${t.artistName} official`.trim(),
+      }));
+      saveMusicQueue();
+      renderMusicResults();
+      return;
+    } else {
+      if (resultsEl) resultsEl.innerHTML = '<div style="color:#306230;font-size:7px;text-align:center;padding:20px 0;">NO RESULTS — TRY ANOTHER SEARCH</div>';
+      return;
     }
+  } catch (e) {
+    console.warn('Music search failed:', e.message);
+    let errMsg = 'SEARCH FAILED';
+    if (e.name === 'AbortError') errMsg = 'TIMEOUT — TRY AGAIN';
+    else if (e.message) errMsg = e.message.substring(0, 40);
+    if (resultsEl) resultsEl.innerHTML = `<div style="color:#306230;font-size:6px;text-align:center;padding:20px 0;">${errMsg}</div><div style="color:#306230;font-size:5px;text-align:center;margin-top:6px;">Or import your own audio files below</div>`;
   }
-
-  // All methods failed
-  console.warn('All search methods failed:', lastError);
-  let errMsg = 'SEARCH FAILED';
-  if (lastError?.name === 'AbortError') errMsg = 'TIMEOUT — try again';
-  else if (lastError?.message) errMsg = lastError.message.substring(0, 40);
-  if (resultsEl) resultsEl.innerHTML = `<div style="color:#306230;font-size:6px;text-align:center;padding:20px 0;">${errMsg}</div>`;
 }
 
 // ── Nuclear Reset — kills all SWs and caches on device ─────
@@ -5570,8 +5556,9 @@ function loadPet() {
 }
 
 // ========== GB GROOVE (Drum Synth) ==========
-window.playDrum = function(type) {
+window.playDrum = async function(type) {
     const ctx = audioCtx;
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch(e) {} }
     const time = ctx.currentTime;
     
     const master = ctx.createGain();
