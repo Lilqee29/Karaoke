@@ -876,8 +876,19 @@ function renderGravUI(container) {
   `;
 }
 
-function setGravMode(m) { _gravMode = m; renderGravUI(document.getElementById('gravityContent')); }
-function clearGravBalls() { _gravBalls = []; }
+function setGravMode(m) {
+  _gravMode = m;
+  renderGravUI(document.getElementById('gravityContent'));
+  // Re-acquire canvas after innerHTML rewrite
+  _gravCanvas = document.getElementById('gravCanvas');
+  if (_gravCanvas) _gravCtx = _gravCanvas.getContext('2d');
+}
+function clearGravBalls() {
+  _gravBalls = [];
+  renderGravUI(document.getElementById('gravityContent'));
+  _gravCanvas = document.getElementById('gravCanvas');
+  if (_gravCanvas) _gravCtx = _gravCanvas.getContext('2d');
+}
 
 function _gravLoop() {
   if (!_gravRunning || !_gravCtx || !_gravCanvas) return;
@@ -969,4 +980,283 @@ function _gravLoop() {
   if (_gravFrameCount % 30 === 0) _gravFPS = Math.round(1000 / (performance.now() / _gravFrameCount));
 
   _gravAnim = requestAnimationFrame(_gravLoop);
+}
+
+// ================================================================
+//  ORBIT — Gravitational N-Body Simulator
+//  Tap to place bodies, watch them orbit, collide, merge.
+// ================================================================
+let _orbCanvas, _orbCtx, _orbAnim;
+let _orbBodies = [], _orbTrails = [];
+let _orbRunning = false, _orbPaused = false;
+let _orbMode = 'tap'; // tap | preset | chaos
+let _orbDragStart = null, _orbDragging = false;
+let _orbTime = 0;
+const ORB_G = 0.5; // gravitational constant
+const ORB_TRAIL_LEN = 40;
+const ORB_BODY_COLORS = [
+  '#ff6b6b','#feca57','#48dbfb','#ff9ff3','#54a0ff',
+  '#5f27cd','#01a3a4','#f368e0','#ff9f43','#10ac84'
+];
+
+function initOrbit() {
+  const container = document.getElementById('orbitContent');
+  if (!container) return;
+  renderOrbUI(container);
+  _orbCanvas = document.getElementById('orbCanvas');
+  if (!_orbCanvas) return;
+  _orbCtx = _orbCanvas.getContext('2d');
+  _orbBodies = []; _orbTrails = [];
+  _orbRunning = true; _orbPaused = false;
+
+  const resize = () => {
+    const r = _orbCanvas.parentElement.getBoundingClientRect();
+    _orbCanvas.width = Math.floor(r.width);
+    _orbCanvas.height = Math.floor(r.height);
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const getPos = (e) => {
+    const r = _orbCanvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  };
+
+  // Tap = place body with no velocity, drag = launch with velocity
+  _orbCanvas.addEventListener('mousedown', e => {
+    _orbDragStart = getPos(e);
+    _orbDragging = true;
+  });
+  _orbCanvas.addEventListener('mousemove', e => {
+    if (!_orbDragging || !_orbDragStart) return;
+    // Draw aim line
+    const p = getPos(e);
+    _orbCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+    _orbCtx.setLineDash([4, 4]);
+    _orbCtx.beginPath();
+    _orbCtx.moveTo(_orbDragStart.x, _orbDragStart.y);
+    _orbCtx.lineTo(p.x, p.y);
+    _orbCtx.stroke();
+    _orbCtx.setLineDash([]);
+  });
+  _orbCanvas.addEventListener('mouseup', e => {
+    if (!_orbDragStart) return;
+    const p = getPos(e);
+    const dx = p.x - _orbDragStart.x, dy = p.y - _orbDragStart.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    _orbSpawn(_orbDragStart.x, _orbDragStart.y, dist > 5 ? -dx * 0.05 : 0, dist > 5 ? -dy * 0.05 : 0);
+    _orbDragStart = null; _orbDragging = false;
+  });
+  _orbCanvas.addEventListener('touchstart', e => { e.preventDefault(); _orbDragStart = getPos(e); _orbDragging = true; }, {passive:false});
+  _orbCanvas.addEventListener('touchmove', e => { e.preventDefault(); }, {passive:false});
+  _orbCanvas.addEventListener('touchend', e => {
+    if (!_orbDragStart) return;
+    // Use last known drag start as position, no velocity (tap)
+    _orbSpawn(_orbDragStart.x, _orbDragStart.y, 0, 0);
+    _orbDragStart = null; _orbDragging = false;
+  });
+
+  _orbLoop();
+}
+
+function _orbCleanup() {
+  _orbRunning = false;
+  if (_orbAnim) { cancelAnimationFrame(_orbAnim); _orbAnim = null; }
+}
+
+function _orbSpawn(x, y, vx, vy) {
+  if (_orbBodies.length > 60) return;
+  const mass = 2 + Math.random() * 8;
+  const radius = Math.sqrt(mass) * 1.5;
+  const color = ORB_BODY_COLORS[Math.floor(Math.random() * ORB_BODY_COLORS.length)];
+  _orbBodies.push({ x, y, vx, vy, mass, radius, color, trail: [] });
+}
+
+function _orbSpawnPreset() {
+  _orbBodies = [];
+  const cx = (_orbCanvas ? _orbCanvas.width : 200) / 2;
+  const cy = (_orbCanvas ? _orbCanvas.height : 200) / 2;
+
+  // Central star
+  _orbBodies.push({ x: cx, y: cy, vx: 0, vy: 0, mass: 50, radius: 12, color: '#feca57', trail: [] });
+
+  // Planets with orbital velocity
+  const orbits = [
+    { dist: 40, mass: 4,  color: '#48dbfb' },
+    { dist: 65, mass: 6,  color: '#ff9ff3' },
+    { dist: 95, mass: 3,  color: '#54a0ff' },
+    { dist: 125, mass: 8, color: '#ff6b6b' }
+  ];
+  for (const o of orbits) {
+    const speed = Math.sqrt(ORB_G * 50 / o.dist);
+    const angle = Math.random() * Math.PI * 2;
+    _orbBodies.push({
+      x: cx + Math.cos(angle) * o.dist,
+      y: cy + Math.sin(angle) * o.dist,
+      vx: -Math.sin(angle) * speed,
+      vy: Math.cos(angle) * speed,
+      mass: o.mass,
+      radius: Math.sqrt(o.mass) * 1.5,
+      color: o.color,
+      trail: []
+    });
+  }
+}
+
+function _orbSpawnChaos() {
+  _orbBodies = [];
+  const w = _orbCanvas ? _orbCanvas.width : 200;
+  const h = _orbCanvas ? _orbCanvas.height : 200;
+  for (let i = 0; i < 15; i++) {
+    const mass = 2 + Math.random() * 10;
+    _orbBodies.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 2,
+      vy: (Math.random() - 0.5) * 2,
+      mass,
+      radius: Math.sqrt(mass) * 1.5,
+      color: ORB_BODY_COLORS[i % ORB_BODY_COLORS.length],
+      trail: []
+    });
+  }
+}
+
+function renderOrbUI(container) {
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;">
+        <span style="font-size:9px;font-weight:bold;color:var(--gb-text);">🌍 ORBIT</span>
+        <span style="font-size:5px;opacity:0.6;">${_orbBodies.length} BODIES</span>
+      </div>
+      <div style="display:flex;gap:2px;padding:0 6px 4px;flex-wrap:wrap;">
+        <button onclick="orbSetMode('tap')" style="font-size:5px;padding:2px 5px;${_orbMode==='tap'?'background:var(--gb-text);color:var(--gb-bg);':''}">☝ TAP</button>
+        <button onclick="orbSetMode('preset')" style="font-size:5px;padding:2px 5px;${_orbMode==='preset'?'background:var(--gb-text);color:var(--gb-bg);':''}">☀ SOLAR</button>
+        <button onclick="orbSetMode('chaos')" style="font-size:5px;padding:2px 5px;${_orbMode==='chaos'?'background:var(--gb-text);color:var(--gb-bg);':''}">💥 CHAOS</button>
+        <button onclick="orbClear()" style="font-size:5px;padding:2px 5px;margin-left:auto;">CLR</button>
+        <button onclick="orbTogglePause()" style="font-size:5px;padding:2px 5px;">${_orbPaused ? '▶' : '⏸'}</button>
+      </div>
+      <div style="flex:1;position:relative;margin:0 6px 6px;border:2px solid var(--gb-text);border-radius:4px;overflow:hidden;background:#05051a;">
+        <canvas id="orbCanvas" style="width:100%;height:100%;display:block;"></canvas>
+      </div>
+      <div style="padding:0 6px 6px;font-size:4px;text-align:center;opacity:0.5;">TAP TO PLACE · DRAG TO LAUNCH · WATCH ORBITS</div>
+    </div>
+  `;
+}
+
+function orbSetMode(m) {
+  _orbMode = m;
+  if (m === 'preset') _orbSpawnPreset();
+  else if (m === 'chaos') _orbSpawnChaos();
+  renderOrbUI(document.getElementById('orbitContent'));
+  _orbCanvas = document.getElementById('orbCanvas');
+  if (_orbCanvas) _orbCtx = _orbCanvas.getContext('2d');
+}
+function orbClear() {
+  _orbBodies = [];
+  renderOrbUI(document.getElementById('orbitContent'));
+  _orbCanvas = document.getElementById('orbCanvas');
+  if (_orbCanvas) _orbCtx = _orbCanvas.getContext('2d');
+}
+function orbTogglePause() { _orbPaused = !_orbPaused; renderOrbUI(document.getElementById('orbitContent')); }
+
+function _orbLoop() {
+  if (!_orbRunning || !_orbCtx || !_orbCanvas) return;
+  const w = _orbCanvas.width, h = _orbCanvas.height;
+  _orbTime += 1 / 60;
+
+  if (!_orbPaused) {
+    // Physics: gravity between all pairs
+    for (let i = 0; i < _orbBodies.length; i++) {
+      for (let j = i + 1; j < _orbBodies.length; j++) {
+        const a = _orbBodies[i], b = _orbBodies[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const distSq = dx * dx + dy * dy + 100; // softening
+        const dist = Math.sqrt(distSq);
+        const force = ORB_G * a.mass * b.mass / distSq;
+        const fx = force * dx / dist, fy = force * dy / dist;
+        a.vx += fx / a.mass;
+        a.vy += fy / a.mass;
+        b.vx -= fx / b.mass;
+        b.vy -= fy / b.mass;
+
+        // Collision: merge
+        if (dist < a.radius + b.radius) {
+          const totalMass = a.mass + b.mass;
+          a.vx = (a.vx * a.mass + b.vx * b.mass) / totalMass;
+          a.vy = (a.vy * a.mass + b.vy * b.mass) / totalMass;
+          a.mass = totalMass;
+          a.radius = Math.sqrt(totalMass) * 1.5;
+          _orbBodies.splice(j, 1);
+          j--;
+        }
+      }
+    }
+
+    // Move + trail
+    for (const b of _orbBodies) {
+      b.x += b.vx;
+      b.y += b.vy;
+      b.trail.push({ x: b.x, y: b.y });
+      if (b.trail.length > ORB_TRAIL_LEN) b.trail.shift();
+
+      // Wrap edges
+      if (b.x < -50) b.x = w + 50;
+      if (b.x > w + 50) b.x = -50;
+      if (b.y < -50) b.y = h + 50;
+      if (b.y > h + 50) b.y = -50;
+    }
+  }
+
+  // Clear
+  _orbCtx.fillStyle = 'rgba(5,5,26,0.2)';
+  _orbCtx.fillRect(0, 0, w, h);
+
+  // Draw trails
+  for (const b of _orbBodies) {
+    if (b.trail.length < 2) continue;
+    for (let i = 1; i < b.trail.length; i++) {
+      const alpha = i / b.trail.length;
+      _orbCtx.strokeStyle = b.color.replace(')', `,${alpha * 0.5})`).replace('rgb', 'rgba');
+      if (!b.color.startsWith('rgb')) _orbCtx.strokeStyle = b.color;
+      _orbCtx.globalAlpha = alpha * 0.4;
+      _orbCtx.lineWidth = 1;
+      _orbCtx.beginPath();
+      _orbCtx.moveTo(b.trail[i - 1].x, b.trail[i - 1].y);
+      _orbCtx.lineTo(b.trail[i].x, b.trail[i].y);
+      _orbCtx.stroke();
+    }
+    _orbCtx.globalAlpha = 1;
+  }
+
+  // Draw bodies with glow
+  for (const b of _orbBodies) {
+    const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    _orbCtx.shadowColor = b.color;
+    _orbCtx.shadowBlur = Math.min(speed * 3, 20);
+
+    // Glow ring
+    _orbCtx.strokeStyle = b.color;
+    _orbCtx.globalAlpha = 0.15;
+    _orbCtx.beginPath();
+    _orbCtx.arc(b.x, b.y, b.radius + 3, 0, Math.PI * 2);
+    _orbCtx.stroke();
+    _orbCtx.globalAlpha = 1;
+
+    // Body
+    _orbCtx.fillStyle = b.color;
+    _orbCtx.beginPath();
+    _orbCtx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+    _orbCtx.fill();
+
+    // Highlight
+    _orbCtx.fillStyle = 'rgba(255,255,255,0.25)';
+    _orbCtx.beginPath();
+    _orbCtx.arc(b.x - b.radius * 0.3, b.y - b.radius * 0.3, b.radius * 0.3, 0, Math.PI * 2);
+    _orbCtx.fill();
+  }
+  _orbCtx.shadowBlur = 0;
+
+  _orbAnim = requestAnimationFrame(_orbLoop);
 }

@@ -36,6 +36,7 @@ const apps = [
     { id: 'noise', name: 'NOISE', icon: '♯' },
     { id: 'maze', name: 'MAZE', icon: '⚔' },
     { id: 'gravity', name: 'GRAVITY', icon: '🪐' },
+    { id: 'orbit', name: 'ORBIT', icon: '🌍' },
 
     // ── INFORMATION & LEARNING ────────────────────────────────────────────
     { id: 'news', name: 'NEWS', icon: '📰' },
@@ -292,6 +293,7 @@ function goBack() {
         // Cleanup creative apps
         if (typeof _mazeCleanup === 'function') _mazeCleanup();
         if (typeof _gravCleanup === 'function') _gravCleanup();
+        if (typeof _orbCleanup === 'function') _orbCleanup();
         if (currentScreen === 'noise' && typeof noiseStop === 'function') noiseStop();
         if (currentScreen === 'visual' && typeof _waveStopAuto === 'function') _waveStopAuto();
         if (currentScreen === 'glitch' && typeof _glitchAnim !== 'undefined') { cancelAnimationFrame(_glitchAnim); _glitchAnim = null; }
