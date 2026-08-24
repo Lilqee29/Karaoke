@@ -229,8 +229,13 @@ function render() {
   const cellW = canvasW / N;
   const cellH = canvasH / N;
 
-  // Clear to black
-  data.fill(0);
+  // Clear to opaque black
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 0;
+    data[i + 1] = 0;
+    data[i + 2] = 0;
+    data[i + 3] = 255;
+  }
 
   // Map density to GameBoy green palette
   for (let j = 1; j <= N; j++) {
@@ -356,45 +361,60 @@ function onPointerUp(e) {
 }
 
 // ── Init ─────────────────────────────────────────────────
+let _fluidResizeObs = null;
+
 window.initFluid = function() {
   canvas = document.getElementById('fluidCanvas');
   if (!canvas) return;
 
-  // Size canvas to fill screen content
-  const parent = canvas.parentElement;
-  canvasW = parent.clientWidth || 256;
-  canvasH = parent.clientHeight || 256;
-  canvas.width = canvasW;
-  canvas.height = canvasH;
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  canvas.style.imageRendering = 'pixelated';
+  // Use the wrapper div for accurate sizing
+  const wrapper = document.getElementById('fluidCanvasWrap');
+  if (!wrapper) return;
 
-  ctx = canvas.getContext('2d');
-  imageData = ctx.createImageData(canvasW, canvasH);
+  function resizeCanvas() {
+    canvasW = wrapper.clientWidth || 256;
+    canvasH = wrapper.clientHeight || 256;
+    if (canvas.width !== canvasW || canvas.height !== canvasH) {
+      canvas.width = canvasW;
+      canvas.height = canvasH;
+      ctx = canvas.getContext('2d');
+      imageData = ctx.createImageData(canvasW, canvasH);
+    }
+  }
 
-  // Reset fluid
-  u.fill(0); v.fill(0);
-  u_prev.fill(0); v_prev.fill(0);
-  dens.fill(0); dens_prev.fill(0);
+  // Initial size after layout settles
+  requestAnimationFrame(() => {
+    resizeCanvas();
 
-  // Bind events
-  canvas.addEventListener('mousedown', onPointerDown);
-  canvas.addEventListener('mousemove', onPointerMove);
-  canvas.addEventListener('mouseup', onPointerUp);
-  canvas.addEventListener('mouseleave', onPointerUp);
-  canvas.addEventListener('touchstart', onPointerDown, { passive: false });
-  canvas.addEventListener('touchmove', onPointerMove, { passive: false });
-  canvas.addEventListener('touchend', onPointerUp);
+    // Reset fluid
+    u.fill(0); v.fill(0);
+    u_prev.fill(0); v_prev.fill(0);
+    dens.fill(0); dens_prev.fill(0);
 
-  // Start animation
-  if (animFrame) cancelAnimationFrame(animFrame);
-  loop();
+    // Bind events
+    canvas.addEventListener('mousedown', onPointerDown);
+    canvas.addEventListener('mousemove', onPointerMove);
+    canvas.addEventListener('mouseup', onPointerUp);
+    canvas.addEventListener('mouseleave', onPointerUp);
+    canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+    canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+    canvas.addEventListener('touchend', onPointerUp);
+
+    // Watch for resize
+    if (_fluidResizeObs) _fluidResizeObs.disconnect();
+    _fluidResizeObs = new ResizeObserver(() => resizeCanvas());
+    _fluidResizeObs.observe(wrapper);
+
+    // Start animation
+    if (animFrame) cancelAnimationFrame(animFrame);
+    loop();
+  });
 };
 
 // ── Cleanup ──────────────────────────────────────────────
 window._fluidCleanup = function() {
   if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  if (_fluidResizeObs) { _fluidResizeObs.disconnect(); _fluidResizeObs = null; }
   if (canvas) {
     canvas.removeEventListener('mousedown', onPointerDown);
     canvas.removeEventListener('mousemove', onPointerMove);

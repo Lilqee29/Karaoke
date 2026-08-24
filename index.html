@@ -2027,32 +2027,34 @@
                     </div>
 
                     <!-- ═══════════ FLUID — Navier-Stokes Fluid Dynamics ═══════════ -->
-                    <div id="fluidScreen" class="game-screen" style="padding:0;display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
-                        <!-- Toolbar -->
-                        <div style="display:flex;align-items:center;gap:3px;padding:3px 4px;background:#0a0a0a;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
-                            <span style="font-size:5px;color:#0f0;letter-spacing:1px;font-family:'VT323',monospace;">🌊 FLUID</span>
-                            <div style="margin-left:auto;display:flex;gap:2px;">
-                                <button class="fluid-mode-btn active" data-mode="draw" onclick="fluidSetMode('draw')" style="font-size:4px;padding:2px 4px;background:#0f0;color:#000;border:1px solid #0f0;border-radius:2px;cursor:pointer;">DRAW</button>
-                                <button class="fluid-mode-btn" data-mode="heat" onclick="fluidSetMode('heat')" style="font-size:4px;padding:2px 4px;background:#0a0a0a;color:#aaa;border:1px solid #333;border-radius:2px;cursor:pointer;">HEAT</button>
-                                <button class="fluid-mode-btn" data-mode="wind" onclick="fluidSetMode('wind')" style="font-size:4px;padding:2px 4px;background:#0a0a0a;color:#aaa;border:1px solid #333;border-radius:2px;cursor:pointer;">WIND</button>
+                    <div id="fluidScreen" class="game-screen" style="padding:0;padding-bottom:0;overflow:hidden;">
+                        <div style="display:flex;flex-direction:column;height:100%;overflow:hidden;">
+                            <!-- Toolbar -->
+                            <div style="display:flex;align-items:center;gap:3px;padding:3px 4px;background:#0a0a0a;border-bottom:1px solid #1a1a1a;flex-shrink:0;">
+                                <span style="font-size:5px;color:#0f0;letter-spacing:1px;font-family:'VT323',monospace;">🌊 FLUID</span>
+                                <div style="margin-left:auto;display:flex;gap:2px;">
+                                    <button class="fluid-mode-btn active" data-mode="draw" onclick="fluidSetMode('draw')" style="font-size:4px;padding:2px 4px;background:#0f0;color:#000;border:1px solid #0f0;border-radius:2px;cursor:pointer;">DRAW</button>
+                                    <button class="fluid-mode-btn" data-mode="heat" onclick="fluidSetMode('heat')" style="font-size:4px;padding:2px 4px;background:#0a0a0a;color:#aaa;border:1px solid #333;border-radius:2px;cursor:pointer;">HEAT</button>
+                                    <button class="fluid-mode-btn" data-mode="wind" onclick="fluidSetMode('wind')" style="font-size:4px;padding:2px 4px;background:#0a0a0a;color:#aaa;border:1px solid #333;border-radius:2px;cursor:pointer;">WIND</button>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Canvas -->
-                        <div style="flex:1;position:relative;overflow:hidden;background:#000;">
-                            <canvas id="fluidCanvas" style="display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none;"></canvas>
-                        </div>
-                        <!-- Controls -->
-                        <div style="display:flex;align-items:center;gap:4px;padding:3px 4px;background:#0a0a0a;border-top:1px solid #1a1a1a;flex-shrink:0;">
-                            <span style="font-size:4px;color:#555;font-family:'VT323',monospace;">VISC</span>
-                            <input type="range" min="0" max="100" value="1" step="1" oninput="fluidSetVisc(this.value)" style="flex:1;height:3px;background:#1a1a1a;border:none;padding:0;">
-                            <span id="fluidViscLabel" style="font-size:4px;color:#0cf;min-width:10px;text-align:right;">1</span>
-                            <span style="font-size:4px;color:#555;font-family:'VT323',monospace;margin-left:2px;">DIFF</span>
-                            <input type="range" min="0" max="100" value="1" step="1" oninput="fluidSetDiff(this.value)" style="flex:1;height:3px;background:#1a1a1a;border:none;padding:0;">
-                            <span id="fluidDiffLabel" style="font-size:4px;color:#0cf;min-width:10px;text-align:right;">1</span>
-                            <span style="font-size:4px;color:#555;font-family:'VT323',monospace;margin-left:2px;">CURL</span>
-                            <input type="range" min="0" max="50" value="8" step="1" oninput="fluidSetCurl(this.value)" style="flex:1;height:3px;background:#1a1a1a;border:none;padding:0;">
-                            <span id="fluidCurlLabel" style="font-size:4px;color:#0cf;min-width:10px;text-align:right;">8</span>
-                            <button onclick="fluidClear()" style="font-size:4px;padding:2px 5px;background:#300;color:#f44;border:1px solid #f44;border-radius:2px;cursor:pointer;margin-left:2px;">CLS</button>
+                            <!-- Canvas -->
+                            <div id="fluidCanvasWrap" style="flex:1;position:relative;overflow:hidden;background:#000;min-height:0;">
+                                <canvas id="fluidCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;image-rendering:pixelated;touch-action:none;"></canvas>
+                            </div>
+                            <!-- Controls -->
+                            <div style="display:flex;align-items:center;gap:4px;padding:3px 4px;background:#0a0a0a;border-top:1px solid #1a1a1a;flex-shrink:0;">
+                                <span style="font-size:4px;color:#555;font-family:'VT323',monospace;">VISC</span>
+                                <input type="range" min="0" max="100" value="1" step="1" oninput="fluidSetVisc(this.value)" style="flex:1;height:3px;background:#1a1a1a;border:none;padding:0;">
+                                <span id="fluidViscLabel" style="font-size:4px;color:#0cf;min-width:10px;text-align:right;">1</span>
+                                <span style="font-size:4px;color:#555;font-family:'VT323',monospace;margin-left:2px;">DIFF</span>
+                                <input type="range" min="0" max="100" value="1" step="1" oninput="fluidSetDiff(this.value)" style="flex:1;height:3px;background:#1a1a1a;border:none;padding:0;">
+                                <span id="fluidDiffLabel" style="font-size:4px;color:#0cf;min-width:10px;text-align:right;">1</span>
+                                <span style="font-size:4px;color:#555;font-family:'VT323',monospace;margin-left:2px;">CURL</span>
+                                <input type="range" min="0" max="50" value="8" step="1" oninput="fluidSetCurl(this.value)" style="flex:1;height:3px;background:#1a1a1a;border:none;padding:0;">
+                                <span id="fluidCurlLabel" style="font-size:4px;color:#0cf;min-width:10px;text-align:right;">8</span>
+                                <button onclick="fluidClear()" style="font-size:4px;padding:2px 5px;background:#300;color:#f44;border:1px solid #f44;border-radius:2px;cursor:pointer;margin-left:2px;">CLS</button>
+                            </div>
                         </div>
                     </div>
 
