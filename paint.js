@@ -365,7 +365,7 @@ function _pOnUp(e) {
 function _pUpdateColorUI() {
   const preview = document.getElementById('paintColorPreview');
   if (preview) preview.style.background = _pColor;
-  const native = document.getElementById('paintNativeColor');
+  const native = document.getElementById('paintColorPicker');
   if (native) native.value = _pColor;
   // Highlight matching quick swatch
   document.querySelectorAll('.paint-swatch').forEach(s => {
@@ -379,16 +379,20 @@ window.initPaint = function() {
   canvas = document.getElementById('paintCanvas');
   if (!canvas) return;
 
-  const wrapper = canvas.parentElement;
-  canvas.width = wrapper ? wrapper.clientWidth : 300;
-  canvas.height = wrapper ? wrapper.clientHeight : 280;
-
   ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  _pUndoStack = [];
-  _pRedoStack = [];
-  _pSaveUndo();
+
+  // Wait for layout then size canvas
+  requestAnimationFrame(() => {
+    const wrapper = canvas.parentElement;
+    canvas.width = wrapper ? wrapper.clientWidth : 300;
+    canvas.height = wrapper ? wrapper.clientHeight : 280;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    _pUndoStack = [];
+    _pRedoStack = [];
+    _pSaveUndo();
+    _pUpdateColorUI();
+  });
 
   canvas.addEventListener('mousedown', _pOnDown);
   canvas.addEventListener('mousemove', _pOnMove);
@@ -457,7 +461,7 @@ window.paintSetColor = function(hex) {
   _pUpdateColorUI();
 };
 
-window.paintNativeColor = function(val) {
+window.paintPickColor = function(val) {
   _pColor = val;
   _pUpdateColorUI();
 };
