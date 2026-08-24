@@ -17,6 +17,7 @@ function killAllCreativeAudio() {
   if (_noiseGainNode) { try { _noiseGainNode.disconnect(); } catch(e){} _noiseGainNode = null; }
   _noisePlaying = false;
   _waveAutoNodes = null;
+  _waveStarted = false;
 }
 
 // ================================================================
@@ -158,9 +159,10 @@ function clearGlitchParticles() { _glitchParticles = []; }
 // ================================================================
 let _visualCanvas, _waveCtx, _waveAnim, _waveAnalyser, _waveData;
 let _waveMicStream = null, _waveStyle = 'bars';
-let _waveAutoNodes = null; // { source, gain, filters }
+let _waveAutoNodes = null; // { source, gain, filters, ctx }
 let _waveVolume = 0.15;
 let _wavePreset = 'lofi'; // lofi | rain | ocean | vinyl | static
+let _waveStarted = false;
 
 function initVisual() {
   const container = document.getElementById('visualContent');
@@ -179,7 +181,9 @@ function initVisual() {
   resize();
   window.addEventListener('resize', resize);
 
-  _waveStartAuto();
+  // Don't auto-start — show a play button (iOS needs user gesture on play, not just on app open)
+  _waveStarted = false;
+  _waveStartLoop();
 }
 
 function renderWaveUI(container) {
@@ -188,19 +192,20 @@ function renderWaveUI(container) {
     <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;">
         <span style="font-size:9px;font-weight:bold;color:var(--gb-text);">≋ VISUAL</span>
-        <span style="font-size:5px;opacity:0.6;">${_waveMicStream ? 'MIC ON' : _wavePreset.toUpperCase()}</span>
+        <span style="font-size:5px;opacity:0.6;">${_waveMicStream ? 'MIC ON' : _waveStarted ? _wavePreset.toUpperCase() : 'PAUSED'}</span>
       </div>
       <div style="display:flex;gap:2px;padding:0 6px 4px;flex-wrap:wrap;">
         ${['bars','circular','scope'].map(s => `<button onclick="setWaveStyle('${s}')" style="font-size:5px;padding:2px 5px;${_waveStyle===s?'background:var(--gb-text);color:var(--gb-bg);':''}">${s.toUpperCase()}</button>`).join('')}
-        <button onclick="waveToggleMic()" style="font-size:5px;padding:2px 5px;margin-left:auto;" id="waveMicBtn">${_waveMicStream ? '🎤 OFF' : '🎤 ON'}</button>
+        <button onclick="waveToggleMic()" style="font-size:5px;padding:2px 5px;" id="waveMicBtn">${_waveMicStream ? '🎤 OFF' : '🎤 ON'}</button>
       </div>
       <div style="padding:0 6px 4px;display:flex;gap:2px;flex-wrap:wrap;">
         ${presets.map(p => `<button onclick="setWavePreset('${p}')" style="font-size:4px;padding:2px 4px;${_wavePreset===p&&!_waveMicStream?'background:var(--gb-text);color:var(--gb-bg);':''}">${p.toUpperCase()}</button>`).join('')}
       </div>
       <div style="flex:1;position:relative;margin:0 6px 6px;border:2px solid var(--gb-text);border-radius:4px;overflow:hidden;background:#000;">
         <canvas id="visualCanvas" style="width:100%;height:100%;display:block;"></canvas>
+        ${!_waveStarted && !_waveMicStream ? '<button onclick="wavePlay()" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10px;padding:8px 16px;background:var(--gb-text);color:var(--gb-bg);border:none;border-radius:4px;cursor:pointer;">▶ PLAY</button>' : ''}
       </div>
-      <div style="padding:0 6px 6px;font-size:4px;text-align:center;opacity:0.5;">LOFI WHITE NOISE · ENABLE MIC FOR REACTIVE</div>
+      <div style="padding:0 6px 6px;font-size:4px;text-align:center;opacity:0.5;">TAP PLAY TO START · ${_waveStarted ? 'SOUND ON' : 'LOFI WHITE NOISE'}</div>
     </div>
   `;
 }
@@ -215,7 +220,7 @@ async function waveToggleMic() {
   if (_waveMicStream) {
     _waveMicStream.getTracks().forEach(t => t.stop());
     _waveMicStream = null; _waveAnalyser = null;
-    _waveStartAuto();
+    _waveStarted = false;
     renderWaveUI(document.getElementById('visualContent'));
     return;
   }
@@ -224,19 +229,41 @@ async function waveToggleMic() {
     _waveMicStream = stream;
     _waveStopAuto(); // stop white noise when mic is on
     const ctx = getCreativeAudioCtx();
+    if (ctx.state === 'suspended') await ctx.resume();
     const src = ctx.createMediaStreamSource(stream);
     _waveAnalyser = ctx.createAnalyser();
     _waveAnalyser.fftSize = 256;
     src.connect(_waveAnalyser);
     _waveData = new Uint8Array(_waveAnalyser.frequencyBinCount);
+    _waveStarted = true;
     _waveStartLoop();
     renderWaveUI(document.getElementById('visualContent'));
   } catch(e) { /* mic denied */ }
 }
 
-function _waveStartAuto() {
+async function wavePlay() {
+  if (_waveStarted) { waveStop(); return; }
+  try {
+    const ctx = getCreativeAudioCtx();
+    // CRITICAL: await resume() on iOS — AudioContext starts suspended
+    if (ctx.state === 'suspended') await ctx.resume();
+    _waveStarted = true;
+    _waveAutoStartNoise(ctx);
+    _waveStartLoop();
+    renderWaveUI(document.getElementById('visualContent'));
+  } catch(e) {
+    console.warn('VISUAL play failed:', e);
+  }
+}
+
+function waveStop() {
+  _waveStopAuto();
+  _waveStarted = false;
+  renderWaveUI(document.getElementById('visualContent'));
+}
+
+function _waveAutoStartNoise(ctx) {
   if (_waveAutoNodes) return;
-  const ctx = getCreativeAudioCtx();
 
   // Create white noise buffer — pattern from Hubs-Foundation/hubs
   const bufferSize = 2 * ctx.sampleRate;
@@ -274,9 +301,8 @@ function _waveStartAuto() {
   _waveAnalyser.connect(ctx.destination);
 
   source.start();
-  _waveAutoNodes = { source, gain, lowpass, highpass };
+  _waveAutoNodes = { source, gain, lowpass, highpass, ctx };
   _waveApplyPreset(_wavePreset);
-  _waveStartLoop();
 }
 
 function _waveStopAuto() {
@@ -288,6 +314,7 @@ function _waveStopAuto() {
     try { _waveAutoNodes.highpass.disconnect(); } catch(e){}
     _waveAutoNodes = null;
   }
+  _waveStarted = false;
 }
 
 function _waveApplyPreset(name) {

@@ -763,8 +763,10 @@ function startForestBirds() {
     forestBirdTimer = setTimeout(chirp, 1800);
 }
 
-function startNoise() {
+async function startNoise() {
     noiseContext = noiseContext || new (window.AudioContext || window.webkitAudioContext)();
+    // CRITICAL: resume() MUST come before start() on iOS
+    if (noiseContext.state === 'suspended') await noiseContext.resume();
     noiseGain = noiseContext.createGain();
     noiseGain.gain.value = (parseInt(document.getElementById('noiseVolume')?.value, 10) || 35) / 100;
     noiseSource = noiseContext.createBufferSource();
@@ -772,7 +774,6 @@ function startNoise() {
     noiseSource.loop = true;
     noiseSource.connect(noiseGain).connect(noiseContext.destination);
     noiseSource.start();
-    noiseContext.resume();
     isNoisePlaying = true;
     startForestBirds();
     document.getElementById('noisePlayBtn').textContent = 'STOP AMBIENCE';
