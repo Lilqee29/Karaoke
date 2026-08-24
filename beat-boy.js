@@ -520,7 +520,7 @@ function bbPlaySynthSound(name, targetGain) {
       o1.frequency.linearRampToValueAtTime(220, now + 0.08);
       o1.frequency.linearRampToValueAtTime(160, now + 0.15);
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.connect(g); g.connect(dest);
       o1.start(now); o1.stop(now + 0.2);
       break;
     }
@@ -530,7 +530,7 @@ function bbPlaySynthSound(name, targetGain) {
       o1.frequency.linearRampToValueAtTime(280, now + 0.1);
       o1.frequency.linearRampToValueAtTime(200, now + 0.25);
       g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.connect(g); g.connect(dest);
       o1.start(now); o1.stop(now + 0.3);
       break;
     }
@@ -539,7 +539,7 @@ function bbPlaySynthSound(name, targetGain) {
       o1.type = 'sine'; o1.frequency.setValueAtTime(250, now);
       o1.frequency.linearRampToValueAtTime(180, now + 0.2);
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.connect(g); g.connect(dest);
       o1.start(now); o1.stop(now + 0.25);
       break;
     }
@@ -548,7 +548,7 @@ function bbPlaySynthSound(name, targetGain) {
       o1.type = 'square'; o1.frequency.setValueAtTime(150, now);
       o1.frequency.linearRampToValueAtTime(120, now + 0.08);
       g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.connect(g); g.connect(dest);
       o1.start(now); o1.stop(now + 0.1);
       break;
     }
@@ -558,7 +558,7 @@ function bbPlaySynthSound(name, targetGain) {
       o1.frequency.linearRampToValueAtTime(300, now + 0.06);
       o1.frequency.linearRampToValueAtTime(180, now + 0.15);
       g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.connect(g); g.connect(dest);
       o1.start(now); o1.stop(now + 0.2);
       break;
     }
@@ -570,7 +570,7 @@ function bbPlaySynthSound(name, targetGain) {
       o1.frequency.linearRampToValueAtTime(150, now + 0.35);
       o2.type = 'sine'; o2.frequency.setValueAtTime(202, now);
       g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-      o1.connect(g); o2.connect(g); g.connect(bbTrackGains[0]);
+      o1.connect(g); o2.connect(g); g.connect(dest);
       o1.start(now); o2.start(now); o1.stop(now + 0.4); o2.stop(now + 0.4);
       break;
     }
@@ -579,7 +579,7 @@ function bbPlaySynthSound(name, targetGain) {
       o1.type = 'sawtooth'; o1.frequency.setValueAtTime(250, now);
       o1.frequency.linearRampToValueAtTime(180, now + 0.1);
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-      o1.connect(g); g.connect(bbTrackGains[0]);
+      o1.connect(g); g.connect(dest);
       o1.start(now); o1.stop(now + 0.12);
       break;
     }
@@ -589,7 +589,7 @@ function bbPlaySynthSound(name, targetGain) {
         o1.type = 'sawtooth'; o1.frequency.setValueAtTime(180 + i * 10, now + i * 0.06);
         g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.15, now + i * 0.06);
         g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        o1.connect(g); g.connect(bbTrackGains[0]);
+        o1.connect(g); g.connect(dest);
         o1.start(now + i * 0.06); o1.stop(now + 0.3);
       }
       break;
@@ -601,7 +601,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.type = 'sawtooth'; o.frequency.setValueAtTime(100, now);
       o.frequency.exponentialRampToValueAtTime(2000, now + 0.5);
       g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.5);
       break;
     }
@@ -610,7 +610,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.type = 'square'; o.frequency.setValueAtTime(1500, now);
       o.frequency.exponentialRampToValueAtTime(50, now + 0.15);
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.15);
       break;
     }
@@ -619,7 +619,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.type = 'sine'; o.frequency.setValueAtTime(3000, now);
       o.frequency.exponentialRampToValueAtTime(100, now + 0.1);
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.12);
       break;
     }
@@ -628,7 +628,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.type = 'sine'; o.frequency.setValueAtTime(100, now);
       o.frequency.exponentialRampToValueAtTime(30, now + 0.3);
       g.gain.setValueAtTime(0.5, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.4);
       break;
     }
@@ -640,7 +640,7 @@ function bbPlaySynthSound(name, targetGain) {
       f.frequency.exponentialRampToValueAtTime(8000, now + 0.3);
       f.frequency.exponentialRampToValueAtTime(100, now + 0.6);
       g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-      o.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(f); f.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.6);
       break;
     }
@@ -651,7 +651,7 @@ function bbPlaySynthSound(name, targetGain) {
       const src = ctx.createBufferSource(); const g = ctx.createGain();
       src.buffer = buf;
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      src.connect(g); g.connect(bbTrackGains[0]);
+      src.connect(g); g.connect(dest);
       src.start(now);
       break;
     }
@@ -663,7 +663,7 @@ function bbPlaySynthSound(name, targetGain) {
       const f = ctx.createBiquadFilter();
       src.buffer = buf; f.type = 'highpass'; f.frequency.value = 3000;
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-      src.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+      src.connect(f); f.connect(g); g.connect(dest);
       src.start(now);
       break;
     }
@@ -675,7 +675,7 @@ function bbPlaySynthSound(name, targetGain) {
       src.buffer = buf;
       g.gain.setValueAtTime(0.01, now); g.gain.linearRampToValueAtTime(0.3, now + 0.25);
       g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      src.connect(g); g.connect(bbTrackGains[0]);
+      src.connect(g); g.connect(dest);
       src.start(now);
       break;
     }
@@ -686,7 +686,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.type = 'sine'; o.frequency.setValueAtTime(150, now);
       o.frequency.exponentialRampToValueAtTime(40, now + 0.15);
       g.gain.setValueAtTime(0.4, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.3);
       break;
     }
@@ -694,7 +694,7 @@ function bbPlaySynthSound(name, targetGain) {
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.type = 'square'; o.frequency.setValueAtTime(440, now);
       g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.08);
       break;
     }
@@ -705,7 +705,7 @@ function bbPlaySynthSound(name, targetGain) {
       o2.type = 'sine'; o2.frequency.value = 415;
       g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.15, now + 0.1);
       g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-      o.connect(g); o2.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); o2.connect(g); g.connect(dest);
       o.start(now); o2.start(now); o.stop(now + 0.5); o2.stop(now + 0.5);
       break;
     }
@@ -713,7 +713,7 @@ function bbPlaySynthSound(name, targetGain) {
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.type = 'triangle'; o.frequency.value = 440;
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.15);
       break;
     }
@@ -723,7 +723,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.type = 'sine'; o.frequency.value = 880;
       o2.type = 'sine'; o2.frequency.value = 1320;
       g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-      o.connect(g); o2.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); o2.connect(g); g.connect(dest);
       o.start(now); o2.start(now); o.stop(now + 0.6); o2.stop(now + 0.6);
       break;
     }
@@ -732,7 +732,7 @@ function bbPlaySynthSound(name, targetGain) {
         const o = ctx.createOscillator(); const g = ctx.createGain();
         o.type = 'sine'; o.frequency.value = freq;
         g.gain.setValueAtTime(0.08, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        o.connect(g); g.connect(bbTrackGains[0]);
+        o.connect(g); g.connect(dest);
         o.start(now); o.stop(now + 0.3);
       });
       break;
@@ -743,7 +743,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.frequency.linearRampToValueAtTime(330, now + 0.05);
       g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.25, now + 0.03);
       g.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.2);
       break;
     }
@@ -753,7 +753,7 @@ function bbPlaySynthSound(name, targetGain) {
         o.type = 'sawtooth'; o.frequency.value = freq;
         g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.06, now + 0.15);
         g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-        o.connect(g); g.connect(bbTrackGains[0]);
+        o.connect(g); g.connect(dest);
         o.start(now); o.stop(now + 0.5);
       });
       break;
@@ -763,7 +763,7 @@ function bbPlaySynthSound(name, targetGain) {
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.type = 'sine'; o.frequency.value = 55;
       g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.4);
       break;
     }
@@ -772,7 +772,7 @@ function bbPlaySynthSound(name, targetGain) {
       const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600;
       o.type = 'sawtooth'; o.frequency.value = 110;
       g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      o.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(f); f.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.3);
       break;
     }
@@ -781,7 +781,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.type = 'triangle'; o.frequency.setValueAtTime(146, now);
       o.frequency.linearRampToValueAtTime(130, now + 0.2);
       g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.4);
       break;
     }
@@ -790,7 +790,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.type = 'square'; o.frequency.setValueAtTime(300, now);
       o.frequency.exponentialRampToValueAtTime(80, now + 0.05);
       g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 0.1);
       break;
     }
@@ -802,7 +802,7 @@ function bbPlaySynthSound(name, targetGain) {
       lg.gain.value = 400;
       lfo.connect(lg); lg.connect(o.frequency);
       g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       lfo.start(now); o.start(now); o.stop(now + 0.5); lfo.stop(now + 0.5);
       break;
     }
@@ -812,7 +812,7 @@ function bbPlaySynthSound(name, targetGain) {
         const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1200;
         o.type = 'sawtooth'; o.frequency.value = freq;
         g.gain.setValueAtTime(0.15, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-        o.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+        o.connect(f); f.connect(g); g.connect(dest);
         o.start(now); o.stop(now + 0.6);
       });
       break;
@@ -824,7 +824,7 @@ function bbPlaySynthSound(name, targetGain) {
         o.type = 'sine'; o.frequency.value = freq;
         g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.06, now + 0.3);
         g.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-        o.connect(g); g.connect(bbTrackGains[0]);
+        o.connect(g); g.connect(dest);
         o.start(now); o.stop(now + 1.0);
       });
       break;
@@ -835,7 +835,7 @@ function bbPlaySynthSound(name, targetGain) {
         o.type = 'sine'; o.frequency.value = freq;
         g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.04, now + 0.4);
         g.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
-        o.connect(g); g.connect(bbTrackGains[0]);
+        o.connect(g); g.connect(dest);
         o.start(now); o.stop(now + 1.2);
       });
       break;
@@ -846,7 +846,7 @@ function bbPlaySynthSound(name, targetGain) {
         o.type = 'triangle'; o.frequency.value = freq;
         g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.05, now + 0.5);
         g.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
-        o.connect(g); g.connect(bbTrackGains[0]);
+        o.connect(g); g.connect(dest);
         o.start(now); o.stop(now + 1.5);
       });
       break;
@@ -857,7 +857,7 @@ function bbPlaySynthSound(name, targetGain) {
       o.frequency.linearRampToValueAtTime(400, now + 1.0);
       g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.06, now + 0.3);
       g.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
-      o.connect(g); g.connect(bbTrackGains[0]);
+      o.connect(g); g.connect(dest);
       o.start(now); o.stop(now + 1.2);
       break;
     }
@@ -867,7 +867,7 @@ function bbPlaySynthSound(name, targetGain) {
         o.type = 'sine'; o.frequency.value = freq;
         g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.04, now + 0.2);
         g.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
-        o.connect(g); g.connect(bbTrackGains[0]);
+        o.connect(g); g.connect(dest);
         o.start(now); o.stop(now + 0.8);
       });
       break;
@@ -879,7 +879,7 @@ function bbPlaySynthSound(name, targetGain) {
         const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400;
         g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.05, now + 0.4);
         g.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-        o.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+        o.connect(f); f.connect(g); g.connect(dest);
         o.start(now); o.stop(now + 1.0);
       });
       break;

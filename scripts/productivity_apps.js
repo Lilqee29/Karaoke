@@ -822,8 +822,12 @@ window.initPaint = function() {
             ctx.globalAlpha = 1;
             ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
         } else if (_paintMode === 'gradient') {
-            const grad = ctx.createLinearGradient(x-size,y,x+size,y);
-            grad.addColorStop(0, _paintPrimary); grad.addColorStop(1, _paintSecondary);
+            const blend = parseInt(document.getElementById('paintBlendAmount')?.value || 50) / 100;
+            const mid = _paintLerpColor(_paintPrimary, _paintSecondary, blend);
+            const grad = ctx.createLinearGradient(x-size*3,y,x+size*3,y);
+            grad.addColorStop(0, _paintPrimary);
+            grad.addColorStop(0.5, mid);
+            grad.addColorStop(1, _paintSecondary);
             ctx.fillStyle = grad;
             ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
         } else if (_paintMode === 'rainbow') {
@@ -950,9 +954,24 @@ window.paintFunc = function(action) {
             btn.style.color = _paintMode === 'eraser' ? 'var(--gb-bg)' : '';
         }
     } else if (action === 'save') {
-        const link = document.createElement('a');
-        link.download = `paint-${Date.now()}.png`;
-        link.href = canvas.toDataURL(); link.click();
+        // iOS-friendly save: use Web Share API with file, fall back to download
+        canvas.toBlob(async (blob) => {
+            if (!blob) return;
+            const file = new File([blob], `paint-${Date.now()}.png`, { type: 'image/png' });
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ title: 'Painting', files: [file] });
+                    return;
+                } catch(e) {
+                    if (e.name === 'AbortError') return;
+                }
+            }
+            const link = document.createElement('a');
+            link.download = file.name;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }, 'image/png');
     }
 };
 
