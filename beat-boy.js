@@ -1647,7 +1647,6 @@ function bbPlayStep() {
 
 // Restart interval with current BPM + division + swing
 function _bbRestartInterval() {
-  if (!isRemixPlaying) return;
   clearTimeout(remixInterval);
   const baseMs = (60000 / remixBPM) / 4 * _bbDivMultiplier();
   const swingAmt = remixSwing / 100 * baseMs * 0.5;
