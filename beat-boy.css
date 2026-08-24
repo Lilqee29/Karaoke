@@ -40,6 +40,27 @@
   min-height: 14px;
 }
 
+/* ── Track Controls Row (volume + division) ─────────────── */
+.track-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.bb-row-div-group {
+  display: flex;
+  gap: 1px;
+}
+
+.bb-row-div-btn {
+  font-size: 3px !important;
+  padding: 1px 2px !important;
+  border-radius: 2px !important;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.08s;
+}
+
 /* ── Per-Track Volume ────────────────────────────────────────── */
 
 .track-vol-row {
@@ -113,6 +134,23 @@
   box-shadow: 0 0 6px rgba(0,230,0,0.7);
 }
 
+/* Velocity levels — softer = dimmer green, louder = brighter */
+.beat-boy-step.vel-soft {
+  background: #005500;
+  border-color: rgba(0,200,0,0.4);
+  box-shadow: 0 0 3px rgba(0,200,0,0.3);
+}
+.beat-boy-step.vel-med {
+  background: #00aa00;
+  border-color: rgba(0,230,0,0.5);
+  box-shadow: 0 0 5px rgba(0,230,0,0.5);
+}
+.beat-boy-step.vel-hard {
+  background: #00e600;
+  border-color: rgba(255,255,255,0.6);
+  box-shadow: 0 0 8px rgba(0,230,0,0.8);
+}
+
 /* Playhead highlight */
 .beat-boy-step.highlight {
   border-color: #fff !important;
@@ -124,6 +162,20 @@
 
 /* Playhead + active = bright white flash */
 .beat-boy-step.highlight.active {
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255,255,255,0.95), 0 0 4px rgba(0,255,0,0.6);
+}
+
+/* Playhead + velocity = flash with velocity brightness */
+.beat-boy-step.highlight.vel-soft {
+  background: #228822;
+  box-shadow: 0 0 8px rgba(0,200,0,0.7);
+}
+.beat-boy-step.highlight.vel-med {
+  background: #44cc44;
+  box-shadow: 0 0 10px rgba(0,230,0,0.8);
+}
+.beat-boy-step.highlight.vel-hard {
   background: #fff;
   box-shadow: 0 0 12px rgba(255,255,255,0.95), 0 0 4px rgba(0,255,0,0.6);
 }

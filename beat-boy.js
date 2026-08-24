@@ -35,7 +35,7 @@ const INSTRUMENTS = [
 ];
 
 // ── State ─────────────────────────────────────────────────
-let remixGrid      = [];
+let remixGrid      = [];      // 2D: null (off) or {vel: 1-127} per step
 let remixInterval  = null;
 let remixStep      = 0;
 let isRemixPlaying = false;
@@ -55,6 +55,17 @@ const DYNAMIC_COLORS = ['#ff4488','#44ff88','#4488ff','#ffff44','#ff88ff','#88ff
 let remixSwing     = 0;
 // Note division: '16n' (default), '8n', '32n'
 let remixDivision  = '16n';
+
+// Per-row division: each track runs its own clock
+let rowDivisions     = INSTRUMENTS.map(() => '16n');
+let rowStepCounters  = INSTRUMENTS.map(() => 0);
+let rowSubCounters   = INSTRUMENTS.map(() => 0);
+let dynRowDivisions  = [];
+let dynRowStepCounters = [];
+let dynRowSubCounters  = [];
+
+// Master tick counter (finest resolution across all rows)
+let masterTick = 0;
 
 // ── Sample Library — 100% Web Audio synthesized (no external URLs) ──
 // Each entry is type:'synth' so bbPlaySynthSound handles it
@@ -171,86 +182,88 @@ const AFROBEAT_NOTES = {
 };
 
 // ── Preset Patterns ───────────────────────────────────────
+// Grid cells: null = off, {vel: 60|90|127} = velocity level
+const V = (v) => ({vel: v}); // shorthand
 const PRESETS = {
   'TRAP': [
-    [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
-    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
-    [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,0],
-    [0,0,0,0, 0,0,1,0, 0,0,0,0, 0,0,0,0],
-    [0,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
-    [1,0,0,0, 0,0,0,1, 0,0,0,0, 1,0,0,0],
-    [0,0,1,0, 0,0,0,0, 0,0,1,0, 0,1,0,0],
-    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    [V(127),null,null,null, V(127),null,null,null, V(127),null,null,null, V(127),null,null,null],
+    [null,null,null,null, V(127),null,null,null, null,null,null,null, V(127),null,null,null],
+    [V(90),V(60),V(90),V(60), V(90),V(60),V(90),V(60), V(90),V(60),V(90),V(60), V(90),V(60),V(90),null],
+    [null,null,null,null, null,null,V(90),null, null,null,null,null, null,null,null,null],
+    [null,null,null,null, null,null,null,null, V(90),null,null,null, null,null,null,null],
+    [V(127),null,null,null, null,null,null,V(90), null,null,null,null, V(127),null,null,null],
+    [null,null,V(90),null, null,null,null,null, null,null,V(90),null, null,V(60),null,null],
+    [null,null,null,null, V(90),null,null,null, null,null,null,null, V(90),null,null,null],
   ],
   'HOUSE': [
-    [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
-    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
-    [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0],
-    [0,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0],
-    [0,0,0,0, 0,0,1,0, 0,0,0,0, 0,1,0,0],
-    [1,0,0,1, 0,0,1,0, 1,0,0,0, 0,1,0,0],
-    [0,1,0,0, 0,1,0,0, 0,1,0,0, 0,1,0,1],
-    [1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
+    [V(127),null,null,null, V(127),null,null,null, V(127),null,null,null, V(127),null,null,null],
+    [null,null,null,null, V(127),null,null,null, null,null,null,null, V(127),null,null,null],
+    [null,null,V(90),null, null,null,V(90),null, null,null,V(90),null, null,null,V(90),null],
+    [null,null,null,null, null,null,null,null, null,null,V(90),null, null,null,null,null],
+    [null,null,null,null, null,null,V(60),null, null,null,null,null, null,V(60),null,null],
+    [V(127),null,null,V(90), null,null,V(127),null, V(127),null,null,null, null,V(90),null,null],
+    [null,V(90),null,null, null,V(90),null,null, null,V(90),null,null, null,V(90),null,V(60)],
+    [V(127),null,null,null, null,null,null,null, V(127),null,null,null, null,null,null,null],
   ],
   'BOOM BAP': [
-    [1,0,0,0, 0,0,1,0, 0,1,0,0, 0,0,0,0],
-    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,1],
-    [1,0,1,0, 1,0,1,0, 1,0,1,0, 1,0,1,0],
-    [0,0,1,0, 0,0,0,0, 0,1,0,0, 0,0,0,1],
-    [0,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,1,0],
-    [1,0,0,0, 1,0,0,0, 0,0,1,0, 0,0,0,0],
-    [0,0,0,1, 0,1,0,0, 0,0,0,1, 0,0,1,0],
-    [1,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
+    [V(127),null,null,null, null,null,V(90),null, null,V(90),null,null, null,null,null,null],
+    [null,null,null,null, V(127),null,null,null, null,null,null,null, V(127),null,null,V(90)],
+    [V(90),null,V(60),null, V(90),null,V(60),null, V(90),null,V(60),null, V(90),null,V(60),null],
+    [null,null,V(90),null, null,null,null,null, null,V(90),null,null, null,null,null,V(60)],
+    [null,null,null,null, null,null,null,null, V(90),null,null,null, null,null,V(60),null],
+    [V(127),null,null,null, V(127),null,null,null, null,null,V(90),null, null,null,null,null],
+    [null,null,null,V(90), null,V(90),null,null, null,null,null,V(90), null,null,V(90),null],
+    [V(127),null,null,null, null,null,null,null, null,V(90),null,null, null,null,null,null],
   ],
   'TECHNO': [
-    [1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
-    [0,0,0,0, 1,0,0,1, 0,0,0,0, 1,0,1,0],
-    [1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1],
-    [0,0,0,0, 0,1,0,0, 0,0,0,0, 0,1,0,1],
-    [0,0,1,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
-    [1,1,0,0, 0,0,1,0, 1,0,0,1, 0,0,1,0],
-    [0,0,0,0, 1,0,0,1, 0,0,0,0, 1,0,0,0],
-    [0,0,0,0, 0,0,0,0, 0,0,0,0, 1,0,0,0],
+    [V(127),null,null,null, V(127),null,null,null, V(127),null,null,null, V(127),null,null,null],
+    [null,null,null,null, V(127),null,null,V(90), null,null,null,null, V(127),null,V(90),null],
+    [V(90),V(60),V(90),V(60), V(90),V(60),V(90),V(60), V(90),V(60),V(90),V(60), V(90),V(60),V(90),V(60)],
+    [null,null,null,null, null,V(90),null,null, null,null,null,null, null,V(90),null,V(60)],
+    [null,null,V(60),null, null,null,null,null, null,V(90),null,null, null,null,null,null],
+    [V(127),V(90),null,null, null,null,V(90),null, V(127),null,null,V(90), null,null,V(90),null],
+    [null,null,null,null, V(90),null,null,V(90), null,null,null,null, V(90),null,null,null],
+    [null,null,null,null, null,null,null,null, null,null,null,null, V(90),null,null,null],
   ],
   'REGGAE': [
-    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
-    [0,0,0,1, 0,0,0,0, 0,0,0,1, 0,0,0,0],
-    [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0],
-    [0,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
-    [1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,1,0],
-    [0,0,1,0, 0,0,0,0, 0,0,1,0, 0,0,0,0],
-    [1,0,0,0, 0,0,1,0, 0,0,0,0, 1,0,0,0],
-    [0,0,0,0, 0,1,0,0, 0,0,0,0, 0,0,0,0],
+    [null,null,null,null, V(127),null,null,null, null,null,null,null, V(127),null,null,null],
+    [null,null,null,V(90), null,null,null,null, null,null,null,V(90), null,null,null,null],
+    [null,null,V(90),null, null,null,V(90),null, null,null,V(90),null, null,null,V(90),null],
+    [null,null,null,null, null,null,null,null, null,V(90),null,null, null,null,null,null],
+    [V(127),null,null,null, null,null,null,null, null,null,null,null, null,null,V(60),null],
+    [null,null,V(90),null, null,null,null,null, null,null,V(90),null, null,null,null,null],
+    [V(127),null,null,null, null,null,V(90),null, null,null,null,null, V(127),null,null,null],
+    [null,null,null,null, null,V(90),null,null, null,null,null,null, null,null,null,null],
   ],
   'FUNK': [
-    [1,0,0,0, 0,0,0,0, 1,0,1,0, 0,0,0,0],
-    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
-    [0,0,1,0, 0,1,1,0, 0,0,1,0, 0,1,1,0],
-    [0,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
-    [0,0,0,0, 0,0,1,0, 0,0,0,0, 0,0,0,1],
-    [1,0,0,1, 0,0,0,0, 1,0,0,0, 0,1,0,0],
-    [0,0,1,0, 0,0,0,0, 0,0,1,0, 0,0,0,1],
-    [1,0,0,0, 0,0,1,0, 0,0,0,0, 0,1,0,0],
+    [V(127),null,null,null, null,null,null,null, V(127),null,V(90),null, null,null,null,null],
+    [null,null,null,null, V(127),null,null,null, null,null,null,null, V(127),null,null,null],
+    [null,null,V(90),null, null,V(60),V(90),null, null,null,V(90),null, null,V(60),V(90),null],
+    [null,null,null,null, null,null,null,null, null,V(90),null,null, null,null,null,null],
+    [null,null,null,null, null,null,V(60),null, null,null,null,null, null,null,null,V(90)],
+    [V(127),null,null,V(90), null,null,null,null, V(127),null,null,null, null,V(90),null,null],
+    [null,null,V(90),null, null,null,null,null, null,null,V(90),null, null,null,null,V(60)],
+    [V(127),null,null,null, null,null,V(90),null, null,null,null,null, null,V(90),null,null],
   ],
   'HIP HOP': [
-    [1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0],
-    [0,0,0,0, 1,0,0,0, 0,0,0,1, 0,0,0,0],
-    [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0],
-    [0,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0],
-    [0,1,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1],
-    [1,0,0,0, 0,0,1,0, 0,0,0,0, 1,0,0,0],
-    [0,0,0,1, 0,0,0,0, 0,1,0,0, 0,0,1,0],
-    [1,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
+    [V(127),null,null,null, null,null,null,null, V(127),null,null,null, null,null,null,null],
+    [null,null,null,null, V(127),null,null,null, null,null,null,V(90), null,null,null,null],
+    [null,null,V(90),null, null,null,V(90),null, null,null,V(90),null, null,null,V(90),null],
+    [null,null,null,null, null,null,null,null, null,null,V(90),null, null,null,null,null],
+    [null,V(60),null,null, null,null,null,null, null,null,null,null, null,null,null,V(90)],
+    [V(127),null,null,null, null,null,V(90),null, null,null,null,null, V(127),null,null,null],
+    [null,null,null,V(90), null,null,null,null, null,V(90),null,null, null,null,V(90),null],
+    [V(127),null,null,null, null,null,null,null, null,V(90),null,null, null,null,null,null],
   ],
   'AFROBEAT': [
-    [1,0,0,1, 0,0,1,0, 1,0,0,1, 0,0,1,0],
-    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
-    [1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1],
-    [0,0,1,0, 0,0,0,1, 0,0,1,0, 0,0,0,1],
-    [0,0,0,0, 0,1,0,0, 0,0,0,0, 0,1,0,0],
-    [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0],
-    [0,0,1,0, 0,1,0,0, 0,0,1,0, 0,1,0,0],
-    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    [V(127),null,null,V(90), null,null,V(90),null, V(127),null,null,V(90), null,null,V(90),null],
+    [null,null,null,null, V(127),null,null,null, null,null,null,null, V(127),null,null,null],
+    [V(90),V(60),null,V(90), V(90),V(60),null,V(90), V(90),V(60),null,V(90), V(90),V(60),null,V(90)],
+    [null,null,V(90),null, null,null,null,V(60), null,null,V(90),null, null,null,null,V(60)],
+    [null,null,null,null, null,V(90),null,null, null,null,null,null, null,V(90),null,null],
+    [V(127),null,null,null, null,null,V(90),null, V(127),null,null,null, null,null,V(90),null],
+    [null,null,V(90),null, null,V(90),null,null, null,null,V(90),null, null,V(90),null,null],
+    [null,null,null,null, V(90),null,null,null, null,null,null,null, V(90),null,null,null],
   ],
 };
 
@@ -1253,9 +1266,14 @@ window.bbAddSample = async function(name, data) {
   }
 
   const color = DYNAMIC_COLORS[dynamicRows.length % DYNAMIC_COLORS.length];
-  const rowData = new Array(16).fill(false);
+  const rowData = new Array(16).fill(null); // velocity model: null or {vel: 1-127}
   const row = { name, color, data, grid: rowData, vol: 80, player: null };
   dynamicRows.push(row);
+  // Initialize per-row division for this dynamic row
+  const dynIdx = dynamicRows.length - 1;
+  dynRowDivisions[dynIdx] = '16n';
+  dynRowStepCounters[dynIdx] = 0;
+  dynRowSubCounters[dynIdx] = 0;
 
   // Load sample player if it's a URL sample
   if (data.type === 'sample' && data.url) {
@@ -1290,18 +1308,25 @@ window.bbAddSample = async function(name, data) {
   const r = INSTRUMENTS.length + dynamicRows.length - 1;
   const trackDiv = document.createElement('div');
   trackDiv.className = 'beat-boy-track dynamic-track';
-  trackDiv.id = `dynamic-track-${dynamicRows.length - 1}`;
+  trackDiv.id = `dynamic-track-${dynIdx}`;
+
+  // Per-row division buttons for dynamic tracks
+  const divBtns = ['4','8','16','32'].map(d =>
+    `<button class="bb-row-div-btn${d==='16'?' active':''}" data-div="${d}" onclick="setRowDivision(${r},'${d}n')" style="font-size:3px;padding:1px 2px;background:${d==='16'?'#0f0':'#0a0a0a'};color:${d==='16'?'#000':'#555'};border:1px solid ${d==='16'?'#0f0':'#333'};border-radius:2px;cursor:pointer;line-height:1;">${d}</button>`
+  ).join('');
+
   trackDiv.innerHTML = `
     <div class="beat-boy-track-header">
       <span style="color:${color}">📦 ${name}</span>
-      <div class="track-vol-row">
-        <button onclick="bbRemoveDynamic(${dynamicRows.length - 1})" style="font-size:4px; padding:1px 3px; background:#300; color:#f44; border:1px solid #f44; border-radius:2px; cursor:pointer;">✕</button>
+      <div class="track-controls-row">
+        <button onclick="bbRemoveDynamic(${dynIdx})" style="font-size:4px; padding:1px 3px; background:#300; color:#f44; border:1px solid #f44; border-radius:2px; cursor:pointer;">✕</button>
+        <div class="bb-row-div-group">${divBtns}</div>
         <input type="range" class="track-vol-slider" min="0" max="100" value="80"
-          oninput="bbSetDynamicVol(${dynamicRows.length - 1}, this.value)">
-        <span id="dyn-vol-${dynamicRows.length - 1}" class="track-vol-label">80</span>
+          oninput="bbSetDynamicVol(${dynIdx}, this.value)">
+        <span id="dyn-vol-${dynIdx}" class="track-vol-label">80</span>
       </div>
     </div>
-    <div class="beat-boy-steps" id="dynamic-steps-${dynamicRows.length - 1}"></div>
+    <div class="beat-boy-steps" id="dynamic-steps-${dynIdx}"></div>
   `;
 
   const stepsEl = trackDiv.querySelector('.beat-boy-steps');
@@ -1313,9 +1338,21 @@ window.bbAddSample = async function(name, data) {
     step.dataset.c = c;
     step.onclick = async function() {
       if (!audioReady) { bbSetStatus('⟳ Loading audio…'); try { await bbInitAudio(); } catch(e) {} }
-      rowData[c] = !rowData[c];
-      this.classList.toggle('active');
-      if (rowData[c] && audioReady) bbTriggerDynamic(dynamicRows.length - 1, c);
+      // Cycle: null → soft(60) → med(90) → hard(127) → null
+      const cur = rowData[c];
+      let nextVel, nextClass;
+      if (cur === null)           { nextVel = 60;  nextClass = 'vel-soft'; }
+      else if (cur.vel <= 60)     { nextVel = 90;  nextClass = 'vel-med'; }
+      else if (cur.vel <= 90)     { nextVel = 127; nextClass = 'vel-hard'; }
+      else                        { nextVel = null; nextClass = null; }
+      this.classList.remove('vel-soft','vel-med','vel-hard','active');
+      if (nextVel !== null) {
+        rowData[c] = {vel: nextVel};
+        this.classList.add(nextClass);
+        if (audioReady) bbTriggerDynamic(dynIdx, c, nextVel);
+      } else {
+        rowData[c] = null;
+      }
     };
     stepsEl.appendChild(step);
   }
@@ -1331,6 +1368,10 @@ window.bbRemoveDynamic = function(idx) {
   const row = dynamicRows[idx];
   if (row?.player) { try { row.player.dispose(); } catch(e) {} }
   dynamicRows.splice(idx, 1);
+  // Clean up division counters
+  dynRowDivisions.splice(idx, 1);
+  dynRowStepCounters.splice(idx, 1);
+  dynRowSubCounters.splice(idx, 1);
   const el = document.getElementById(`dynamic-track-${idx}`);
   if (el) el.remove();
 };
@@ -1341,11 +1382,11 @@ window.bbSetDynamicVol = function(idx, val) {
   if (label) label.textContent = val;
 };
 
-function bbTriggerDynamic(idx, step) {
+function bbTriggerDynamic(idx, step, vel) {
   const row = dynamicRows[idx];
   if (!row) return;
-  const vol = row.vol / 100;
-  if (vol === 0) return;
+  const vol = (row.vol / 100) * ((vel || 127) / 127);
+  if (vol < 0.01) return;
 
   if (row.data.type === 'sample' && row.player) {
     if (!row.player.loaded) return; // skip if not loaded yet
@@ -1357,6 +1398,7 @@ function bbTriggerDynamic(idx, step) {
     } catch(e) {}
   } else if (row.data.type === 'synth') {
     // Route through row's own gain for independent volume control
+    if (row.gain) row.gain.volume.value = Tone.gainToDb(vol);
     bbPlaySynthSound(row.data.synth, row.gain || bbMasterVol);
   }
 }
@@ -1438,9 +1480,13 @@ window.bbPreviewSample = function(name, data) {
   }
 };
 
-function bbTrigger(r, step) {
-  const vol = (trackVols[r] ?? 80) / 100;
-  if (vol === 0) return;
+function bbTrigger(r, step, vel) {
+  const trackVol = (trackVols[r] ?? 80) / 100;
+  if (trackVol === 0) return;
+  // vel is 1-127 from grid, default 127
+  const velocity = (vel || 127) / 127;
+  const vol = trackVol * velocity;
+  if (vol < 0.01) return;
 
   // Fallback mode: pure Web Audio synthesis
   if (!_bbFallbackCtx) {
@@ -1474,6 +1520,7 @@ function bbTrigger(r, step) {
 
   } else if (r === 5 && bbBassSynth) {
     const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;
+    bbBassSynth.volume.value = Tone.gainToDb(vol);
     bbBassSynth.triggerAttackRelease((melody?.bass || BASS_NOTES)[step % 8], '8n', now);
 
   } else if (r === 6) {
@@ -1483,15 +1530,20 @@ function bbTrigger(r, step) {
     if (bbPiano && bbPiano.loaded) {
       try { bbPiano.triggerAttackRelease(note, '8n', now); } catch(e) {
         // Note not in sampler mapping — use synth fallback
-        if (bbPianoSynth) bbPianoSynth.triggerAttackRelease(note, '8n', now);
+        if (bbPianoSynth) {
+          bbPianoSynth.volume.value = Tone.gainToDb(vol);
+          bbPianoSynth.triggerAttackRelease(note, '8n', now);
+        }
       }
     } else if (bbPianoSynth) {
+      bbPianoSynth.volume.value = Tone.gainToDb(vol);
       bbPianoSynth.triggerAttackRelease(note, '8n', now);
     }
 
   } else if (r === 7 && bbChordSynth) {
     const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;
     const chords = melody?.chords || CHORD_NOTES;
+    bbChordSynth.volume.value = Tone.gainToDb(vol);
     bbChordSynth.triggerAttackRelease(chords[step % chords.length], '4n', now);
   }
 }
@@ -1506,23 +1558,33 @@ window.initRemix = async function() {
   gridEl.innerHTML = '';
   remixGrid      = [];
   trackVols      = INSTRUMENTS.map(() => 80);
+  rowDivisions   = INSTRUMENTS.map(() => '16n');
+  rowStepCounters = INSTRUMENTS.map(() => 0);
+  rowSubCounters  = INSTRUMENTS.map(() => 0);
   isRemixPlaying = false;
   remixStep      = 0;
+  masterTick     = 0;
   if (remixInterval) clearTimeout(remixInterval);
 
   const bpmEl = document.getElementById('remixBpmDisplay');
   if (bpmEl) bpmEl.textContent = `${remixBPM} BPM`;
 
   INSTRUMENTS.forEach((inst, r) => {
-    const rowData  = new Array(16).fill(false);
+    const rowData  = new Array(16).fill(null); // null = off, {vel: 1-127} = on
     const trackDiv = document.createElement('div');
     trackDiv.className = 'beat-boy-track';
+
+    // Per-row division buttons: 4/8/16/32
+    const divBtns = ['4','8','16','32'].map(d =>
+      `<button class="bb-row-div-btn${d==='16'?' active':''}" data-div="${d}" onclick="setRowDivision(${r},'${d}n')" style="font-size:3px;padding:1px 2px;background:${d==='16'?'#0f0':'#0a0a0a'};color:${d==='16'?'#000':'#555'};border:1px solid ${d==='16'?'#0f0':'#333'};border-radius:2px;cursor:pointer;line-height:1;">${d}</button>`
+    ).join('');
 
     trackDiv.innerHTML = `
       <div class="beat-boy-track-header">
         <span style="color:${inst.color}">${inst.emoji} ${inst.name}</span>
-        <div class="track-vol-row">
+        <div class="track-controls-row">
           <span class="bb-key-hint">[${inst.key}]</span>
+          <div class="bb-row-div-group">${divBtns}</div>
           <input type="range" class="track-vol-slider" min="0" max="100" value="80"
             oninput="updateTrackVol(${r}, this.value)">
           <span id="track-vol-${r}" class="track-vol-label">80</span>
@@ -1540,9 +1602,24 @@ window.initRemix = async function() {
       step.dataset.c = c;
       step.onclick = async function() {
         if (!audioReady) { bbSetStatus('⟳ Loading audio…'); try { await bbInitAudio(); } catch(e) {} }
-        rowData[c] = !rowData[c];
-        this.classList.toggle('active');
-        if (rowData[c] && audioReady) bbTrigger(r, c);
+        // Cycle: null → soft(60) → med(90) → hard(127) → null
+        const cur = rowData[c];
+        let nextVel, nextClass;
+        if (cur === null)           { nextVel = 60;  nextClass = 'vel-soft'; }
+        else if (cur.vel <= 60)     { nextVel = 90;  nextClass = 'vel-med'; }
+        else if (cur.vel <= 90)     { nextVel = 127; nextClass = 'vel-hard'; }
+        else                        { nextVel = null; nextClass = null; }
+
+        // Remove old classes
+        this.classList.remove('vel-soft','vel-med','vel-hard','active');
+
+        if (nextVel !== null) {
+          rowData[c] = {vel: nextVel};
+          this.classList.add(nextClass);
+          if (audioReady) bbTrigger(r, c);
+        } else {
+          rowData[c] = null;
+        }
         if (typeof sounds !== 'undefined') sounds.click?.();
       };
       stepsEl.appendChild(step);
@@ -1581,7 +1658,13 @@ window.toggleRemixPlay = async function() {
     if (btn) { btn.textContent = '▶ PLAY'; btn.style.background = '#0f0'; btn.style.color = '#000'; }
     document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('highlight'));
   } else {
+    // Reset all counters
     remixStep = 0;
+    masterTick = 0;
+    rowStepCounters = INSTRUMENTS.map(() => 0);
+    rowSubCounters  = INSTRUMENTS.map(() => 0);
+    dynRowStepCounters = dynamicRows.map(() => 0);
+    dynRowSubCounters  = dynamicRows.map(() => 0);
     // Use setTimeout chain with swing support
     _bbRestartInterval();
     if (btn) { btn.textContent = '⏹ STOP'; btn.style.background = '#f00'; btn.style.color = '#fff'; }
@@ -1620,40 +1703,84 @@ window.updateTrackVol = function(r, val) {
   if (el) el.textContent = val;
 };
 
-function bbPlayStep() {
-  const ind = document.getElementById('remixStepIndicator');
-  if (ind) ind.textContent = `STEP ${remixStep + 1}`;
+// Per-row division skip factors
+const DIV_SKIP = { '4n': 8, '8n': 4, '16n': 2, '32n': 1, '8n.': 3 };
+// 4n = every 8 master ticks (32nd note master), 8n = every 4, 16n = every 2, 32n = every 1
 
+// Helper: get the finest division across all active rows
+function _bbGetFinestDivision() {
+  let finest = '16n';
+  const order = ['32n','16n','8n','4n'];
+  for (let r = 0; r < INSTRUMENTS.length; r++) {
+    const d = rowDivisions[r] || '16n';
+    if (order.indexOf(d) < order.indexOf(finest)) finest = d;
+  }
+  return finest;
+}
+
+function bbPlayStep() {
+  // This is called on every master tick (32nd note resolution)
+  masterTick++;
+
+  // Show the overall position (1-16 based on finest 16n row or master position)
+  const displayStep = Math.floor(masterTick / 2) % 16; // 2 master ticks per 16th
+  const ind = document.getElementById('remixStepIndicator');
+  if (ind) ind.textContent = `STEP ${displayStep + 1}`;
+
+  // Highlight the current step column across ALL rows (based on master position)
   document.querySelectorAll('.beat-boy-step').forEach(s => {
-    s.classList.toggle('highlight', parseInt(s.dataset.c) === remixStep);
+    s.classList.toggle('highlight', parseInt(s.dataset.c) === displayStep);
   });
 
-  // Trigger fixed tracks — wrapped in try/catch so one bad track doesn't kill the whole sequencer
+  // Trigger fixed tracks — each row advances based on its own division
   for (let r = 0; r < INSTRUMENTS.length; r++) {
-    if (remixGrid[r]?.[remixStep]) {
-      try { bbTrigger(r, remixStep); } catch(e) { console.warn('bbTrigger error:', r, e); }
+    rowSubCounters[r]++;
+    const skip = DIV_SKIP[rowDivisions[r]] || 2;
+    if (rowSubCounters[r] >= skip) {
+      rowSubCounters[r] = 0;
+      const step = rowStepCounters[r] % 16;
+      const cell = remixGrid[r]?.[step];
+      if (cell && cell.vel) {
+        try { bbTrigger(r, step, cell.vel); } catch(e) { console.warn('bbTrigger error:', r, e); }
+      }
+      rowStepCounters[r]++;
     }
   }
 
   // Trigger dynamic sample rows
   for (let i = 0; i < dynamicRows.length; i++) {
-    if (dynamicRows[i].grid[remixStep]) {
-      try { bbTriggerDynamic(i, remixStep); } catch(e) { console.warn('bbTriggerDynamic error:', i, e); }
+    if (!dynRowSubCounters[i]) dynRowSubCounters[i] = 0;
+    if (!dynRowStepCounters[i]) dynRowStepCounters[i] = 0;
+    dynRowSubCounters[i]++;
+    const skip = DIV_SKIP[dynRowDivisions[i]] || 2;
+    if (dynRowSubCounters[i] >= skip) {
+      dynRowSubCounters[i] = 0;
+      const step = dynRowStepCounters[i] % 16;
+      const cell = dynamicRows[i].grid[step];
+      if (cell && cell.vel) {
+        try { bbTriggerDynamic(i, step, cell.vel); } catch(e) { console.warn('bbTriggerDynamic error:', i, e); }
+      }
+      dynRowStepCounters[i]++;
     }
   }
-
-  remixStep = (remixStep + 1) % 16;
 }
 
-// Restart interval with current BPM + division + swing
+// Restart interval with current BPM — always runs at 32nd note resolution
+// Per-row division handled inside bbPlayStep() via skip counters
+let _bbSwingEven = true;
+
 function _bbRestartInterval() {
   clearTimeout(remixInterval);
-  const baseMs = (60000 / remixBPM) / 4 * _bbDivMultiplier();
-  const swingAmt = remixSwing / 100 * baseMs * 0.5;
+  _bbSwingEven = true;
+  // Master clock: always 32nd notes (1/4 of 8th note = 1/16 of beat / 2)
+  const baseMs = (60000 / remixBPM) / 8; // 32nd note interval
+  const swingAmt = remixSwing / 100 * baseMs * 0.4;
   function tick() {
     bbPlayStep();
-    const nextSwing = (remixStep % 2 === 0) ? swingAmt : -swingAmt;
-    remixInterval = setTimeout(tick, baseMs + nextSwing);
+    _bbSwingEven = !_bbSwingEven;
+    // Swing: delay odd steps slightly (or even steps negatively)
+    const swingDelay = _bbSwingEven ? swingAmt : -swingAmt;
+    remixInterval = setTimeout(tick, Math.max(10, baseMs + swingDelay));
   }
   remixInterval = setTimeout(tick, baseMs);
 }
@@ -1688,6 +1815,30 @@ window.setDivision = function(div) {
   if (typeof sounds !== 'undefined') sounds.click?.();
 };
 
+// ── Per-Row Division ──────────────────────────────────────
+
+window.setRowDivision = function(trackIdx, div) {
+  rowDivisions[trackIdx] = div;
+  // Reset that row's counter so it aligns to the new division
+  rowStepCounters[trackIdx] = 0;
+  rowSubCounters[trackIdx]  = 0;
+  // Update button UI in this track's div group
+  const trackEl = document.getElementById(`track-${trackIdx}`);
+  if (trackEl) {
+    const track = trackEl.closest('.beat-boy-track');
+    if (track) {
+      track.querySelectorAll('.bb-row-div-btn').forEach(b => {
+        const isActive = b.dataset.div === div.replace('n','');
+        b.classList.toggle('active', isActive);
+        b.style.background = isActive ? '#0f0' : '#0a0a0a';
+        b.style.color = isActive ? '#000' : '#555';
+        b.style.borderColor = isActive ? '#0f0' : '#333';
+      });
+    }
+  }
+  if (typeof sounds !== 'undefined') sounds.click?.();
+};
+
 // ── Kit Switch ────────────────────────────────────────────
 
 window.switchKit = async function(kitFolder) {
@@ -1708,13 +1859,21 @@ window.loadPreset = function(name) {
   if (name === 'AFROBEAT') remixBPM = 108;
   const bpmEl = document.getElementById('remixBpmDisplay');
   if (bpmEl) bpmEl.textContent = `${remixBPM} BPM`;
-  document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.beat-boy-step').forEach(s => {
+    s.classList.remove('active','vel-soft','vel-med','vel-hard');
+  });
   pattern.forEach((row, r) => {
     if (!remixGrid[r]) return;
     row.forEach((val, c) => {
-      remixGrid[r][c] = !!val;
-      if (val) {
-        document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${c}"]`)?.classList.add('active');
+      remixGrid[r][c] = val; // null or {vel: 60|90|127}
+      const el = document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${c}"]`);
+      if (el) {
+        if (val && val.vel) {
+          el.classList.add('active');
+          if (val.vel <= 60)  el.classList.add('vel-soft');
+          else if (val.vel <= 90) el.classList.add('vel-med');
+          else el.classList.add('vel-hard');
+        }
       }
     });
   });
@@ -1731,11 +1890,24 @@ window.setBbScale = function(scale) {
 
 window.bbGenerateVariation = function() {
   if (!remixGrid.length) return;
+  const velLevels = [60, 90, 127];
   remixGrid.forEach((row, r) => {
     row.forEach((_, c) => {
-      const keep = r === 0 ? 0.72 : r === 2 ? 0.5 : 0.32;
-      row[c] = Math.random() < keep;
-      document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${c}"]`)?.classList.toggle('active', row[c]);
+      const prob = r === 0 ? 0.72 : r === 2 ? 0.5 : 0.32;
+      const el = document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${c}"]`);
+      if (el) el.classList.remove('active','vel-soft','vel-med','vel-hard');
+      if (Math.random() < prob) {
+        const vel = velLevels[Math.floor(Math.random() * velLevels.length)];
+        row[c] = {vel};
+        if (el) {
+          el.classList.add('active');
+          if (vel <= 60)  el.classList.add('vel-soft');
+          else if (vel <= 90) el.classList.add('vel-med');
+          else el.classList.add('vel-hard');
+        }
+      } else {
+        row[c] = null;
+      }
     });
   });
   document.querySelectorAll('.bb-preset-btn').forEach(button => button.classList.remove('active'));
@@ -1778,10 +1950,12 @@ window.bbExportRecording = function() {
 // ── Clear ─────────────────────────────────────────────────
 
 window.clearRemix = function() {
-  document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('active'));
-  remixGrid.forEach(row => row.fill(false));
+  document.querySelectorAll('.beat-boy-step').forEach(s => {
+    s.classList.remove('active','vel-soft','vel-med','vel-hard');
+  });
+  remixGrid.forEach(row => row.fill(null));
   // Also clear imported library rows
-  dynamicRows.forEach(row => row.grid.fill(false));
+  dynamicRows.forEach(row => row.grid.fill(null));
   document.querySelectorAll('.bb-preset-btn').forEach(b => b.classList.remove('active'));
   if (typeof sounds !== 'undefined') sounds.back?.();
 };
@@ -1802,12 +1976,13 @@ window.bbSavePattern = function() {
   const key = name.trim().toUpperCase();
   const patterns = bbGetSavedPatterns();
   patterns[key] = {
-    grid: remixGrid.map(r => r.map(v => v ? 1 : 0)),
+    grid: remixGrid.map(r => r.map(v => v ? v : null)),
     bpm: remixBPM,
     kit: currentKit,
     swing: remixSwing,
     division: remixDivision,
     trackVols: [...trackVols],
+    rowDivisions: [...rowDivisions],
     savedAt: Date.now(),
   };
   localStorage.setItem(BB_STORAGE_KEY, JSON.stringify(patterns));
@@ -1821,13 +1996,27 @@ window.bbLoadPattern = function(key) {
   if (!p) return;
 
   // Restore grid
-  document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.beat-boy-step').forEach(s => {
+    s.classList.remove('active','vel-soft','vel-med','vel-hard');
+  });
   (p.grid || []).forEach((row, r) => {
     if (!remixGrid[r]) return;
     row.forEach((val, c) => {
-      remixGrid[r][c] = !!val;
-      if (val) {
-        document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${c}"]`)?.classList.add('active');
+      // Support both old format (0/1) and new format (null/{vel})
+      if (val === null || val === 0 || val === undefined) {
+        remixGrid[r][c] = null;
+      } else if (typeof val === 'number') {
+        remixGrid[r][c] = {vel: val};
+      } else if (val.vel) {
+        remixGrid[r][c] = val;
+      }
+      const cell = remixGrid[r][c];
+      const el = document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${c}"]`);
+      if (el && cell) {
+        el.classList.add('active');
+        if (cell.vel <= 60)  el.classList.add('vel-soft');
+        else if (cell.vel <= 90) el.classList.add('vel-med');
+        else el.classList.add('vel-hard');
       }
     });
   });
@@ -1848,6 +2037,25 @@ window.bbLoadPattern = function(key) {
       trackVols[i] = v;
       const el = document.getElementById(`track-vol-${i}`);
       if (el) el.textContent = v;
+    });
+  }
+  // Restore per-row divisions
+  if (p.rowDivisions) {
+    p.rowDivisions.forEach((d, i) => {
+      if (d && rowDivisions[i] !== undefined) {
+        rowDivisions[i] = d;
+        // Update the button UI
+        const trackDiv = document.querySelector(`.beat-boy-track`)?.children[i];
+        if (trackDiv) {
+          trackDiv.querySelectorAll('.bb-row-div-btn').forEach(b => {
+            const isActive = b.dataset.div === d.replace('n','');
+            b.classList.toggle('active', isActive);
+            b.style.background = isActive ? '#0f0' : '#0a0a0a';
+            b.style.color = isActive ? '#000' : '#555';
+            b.style.borderColor = isActive ? '#0f0' : '#333';
+          });
+        }
+      }
     });
   }
 
@@ -1954,10 +2162,11 @@ function bbBindKeyboard() {
       const step = remixStep;
       const pad = document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${step}"]`);
       if (pad) {
-        pad.classList.add('active');
-        remixGrid[r][step] = true;
+        pad.classList.remove('vel-soft','vel-med','vel-hard');
+        pad.classList.add('active','vel-hard');
+        remixGrid[r][step] = {vel: 127};
       }
-      try { bbTrigger(r, step); } catch(e) { console.warn('Key trigger error:', e); }
+      try { bbTrigger(r, step, 127); } catch(e) { console.warn('Key trigger error:', e); }
     }
 
     // Spacebar = play/stop
@@ -1979,11 +2188,11 @@ function bbSetupMIDI(midiAccess) {
   midiAccess.inputs.forEach(input => {
     input.onmidimessage = function(msg) {
       if (!audioReady) return;
-      const [status, note, velocity] = msg.data;
+      const [status, note, vel] = msg.data;
       // Note On (0x90–0x9F) with velocity > 0
-      if ((status & 0xF0) === 0x90 && velocity > 0) {
+      if ((status & 0xF0) === 0x90 && vel > 0) {
         const track = note % INSTRUMENTS.length;
-        bbTrigger(track, remixStep);
+        bbTrigger(track, remixStep, vel);
       }
     };
   });
@@ -2123,9 +2332,12 @@ function bbBuildPads() {
 
       // If playing, also record into the current step
       if (isRemixPlaying && remixGrid[r]) {
-        remixGrid[r][remixStep] = true;
+        remixGrid[r][remixStep] = {vel: 127};
         const gridPad = document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${remixStep}"]`);
-        if (gridPad) gridPad.classList.add('active');
+        if (gridPad) {
+          gridPad.classList.remove('vel-soft','vel-med','vel-hard');
+          gridPad.classList.add('active','vel-hard');
+        }
       }
     };
 
