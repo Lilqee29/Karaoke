@@ -1278,5 +1278,272 @@ function _orbLoop() {
   }
   _orbCtx.shadowBlur = 0;
 
+
+// ================================================================
+//  SAND — Falling Sand Cellular Automata
+//  Paint elements, watch them fall, flow, burn, grow.
+//  Totally different physics from ball sims — grid-based sim.
+// ================================================================
+let _sandCanvas, _sandCtx, _sandAnim;
+let _sandGrid, _sandW, _sandH, _sandCellSize;
+let _sandRunning = false;
+let _sandElement = 'sand';
+let _sandBrush = 3;
+let _sandPointerDown = false;
+let _sandLastPos = null;
+let _sandFrame = 0;
+
+const CELL = { EMPTY: 0, SAND: 1, WATER: 2, FIRE: 3, PLANT: 4, STONE: 5, SMOKE: 6, OIL: 7 };
+const CELL_COLORS = {
+  [CELL.EMPTY]: null,
+  [CELL.SAND]: ['#e8c170','#d4a853','#c49b45','#deb968'],
+  [CELL.WATER]: ['#4a90d9','#3b7ac4','#5ba0e6','#2e6ab3'],
+  [CELL.FIRE]:  ['#ff4422','#ff6633','#ff8844','#ffaa22'],
+  [CELL.PLANT]: ['#2d8a4e','#3a9e5c','#1f7a3d','#45b068'],
+  [CELL.STONE]: ['#777','#888','#666','#999'],
+  [CELL.SMOKE]: ['#555','#666','#777','#888'],
+  [CELL.OIL]:   ['#8b4513','#7a3c10','#6b330d','#9c5016']
+};
+
+const SAND_ELEMENTS = [
+  { id: 'sand',  label: 'SAND',  icon: '🏖' },
+  { id: 'water', label: 'WATER', icon: '💧' },
+  { id: 'fire',  label: 'FIRE',  icon: '🔥' },
+  { id: 'plant', label: 'PLANT', icon: '🌿' },
+  { id: 'stone', label: 'STONE', icon: '🪨' },
+  { id: 'oil',   label: 'OIL',   icon: '🛢' },
+  { id: 'smoke', label: 'SMOKE', icon: '💨' },
+  { id: 'erase', label: 'ERASE', icon: '⬜' }
+];
+
+function _sandCellId(el) {
+  return CELL[el.toUpperCase()] ?? CELL.EMPTY;
+}
+
+function initSand() {
+  const container = document.getElementById('sandContent');
+  if (!container) return;
+  renderSandUI(container);
+  _sandCanvas = document.getElementById('sandCanvas');
+  if (!_sandCanvas) return;
+  _sandCtx = _sandCanvas.getContext('2d');
+  _sandRunning = true;
+  _sandFrame = 0;
+
+  const resize = () => {
+    const r = _sandCanvas.parentElement.getBoundingClientRect();
+    _sandCanvas.width = Math.floor(r.width);
+    _sandCanvas.height = Math.floor(r.height);
+    _sandCellSize = 4;
+    _sandW = Math.floor(_sandCanvas.width / _sandCellSize);
+    _sandH = Math.floor(_sandCanvas.height / _sandCellSize);
+    _sandGrid = new Uint8Array(_sandW * _sandH);
+    _sandColorIdx = new Uint8Array(_sandW * _sandH);
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const getPos = (e) => {
+    const r = _sandCanvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {
+      gx: Math.floor((t.clientX - r.left) / _sandCellSize),
+      gy: Math.floor((t.clientY - r.top) / _sandCellSize)
+    };
+  };
+
+  const paint = (gx, gy) => {
+    const id = _sandCellId(_sandElement);
+    const rad = _sandBrush;
+    for (let dy = -rad; dy <= rad; dy++) {
+      for (let dx = -rad; dx <= rad; dx++) {
+        if (dx * dx + dy * dy > rad * rad + 1) continue;
+        const nx = gx + dx, ny = gy + dy;
+        if (nx < 0 || nx >= _sandW || ny < 0 || ny >= _sandH) continue;
+        const idx = ny * _sandW + nx;
+        if (id === CELL.EMPTY) {
+          _sandGrid[idx] = CELL.EMPTY;
+        } else if (_sandGrid[idx] === CELL.EMPTY) {
+          _sandGrid[idx] = id;
+          _sandColorIdx[idx] = Math.floor(Math.random() * 4);
+        }
+      }
+    }
+  };
+
+  const linePaint = (x0, y0, x1, y1) => {
+    const dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+    const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+    let err = dx - dy;
+    while (true) {
+      paint(x0, y0);
+      if (x0 === x1 && y0 === y1) break;
+      const e2 = 2 * err;
+      if (e2 > -dy) { err -= dy; x0 += sx; }
+      if (e2 < dx) { err += dx; y0 += sy; }
+    }
+  };
+
+  _sandCanvas.addEventListener('mousedown', e => { _sandPointerDown = true; const p = getPos(e); paint(p.gx, p.gy); _sandLastPos = p; });
+  _sandCanvas.addEventListener('mousemove', e => { if (!_sandPointerDown) return; const p = getPos(e); if (_sandLastPos) linePaint(_sandLastPos.gx, _sandLastPos.gy, p.gx, p.gy); _sandLastPos = p; });
+  _sandCanvas.addEventListener('mouseup', () => { _sandPointerDown = false; _sandLastPos = null; });
+  _sandCanvas.addEventListener('touchstart', e => { e.preventDefault(); _sandPointerDown = true; const p = getPos(e); paint(p.gx, p.gy); _sandLastPos = p; }, {passive:false});
+  _sandCanvas.addEventListener('touchmove', e => { e.preventDefault(); if (!_sandPointerDown) return; const p = getPos(e); if (_sandLastPos) linePaint(_sandLastPos.gx, _sandLastPos.gy, p.gx, p.gy); _sandLastPos = p; }, {passive:false});
+  _sandCanvas.addEventListener('touchend', () => { _sandPointerDown = false; _sandLastPos = null; });
+
+  _sandLoop();
+}
+
+function _sandCleanup() {
+  _sandRunning = false;
+  if (_sandAnim) { cancelAnimationFrame(_sandAnim); _sandAnim = null; }
+}
+
+function renderSandUI(container) {
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;">
+        <span style="font-size:9px;font-weight:bold;color:var(--gb-text);">🏖 SAND</span>
+        <span style="font-size:5px;opacity:0.6;">${_sandElement.toUpperCase()}</span>
+      </div>
+      <div style="display:flex;gap:2px;padding:0 6px 4px;flex-wrap:wrap;">
+        ${SAND_ELEMENTS.map(e => `<button onclick="sandSetElement('${e.id}')" style="font-size:5px;padding:2px 5px;${_sandElement===e.id?'background:var(--gb-text);color:var(--gb-bg);':''}">${e.icon}</button>`).join('')}
+      </div>
+      <div style="padding:0 6px 4px;display:flex;gap:4px;align-items:center;">
+        <span style="font-size:4px;">SIZE</span>
+        <input type="range" min="1" max="8" value="${_sandBrush}" oninput="sandSetBrush(this.value)" style="flex:1;height:10px;">
+        <span style="font-size:4px;">${_sandBrush}</span>
+      </div>
+      <div style="flex:1;position:relative;margin:0 6px 6px;border:2px solid var(--gb-text);border-radius:4px;overflow:hidden;background:#1a1a2e;">
+        <canvas id="sandCanvas" style="width:100%;height:100%;display:block;"></canvas>
+      </div>
+      <div style="padding:0 6px 6px;font-size:4px;text-align:center;opacity:0.5;">PAINT TO CREATE · WATCH IT FLOW</div>
+    </div>
+  `;
+}
+
+function sandSetElement(el) {
+  _sandElement = el;
+  renderSandUI(document.getElementById('sandContent'));
+  _sandCanvas = document.getElementById('sandCanvas');
+  if (_sandCanvas) _sandCtx = _sandCanvas.getContext('2d');
+}
+function sandSetBrush(v) { _sandBrush = Number(v); }
+
+function _sandLoop() {
+  if (!_sandRunning || !_sandCtx || !_sandCanvas || !_sandGrid) return;
+  _sandFrame++;
+
+  // Update grid (bottom-up so falling works correctly)
+  for (let y = _sandH - 1; y >= 0; y--) {
+    // Alternate left-right scan each frame to prevent bias
+    const leftToRight = (_sandFrame % 2 === 0);
+    for (let xi = 0; xi < _sandW; xi++) {
+      const x = leftToRight ? xi : _sandW - 1 - xi;
+      const idx = y * _sandW + x;
+      const cell = _sandGrid[idx];
+      if (cell === CELL.EMPTY || cell === CELL.STONE) continue;
+
+      const below = y + 1 < _sandH ? _sandGrid[(y + 1) * _sandW + x] : CELL.STONE;
+      const belowL = (y + 1 < _sandH && x - 1 >= 0) ? _sandGrid[(y + 1) * _sandW + x - 1] : CELL.STONE;
+      const belowR = (y + 1 < _sandH && x + 1 < _sandW) ? _sandGrid[(y + 1) * _sandW + x + 1] : CELL.STONE;
+      const above = y - 1 >= 0 ? _sandGrid[(y - 1) * _sandW + x] : CELL.STONE;
+      const left = x - 1 >= 0 ? _sandGrid[y * _sandW + x - 1] : CELL.STONE;
+      const right = x + 1 < _sandW ? _sandGrid[y * _sandW + x + 1] : CELL.STONE;
+
+      const isEmpty = (c) => c === CELL.EMPTY;
+      const isLiquid = (c) => c === CELL.WATER || c === CELL.OIL;
+      const swap = (a, b) => { _sandGrid[a] = _sandGrid[b]; _sandGrid[b] = CELL.EMPTY; _sandColorIdx[a] = _sandColorIdx[b]; };
+
+      switch (cell) {
+        case CELL.SAND:
+          // Falls straight, or diagonal
+          if (isEmpty(below)) { swap(idx, (y + 1) * _sandW + x); }
+          else if (isEmpty(belowL) && Math.random() < 0.5) { swap(idx, (y + 1) * _sandW + x - 1); }
+          else if (isEmpty(belowR)) { swap(idx, (y + 1) * _sandW + x + 1); }
+          // Sink through water/oil
+          else if (isLiquid(below)) { swap(idx, (y + 1) * _sandW + x); }
+          else if (isLiquid(belowL) && Math.random() < 0.5) { swap(idx, (y + 1) * _sandW + x - 1); }
+          else if (isLiquid(belowR)) { swap(idx, (y + 1) * _sandW + x + 1); }
+          break;
+
+        case CELL.WATER:
+        case CELL.OIL:
+          if (isEmpty(below)) { swap(idx, (y + 1) * _sandW + x); }
+          else if (isEmpty(belowL) && Math.random() < 0.5) { swap(idx, (y + 1) * _sandW + x - 1); }
+          else if (isEmpty(belowR)) { swap(idx, (y + 1) * _sandW + x + 1); }
+          else if (isEmpty(left) && Math.random() < 0.4) { swap(idx, y * _sandW + x - 1); }
+          else if (isEmpty(right)) { swap(idx, y * _sandW + x + 1); }
+          break;
+
+        case CELL.FIRE:
+          // Fire rises and dies
+          _sandColorIdx[idx] = Math.floor(Math.random() * 4);
+          if (Math.random() < 0.05) { _sandGrid[idx] = CELL.SMOKE; _sandColorIdx[idx] = Math.floor(Math.random() * 4); break; }
+          if (Math.random() < 0.02) { _sandGrid[idx] = CELL.EMPTY; break; }
+          if (isEmpty(above)) { swap(idx, (y - 1) * _sandW + x); }
+          else if (isEmpty(above) && Math.random() < 0.3) {
+            const nx = x + (Math.random() < 0.5 ? -1 : 1);
+            if (nx >= 0 && nx < _sandW && isEmpty((y - 1) * _sandW + nx))
+              swap(idx, (y - 1) * _sandW + nx);
+          }
+          // Burn adjacent plants
+          [[y-1,x],[y+1,x],[y,x-1],[y,x+1]].forEach(([ny,nx]) => {
+            if (ny >= 0 && ny < _sandH && nx >= 0 && nx < _sandW) {
+              const ni = ny * _sandW + nx;
+              if (_sandGrid[ni] === CELL.PLANT && Math.random() < 0.15) { _sandGrid[ni] = CELL.FIRE; _sandColorIdx[ni] = Math.floor(Math.random() * 4); }
+              if (_sandGrid[ni] === CELL.OIL && Math.random() < 0.1) { _sandGrid[ni] = CELL.FIRE; _sandColorIdx[ni] = Math.floor(Math.random() * 4); }
+            }
+          });
+          break;
+
+        case CELL.PLANT:
+          // Grow upward toward light occasionally
+          if (Math.random() < 0.005 && isEmpty(above)) { _sandGrid[(y - 1) * _sandW + x] = CELL.PLANT; _sandColorIdx[(y - 1) * _sandW + x] = Math.floor(Math.random() * 4); }
+          break;
+
+        case CELL.SMOKE:
+          if (Math.random() < 0.08) { _sandGrid[idx] = CELL.EMPTY; break; }
+          if (Math.random() < 0.1) {
+            const nx = x + (Math.random() < 0.5 ? -1 : 1);
+            if (nx >= 0 && nx < _sandW && isEmpty((y - 1) * _sandW + nx))
+              swap(idx, (y - 1) * _sandW + nx);
+          } else if (isEmpty(above)) { swap(idx, (y - 1) * _sandW + x); }
+          break;
+      }
+    }
+  }
+
+  // Draw
+  const img = _sandCtx.createImageData(_sandCanvas.width, _sandCanvas.height);
+  const d = img.data;
+  const cs = _sandCellSize;
+
+  for (let gy = 0; gy < _sandH; gy++) {
+    for (let gx = 0; gx < _sandW; gx++) {
+      const cell = _sandGrid[gy * _sandW + gx];
+      if (cell === CELL.EMPTY) continue;
+      const colors = CELL_COLORS[cell];
+      const cHex = colors[_sandColorIdx[gy * _sandW + gx] % colors.length];
+      const r = parseInt(cHex.slice(1, 3), 16);
+      const g = parseInt(cHex.slice(3, 5), 16);
+      const b = parseInt(cHex.slice(5, 7), 16);
+
+      // Fill cell pixels
+      for (let py = 0; py < cs; py++) {
+        for (let px = 0; px < cs; px++) {
+          const sx = gx * cs + px, sy = gy * cs + py;
+          if (sx >= _sandCanvas.width || sy >= _sandCanvas.height) continue;
+          const pi = (sy * _sandCanvas.width + sx) * 4;
+          d[pi] = r; d[pi + 1] = g; d[pi + 2] = b; d[pi + 3] = 255;
+        }
+      }
+    }
+  }
+
+  _sandCtx.putImageData(img, 0, 0);
+  _sandAnim = requestAnimationFrame(_sandLoop);
+}
+
   _orbAnim = requestAnimationFrame(_orbLoop);
 }

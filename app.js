@@ -37,6 +37,7 @@ const apps = [
     { id: 'maze', name: 'MAZE', icon: '⚔' },
     { id: 'gravity', name: 'GRAVITY', icon: '🪐' },
     { id: 'orbit', name: 'ORBIT', icon: '🌍' },
+    { id: 'sand', name: 'SAND', icon: '🏖' },
 
     // ── INFORMATION & LEARNING ────────────────────────────────────────────
     { id: 'news', name: 'NEWS', icon: '📰' },
@@ -294,6 +295,7 @@ function goBack() {
         if (typeof _mazeCleanup === 'function') _mazeCleanup();
         if (typeof _gravCleanup === 'function') _gravCleanup();
         if (typeof _orbCleanup === 'function') _orbCleanup();
+        if (typeof _sandCleanup === 'function') _sandCleanup();
         if (currentScreen === 'noise' && typeof noiseStop === 'function') noiseStop();
         if (currentScreen === 'visual' && typeof _waveStopAuto === 'function') _waveStopAuto();
         if (currentScreen === 'glitch' && typeof _glitchAnim !== 'undefined') { cancelAnimationFrame(_glitchAnim); _glitchAnim = null; }
