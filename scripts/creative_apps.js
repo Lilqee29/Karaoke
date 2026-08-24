@@ -781,3 +781,192 @@ function mazeRestart() {
   };
   document.addEventListener('keydown', _mazeKeyHandler);
 }
+
+// ================================================================
+//  GRAVITY — Physics Sandbox (tap to drop, real physics)
+// ================================================================
+let _gravCanvas, _gravCtx, _gravAnim;
+let _gravBalls = [], _gravGhosts = [];
+let _gravMode = 'drop'; // drop | fountain | attract
+let _gravRunning = false;
+let _gravTime = 0, _gravFrameCount = 0, _gravFPS = 0;
+const GRAVITY = 0.15, BOUNCE = 0.75, FRICTION = 0.999;
+const BALL_COLORS = ['#ff6b6b','#4ecdc4','#45b7d1','#f9ca24','#a29bfe','#fd79a8','#00cec9','#fab1a0'];
+
+function initGravity() {
+  const container = document.getElementById('gravityContent');
+  if (!container) return;
+  renderGravUI(container);
+  _gravCanvas = document.getElementById('gravCanvas');
+  if (!_gravCanvas) return;
+  _gravCtx = _gravCanvas.getContext('2d');
+  _gravBalls = [];
+  _gravRunning = true;
+  _gravTime = 0;
+
+  const resize = () => {
+    const r = _gravCanvas.parentElement.getBoundingClientRect();
+    _gravCanvas.width = Math.floor(r.width);
+    _gravCanvas.height = Math.floor(r.height);
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const getPos = (e) => {
+    const r = _gravCanvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  };
+
+  const spawn = (x, y) => {
+    if (_gravBalls.length > 300) return;
+    const count = _gravMode === 'fountain' ? 3 : 1;
+    for (let i = 0; i < count; i++) {
+      const speed = _gravMode === 'fountain' ? 3 + Math.random() * 2 : 0;
+      const angle = _gravMode === 'fountain' ? -Math.PI / 2 + (Math.random() - 0.5) * 0.6 : Math.random() * Math.PI * 2;
+      _gravBalls.push({
+        x: x + (Math.random() - 0.5) * 6,
+        y: _gravMode === 'fountain' ? _gravCanvas.height - 5 : y,
+        vx: Math.cos(angle) * speed + (Math.random() - 0.5),
+        vy: Math.sin(angle) * speed,
+        r: 3 + Math.random() * 5,
+        color: BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)],
+        life: 1
+      });
+    }
+  };
+
+  let isDown = false;
+  _gravCanvas.addEventListener('mousedown', e => { isDown = true; const p = getPos(e); spawn(p.x, p.y); });
+  _gravCanvas.addEventListener('mousemove', e => { if (isDown) { const p = getPos(e); spawn(p.x, p.y); } });
+  _gravCanvas.addEventListener('mouseup', () => { isDown = false; });
+  _gravCanvas.addEventListener('touchstart', e => { e.preventDefault(); isDown = true; const p = getPos(e); spawn(p.x, p.y); }, {passive:false});
+  _gravCanvas.addEventListener('touchmove', e => { e.preventDefault(); if (isDown) { const p = getPos(e); spawn(p.x, p.y); } }, {passive:false});
+  _gravCanvas.addEventListener('touchend', () => { isDown = false; });
+
+  _gravLoop();
+}
+
+function _gravCleanup() {
+  _gravRunning = false;
+  if (_gravAnim) { cancelAnimationFrame(_gravAnim); _gravAnim = null; }
+}
+
+function renderGravUI(container) {
+  const modes = [
+    { id: 'drop', label: 'DROP', icon: '💧' },
+    { id: 'fountain', label: 'FOUNTAIN', icon: '⛲' },
+    { id: 'attract', label: 'ATTRACT', icon: '🧲' }
+  ];
+  container.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;">
+        <span style="font-size:9px;font-weight:bold;color:var(--gb-text);">🪐 GRAVITY</span>
+        <span style="font-size:5px;opacity:0.6;">${_gravBalls.length} BALLS</span>
+      </div>
+      <div style="display:flex;gap:2px;padding:0 6px 4px;flex-wrap:wrap;">
+        ${modes.map(m => `<button onclick="setGravMode('${m.id}')" style="font-size:5px;padding:2px 5px;${_gravMode===m.id?'background:var(--gb-text);color:var(--gb-bg);':''}">${m.icon} ${m.label}</button>`).join('')}
+        <button onclick="clearGravBalls()" style="font-size:5px;padding:2px 5px;margin-left:auto;">CLR</button>
+      </div>
+      <div style="flex:1;position:relative;margin:0 6px 6px;border:2px solid var(--gb-text);border-radius:4px;overflow:hidden;background:#0a0a1a;">
+        <canvas id="gravCanvas" style="width:100%;height:100%;display:block;"></canvas>
+      </div>
+      <div style="padding:0 6px 6px;font-size:4px;text-align:center;opacity:0.5;">TAP TO DROP · ${_gravMode === 'fountain' ? 'FOUNTAIN MODE' : _gravMode === 'attract' ? 'TAP TO ATTRACT' : 'DRAG TO FILL'}</div>
+    </div>
+  `;
+}
+
+function setGravMode(m) { _gravMode = m; renderGravUI(document.getElementById('gravityContent')); }
+function clearGravBalls() { _gravBalls = []; }
+
+function _gravLoop() {
+  if (!_gravRunning || !_gravCtx || !_gravCanvas) return;
+  const w = _gravCanvas.width, h = _gravCanvas.height;
+  _gravTime += 1 / 60;
+  _gravFrameCount++;
+
+  // BG
+  _gravCtx.fillStyle = 'rgba(10,10,26,0.3)';
+  _gravCtx.fillRect(0, 0, w, h);
+
+  // Update physics
+  for (let i = _gravBalls.length - 1; i >= 0; i--) {
+    const b = _gravBalls[i];
+
+    // Gravity
+    b.vy += GRAVITY;
+
+    // Attract mode: pull toward center-ish
+    if (_gravMode === 'attract') {
+      const cx = w / 2, cy = h / 3;
+      const dx = cx - b.x, dy = cy - b.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+      b.vx += dx / dist * 0.3;
+      b.vy += dy / dist * 0.3;
+    }
+
+    // Friction
+    b.vx *= FRICTION;
+    b.vy *= FRICTION;
+
+    // Move
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // Bounce walls
+    if (b.x - b.r < 0) { b.x = b.r; b.vx *= -BOUNCE; }
+    if (b.x + b.r > w) { b.x = w - b.r; b.vx *= -BOUNCE; }
+    if (b.y + b.r < 0) { b.y = b.r; b.vy *= -BOUNCE; }
+    if (b.y + b.r > h) { b.y = h - b.r; b.vy *= -BOUNCE; }
+
+    // Ball-to-ball collision
+    for (let j = i + 1; j < _gravBalls.length; j++) {
+      const o = _gravBalls[j];
+      const dx2 = o.x - b.x, dy2 = o.y - b.y;
+      const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+      const minDist = b.r + o.r;
+      if (dist2 < minDist && dist2 > 0) {
+        const nx = dx2 / dist2, ny = dy2 / dist2;
+        const overlap = minDist - dist2;
+        b.x -= nx * overlap * 0.5;
+        b.y -= ny * overlap * 0.5;
+        o.x += nx * overlap * 0.5;
+        o.y += ny * overlap * 0.5;
+        const dvx = b.vx - o.vx, dvy = b.vy - o.vy;
+        const dot = dvx * nx + dvy * ny;
+        b.vx -= dot * nx * BOUNCE;
+        b.vy -= dot * ny * BOUNCE;
+        o.vx += dot * nx * BOUNCE;
+        o.vy += dot * ny * BOUNCE;
+      }
+    }
+  }
+
+  // Draw balls with glow
+  for (const b of _gravBalls) {
+    const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    const glow = Math.min(speed * 2, 15);
+
+    // Glow
+    _gravCtx.shadowColor = b.color;
+    _gravCtx.shadowBlur = glow;
+
+    // Ball
+    _gravCtx.fillStyle = b.color;
+    _gravCtx.beginPath();
+    _gravCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    _gravCtx.fill();
+
+    // Highlight
+    _gravCtx.fillStyle = 'rgba(255,255,255,0.3)';
+    _gravCtx.beginPath();
+    _gravCtx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.3, 0, Math.PI * 2);
+    _gravCtx.fill();
+  }
+  _gravCtx.shadowBlur = 0;
+
+  // FPS counter
+  if (_gravFrameCount % 30 === 0) _gravFPS = Math.round(1000 / (performance.now() / _gravFrameCount));
+
+  _gravAnim = requestAnimationFrame(_gravLoop);
+}
