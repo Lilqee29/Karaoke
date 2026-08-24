@@ -135,6 +135,11 @@ let bbFilter      = null;
 let bbReverb      = null;
 let bbReverbGain  = null;
 let bbCompressor  = null;
+let bbRecorder    = null;
+let bbRecording   = false;
+let bbRecordingBlob = null;
+let bbMelodyStyle = 'default';
+let bbScale = 'aminor';
 
 // Melodic sequences
 const BASS_NOTES  = ['C2','C2','G2','A2','F2','E2','D2','C2'];
@@ -143,6 +148,11 @@ const CHORD_NOTES = [
   ['C3','E3','G3'], ['A2','C3','E3'], ['F2','A2','C3'], ['G2','B2','D3'],
   ['C3','E3','G3'], ['D2','F2','A2'], ['E2','G2','B2'], ['C3','G3','E3'],
 ];
+const AFROBEAT_NOTES = {
+  aminor: { bass: ['A2','A2','E2','G2','A2','C3','G2','E2'], lead: ['E4','G4','A4','C5','B4','A4','G4','E4'], chords: [['A3','C4','E4'],['G3','B3','E4'],['F3','A3','C4'],['E3','G3','B3']] },
+  cmajor: { bass: ['C2','C2','G2','A2','C2','E2','G2','A2'], lead: ['E4','G4','A4','C5','B4','G4','E4','D4'], chords: [['C3','E3','G3'],['G2','B2','D3'],['A2','C3','E3'],['F2','A2','C3']] },
+  ddorian: { bass: ['D2','D2','A2','C3','D2','F2','C3','A2'], lead: ['F4','A4','C5','D5','C5','A4','G4','F4'], chords: [['D3','F3','A3'],['C3','E3','G3'],['G2','B2','D3'],['D3','F3','A3']] }
+};
 
 // ── Preset Patterns ───────────────────────────────────────
 const PRESETS = {
@@ -216,6 +226,16 @@ const PRESETS = {
     [0,0,0,1, 0,0,0,0, 0,1,0,0, 0,0,1,0],
     [1,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0],
   ],
+  'AFROBEAT': [
+    [1,0,0,1, 0,0,1,0, 1,0,0,1, 0,0,1,0],
+    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+    [1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1],
+    [0,0,1,0, 0,0,0,1, 0,0,1,0, 0,0,0,1],
+    [0,0,0,0, 0,1,0,0, 0,0,0,0, 0,1,0,0],
+    [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0],
+    [0,0,1,0, 0,1,0,0, 0,0,1,0, 0,1,0,0],
+    [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+  ],
 };
 
 // ── Audio Init ────────────────────────────────────────────
@@ -250,6 +270,8 @@ async function bbInitAudio() {
   bbAnalyser   = new Tone.Analyser('waveform', 128);
   bbMasterVol  = new Tone.Volume(Tone.gainToDb(remixMasterVol));
   bbMasterVol.chain(bbCompressor, bbAnalyser, Tone.Destination);
+  bbRecorder   = new Tone.Recorder();
+  bbAnalyser.connect(bbRecorder);
 
   // Delay effect: input → delay → delayGain → compressor
   bbDelay     = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 1 });
@@ -633,11 +655,17 @@ window.bbAddSample = async function(name, data) {
   // Load sample player if it's a URL sample
   if (data.type === 'sample' && data.url) {
     try {
-      const player = new Tone.Player(data.url).connect(bbMasterVol);
+      const player = new Tone.Player({
+        url: data.url,
+        onload: () => { bbSetStatus(`✓ Loaded: ${name}`); },
+        onerror: (e) => { console.warn('Player load error:', name, e); bbSetStatus(`⚠ Load failed: ${name}`); }
+      });
+      player.connect(bbMasterVol);
       player.volume.value = 0;
       row.player = player;
     } catch(e) {
       console.warn('Dynamic sample load:', e);
+      bbSetStatus(`⚠ Failed: ${name}`);
     }
   }
 
@@ -725,16 +753,33 @@ function renderSampleBrowser() {
     html += `<div style="display:flex; flex-wrap:wrap; gap:3px;">`;
     for (const [name, data] of Object.entries(samples)) {
       const bgColor = '#111';
-      html += `<button onclick="bbPreviewSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')}); event.stopPropagation();" 
+      html += `<button onclick="if (!this.dataset.touchHandled) bbPreviewSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')}); this.dataset.touchHandled=''; event.stopPropagation();"
+        ontouchend="bbHandleSampleTouch(event, this, '${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
         ondblclick="bbAddSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
         style="font-size:4.5px; padding:2px 4px; background:${bgColor}; color:#ccc; border:1px solid #333; border-radius:2px; cursor:pointer;"
-        title="Click = preview, Double-click = add to grid">${name} +</button>`;
+        title="Tap once = preview, tap twice = add to grid">${name} +</button>`;
     }
     html += `</div></div>`;
   }
-  html += `<div style="font-size:4px; color:#666; margin-top:4px;">Click to preview • Double-click to add as new row in grid</div>`;
+  html += `<div style="font-size:4px; color:#666; margin-top:4px;">Tap once to preview • Tap twice to add as new row</div>`;
   browser.innerHTML = html;
 }
+
+window.bbHandleSampleTouch = function(event, button, name, data) {
+  event.preventDefault();
+  event.stopPropagation();
+  button.dataset.touchHandled = '1';
+  const now = Date.now();
+  const lastTap = Number(button.dataset.lastTap || 0);
+  button.dataset.lastTap = now;
+
+  if(now - lastTap < 400) {
+    button.dataset.lastTap = '0';
+    bbAddSample(name, data);
+  } else {
+    bbPreviewSample(name, data);
+  }
+};
 
 // Preview a sample (for the browser)
 window.bbPreviewSample = function(name, data) {
@@ -768,13 +813,17 @@ function bbTrigger(r, step) {
     } catch(e) { console.warn('Drum trigger:', name, e); }
 
   } else if (r === 5 && bbBassSynth) {
-    bbBassSynth.triggerAttackRelease(BASS_NOTES[step % 8], '8n', now);
+    const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;
+    bbBassSynth.triggerAttackRelease((melody?.bass || BASS_NOTES)[step % 8], '8n', now);
 
   } else if (r === 6 && bbPiano?.loaded) {
-    bbPiano.triggerAttackRelease(LEAD_NOTES[step % 8], '8n', now);
+    const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;
+    bbPiano.triggerAttackRelease((melody?.lead || LEAD_NOTES)[step % 8], '8n', now);
 
   } else if (r === 7 && bbChordSynth) {
-    bbChordSynth.triggerAttackRelease(CHORD_NOTES[step % 8], '4n', now);
+    const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;
+    const chords = melody?.chords || CHORD_NOTES;
+    bbChordSynth.triggerAttackRelease(chords[step % chords.length], '4n', now);
   }
 }
 
@@ -966,6 +1015,10 @@ window.switchKit = async function(kitFolder) {
 window.loadPreset = function(name) {
   const pattern = PRESETS[name];
   if (!pattern) return;
+  bbMelodyStyle = name === 'AFROBEAT' ? 'afrobeat' : 'default';
+  if (name === 'AFROBEAT') remixBPM = 108;
+  const bpmEl = document.getElementById('remixBpmDisplay');
+  if (bpmEl) bpmEl.textContent = `${remixBPM} BPM`;
   document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('active'));
   pattern.forEach((row, r) => {
     if (!remixGrid[r]) return;
@@ -980,6 +1033,57 @@ window.loadPreset = function(name) {
     b.classList.toggle('active', b.dataset.preset === name);
   });
   if (typeof sounds !== 'undefined') sounds.click?.();
+};
+
+window.setBbScale = function(scale) {
+  if (AFROBEAT_NOTES[scale]) bbScale = scale;
+  if (typeof sounds !== 'undefined') sounds.click?.();
+};
+
+window.bbGenerateVariation = function() {
+  if (!remixGrid.length) return;
+  remixGrid.forEach((row, r) => {
+    row.forEach((_, c) => {
+      const keep = r === 0 ? 0.72 : r === 2 ? 0.5 : 0.32;
+      row[c] = Math.random() < keep;
+      document.querySelector(`.beat-boy-step[data-r="${r}"][data-c="${c}"]`)?.classList.toggle('active', row[c]);
+    });
+  });
+  document.querySelectorAll('.bb-preset-btn').forEach(button => button.classList.remove('active'));
+  if (typeof sounds !== 'undefined') sounds.coin?.();
+};
+
+window.bbToggleRecording = async function() {
+  if (!bbRecorder) {
+    if (!audioReady) await bbInitAudio();
+    if (!bbRecorder) return;
+  }
+  const button = document.getElementById('bbRecordBtn');
+  const status = document.getElementById('bbRecordStatus');
+  const exportButton = document.getElementById('bbExportBtn');
+  if (bbRecording) {
+    bbRecordingBlob = await bbRecorder.stop();
+    bbRecording = false;
+    if (button) button.textContent = '● REC';
+    if (status) status.style.display = 'none';
+    if (exportButton) exportButton.disabled = false;
+  } else {
+    await Tone.start();
+    bbRecorder.start();
+    bbRecording = true;
+    if (button) button.textContent = '■ STOP';
+    if (status) status.style.display = 'block';
+    if (exportButton) exportButton.disabled = true;
+  }
+};
+
+window.bbExportRecording = function() {
+  if (!bbRecordingBlob) return;
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(bbRecordingBlob);
+  link.download = `beat-boy-${Date.now()}.wav`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 };
 
 // ── Clear ─────────────────────────────────────────────────
@@ -1165,10 +1269,8 @@ function bbBindKeyboard() {
   document.addEventListener('keydown', window._bbKeyHandler);
 
   // Web MIDI API
-  if (navigator.requestMIDI) {
-    navigator.requestMIDI().then(bbSetupMIDI).catch(() => {});
-  } else if (navigator.midi) {
-    navigator.midi.requestMIDIAccess().then(bbSetupMIDI).catch(() => {});
+  if (navigator.requestMIDIAccess) {
+    navigator.requestMIDIAccess().then(bbSetupMIDI).catch(() => {});
   }
 }
 

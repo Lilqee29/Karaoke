@@ -447,7 +447,28 @@ window.initDaily = function() {
             </div>
         </div>
     `;
+
+    loadUpcomingHolidays();
 };
+
+async function loadUpcomingHolidays() {
+    const screen = document.getElementById('dailyScreen');
+    if(!screen) return;
+    const holidayPanel = document.createElement('div');
+    holidayPanel.style.cssText = 'background:rgba(15,56,15,0.1);border:2px solid var(--gb-text);padding:8px;text-align:left;border-radius:4px;';
+    holidayPanel.innerHTML = '<div style="font-size:7px;font-weight:bold;margin-bottom:5px;">UPCOMING WORLD HOLIDAYS</div><div style="font-size:6px;opacity:0.65;">LOADING CALENDAR...</div>';
+    screen.firstElementChild.appendChild(holidayPanel);
+
+    try {
+        const response = await fetch('https://date.nager.at/api/v3/NextPublicHolidaysWorldwide');
+        if(!response.ok) throw new Error('Holiday API unavailable');
+        const holidays = await response.json();
+        holidayPanel.innerHTML = '<div style="font-size:7px;font-weight:bold;margin-bottom:5px;">UPCOMING WORLD HOLIDAYS</div>' +
+            holidays.slice(0, 4).map(holiday => `<div style="font-size:6px;margin:4px 0;border-top:1px dashed rgba(15,56,15,0.25);padding-top:3px;"><b>${holiday.name}</b><br>${holiday.date} · ${holiday.countryCode}</div>`).join('');
+    } catch(error) {
+        holidayPanel.innerHTML = '<div style="font-size:7px;font-weight:bold;margin-bottom:5px;">UPCOMING WORLD HOLIDAYS</div><div style="font-size:6px;opacity:0.65;">CALENDAR OFFLINE</div>';
+    }
+}
 
 // ── VIBES HUB (Quotes, Jokes, Facts, Riddles with Copy) ───────────────────
 let currentVibeType = 'quote';
@@ -521,28 +542,87 @@ window.calcTipHub = function() {
 
 // ── NAVIGATOR HUB (Maps + Distance + Compass) ──────────────────────────────
 let navPins = [];
+let navigatorMap = null;
+let navigatorMarkers = [];
 window.initNavigator = function() {
     navPins = [];
     const res = document.getElementById('navDistResult');
     if(res) res.textContent = "TAP TWO POINTS ON MAP TO MEASURE DISTANCE";
+
+    const screen = document.getElementById('navigatorScreen');
+    if(!screen) return;
+    screen.innerHTML = `
+        <div style="padding: 8px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box; text-align: center;">
+            <div style="font-size: 9px; font-weight: bold; margin-bottom: 6px;">🗺️ NAVIGATOR MAP</div>
+            <div id="navigatorMap" style="flex: 1; min-height: 180px; background: #0f380f; border: 2px solid var(--gb-text); position: relative;"></div>
+            <div id="navDistResult" style="font-size: 7px; font-weight: bold; margin-top: 6px; min-height: 16px;">TAP TWO POINTS ON MAP TO MEASURE DISTANCE</div>
+            <button onclick="clearNavigatorPins()" style="width: 100%; margin-top: 5px; padding: 5px; font-size: 6px;">CLEAR PINS</button>
+        </div>
+    `;
+
+    if(window.L) setupNavigatorMap();
+    else {
+        if(!document.querySelector('link[href*="leaflet.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+        }
+        const script = document.querySelector('script[src*="leaflet.js"]') || document.createElement('script');
+        if(!script.src) {
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            document.head.appendChild(script);
+        }
+        script.addEventListener('load', setupNavigatorMap, { once: true });
+    }
 };
 
 window.onNavMapClick = function(e) {
-    const rect = e.target.getBoundingClientRect();
-    const x = Math.round(e.clientX - rect.left);
-    const y = Math.round(e.clientY - rect.top);
-    navPins.push({ x, y });
-    
     const res = document.getElementById('navDistResult');
+    if(!e.latlng) return;
+    navPins.push({ lat: e.latlng.lat, lng: e.latlng.lng });
+    const marker = L.marker(e.latlng).addTo(navigatorMap).bindPopup(`PIN ${navPins.length}`).openPopup();
+    navigatorMarkers.push(marker);
+
     if(navPins.length === 1 && res) {
-        res.textContent = `PIN 1 SET (${x}, ${y}). TAP SECOND PIN!`;
+        res.textContent = `PIN 1 SET (${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}). TAP SECOND PIN!`;
     } else if(navPins.length >= 2 && res) {
         const p1 = navPins[navPins.length - 2];
         const p2 = navPins[navPins.length - 1];
-        const dist = Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y) * 12.5); // Approx km ratio
-        res.textContent = `DISTANCE: ~${dist} KM`;
+        const dist = calculateDistance(p1.lat, p1.lng, p2.lat, p2.lng);
+        res.textContent = `DISTANCE: ${dist.toFixed(2)} KM`;
         if(window.sounds && window.sounds.coin) window.sounds.coin();
     }
+};
+
+function setupNavigatorMap() {
+    if(!window.L || !document.getElementById('navigatorMap')) return;
+    if(navigatorMap) navigatorMap.remove();
+    navigatorMarkers = [];
+
+    const createMap = (lat, lng, zoom) => {
+        navigatorMap = L.map('navigatorMap').setView([lat, lng], zoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(navigatorMap);
+        L.marker([lat, lng]).addTo(navigatorMap).bindPopup('YOU ARE HERE').openPopup();
+        navigatorMap.on('click', window.onNavMapClick);
+        setTimeout(() => navigatorMap.invalidateSize(), 100);
+    };
+
+    if(navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            position => createMap(position.coords.latitude, position.coords.longitude, 13),
+            () => createMap(40.7128, -74.0060, 12),
+            { timeout: 5000 }
+        );
+    } else createMap(40.7128, -74.0060, 12);
+}
+
+window.clearNavigatorPins = function() {
+    navPins = [];
+    navigatorMarkers.forEach(marker => marker.remove());
+    navigatorMarkers = [];
+    const res = document.getElementById('navDistResult');
+    if(res) res.textContent = 'TAP TWO POINTS ON MAP TO MEASURE DISTANCE';
 };
 
 // ── UPGRADED PASSWORD GENERATOR (v4.0) ─────────────────────────────────────

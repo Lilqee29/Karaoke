@@ -20,6 +20,34 @@ const CORS_PROXIES = [
 ];
 let activeCorsProxy = 0;
 
+const PIPED_API_INSTANCES = [
+    'https://pipedapi.kavin.rocks',
+    'https://pipedapi.leptons.xyz',
+    'https://pipedapi.adminforge.de',
+    'https://pipedapi.reallyaweso.me',
+];
+
+async function getPipedAudioStream(videoId) {
+    for (const instance of PIPED_API_INSTANCES) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        try {
+            const response = await fetch(`${instance}/streams/${encodeURIComponent(videoId)}`, { signal: controller.signal });
+            if(!response.ok) continue;
+            const data = await response.json();
+            const audio = (data.audioStreams || [])
+                .filter(stream => stream.url && (stream.mimeType || '').startsWith('audio/'))
+                .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+            if(audio?.url) return { ...audio, title: data.title || '', artist: data.uploader || '', instance };
+        } catch(error) {
+            console.warn('Piped instance failed:', instance, error.message);
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+    return null;
+}
+
 // ── Recently Played ──────────────────────────────────────────
 let recentlyPlayed = JSON.parse(localStorage.getItem('gbRecentlyPlayed') || '[]');
 const MAX_RECENT = 15;
@@ -340,7 +368,7 @@ function toggleMusicRepeat() {
   if (btn) btn.style.opacity = isRepeat ? '1' : '0.5';
 }
 
-// ── YouTube Full Song — plays directly in-app via InnerTube ──
+// ── YouTube Full Song — Piped audio first, InnerTube fallback ──
 window.playFullSong = async function(idx) {
   const track = musicQueue[idx];
   if (!track) return;
@@ -436,7 +464,11 @@ window.playFullSong = async function(idx) {
 
     if (!videoId) throw new Error('No results found');
 
-    // Step 2: Get audio stream URL via InnerTube player
+    // Step 2: Prefer Piped's audio-only stream for mobile browsers.
+    let audioStream = await getPipedAudioStream(videoId);
+
+    // Fallback: get an audio stream through YouTube's player endpoint.
+    if(!audioStream) {
     const playerBody = {
       context: {
         client: {
@@ -461,9 +493,10 @@ window.playFullSong = async function(idx) {
 
     // Find best audio stream
     const formats = playerData?.streamingData?.adaptiveFormats || [];
-    const audioStream = formats
+        audioStream = formats
       .filter(f => f.mimeType?.startsWith('audio/'))
       .sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0];
+        }
 
     if (!audioStream?.url) throw new Error('No audio stream found');
 
@@ -473,7 +506,7 @@ window.playFullSong = async function(idx) {
     currentAudio.src = audioStream.url;
 
     if (titleEl) titleEl.textContent = '▶ ' + (songTitle || track.name || '').toUpperCase();
-    if (artistEl) artistEl.textContent = 'FULL SONG — ' + (songArtist || track.artist_name || '').toUpperCase();
+    if (artistEl) artistEl.textContent = 'FULL SONG — ' + (songArtist || audioStream.artist || track.artist_name || '').toUpperCase();
     if (pb) pb.textContent = '⏸';
     isMusicPlaying = true;
 
@@ -644,7 +677,140 @@ function playBeep(freq, dur) { if(!_beepCtx) _beepCtx = new (window.AudioContext
 // ========== WORLD RADIO (Live Streams) ==========
 let radioPlayer = new Audio();
 let isRadioPlaying = false;
-function initRadio() { isRadioPlaying = false; document.getElementById('radioStationList').innerHTML = 'SEARCH FOR STATIONS...'; }
+let noiseContext = null;
+let noiseSource = null;
+let noiseGain = null;
+let noiseType = 'rain';
+let isNoisePlaying = false;
+let forestBirdTimer = null;
+
+function initRadio() {
+    isRadioPlaying = false;
+    isNoisePlaying = false;
+    document.getElementById('radioStationList').innerHTML = 'SEARCH FOR STATIONS...';
+    switchRadioMode('radio');
+}
+
+function switchRadioMode(mode) {
+    const radioMode = document.getElementById('radioMode');
+    const noiseMode = document.getElementById('noiseMode');
+    const radioBtn = document.getElementById('radioModeBtn');
+    const noiseBtn = document.getElementById('noiseModeBtn');
+    if(!radioMode || !noiseMode) return;
+
+    if(mode === 'noise') {
+        radioPlayer.pause();
+        isRadioPlaying = false;
+        radioMode.style.display = 'none';
+        noiseMode.style.display = 'block';
+        if(radioBtn) { radioBtn.style.background = 'transparent'; radioBtn.style.color = 'var(--gb-text)'; }
+        if(noiseBtn) { noiseBtn.style.background = 'var(--gb-text)'; noiseBtn.style.color = 'var(--gb-bg)'; }
+    } else {
+        stopNoise();
+        radioMode.style.display = 'block';
+        noiseMode.style.display = 'none';
+        if(radioBtn) { radioBtn.style.background = 'var(--gb-text)'; radioBtn.style.color = 'var(--gb-bg)'; }
+        if(noiseBtn) { noiseBtn.style.background = 'transparent'; noiseBtn.style.color = 'var(--gb-text)'; }
+    }
+}
+
+function createNoiseBuffer(type) {
+    const sampleRate = noiseContext.sampleRate;
+    const buffer = noiseContext.createBuffer(1, sampleRate * 2, sampleRate);
+    const output = buffer.getChannelData(0);
+    let last = 0;
+    for(let i = 0; i < output.length; i++) {
+        const random = Math.random() * 2 - 1;
+        if(type === 'ocean') last = (last + random * 0.015) / 1.015;
+        else if(type === 'forest') last = last * 0.97 + random * 0.06;
+        else last = random;
+
+        if(type === 'rain') {
+            const drop = Math.random() > 0.985 ? random * 2.5 : random * 0.08;
+            output[i] = drop;
+        } else if(type === 'white') output[i] = random;
+        else output[i] = last * (type === 'ocean' ? 4 : 2.5);
+    }
+    return buffer;
+}
+
+function playForestBird() {
+    if(!isNoisePlaying || !noiseContext) return;
+    const oscillator = noiseContext.createOscillator();
+    const gain = noiseContext.createGain();
+    const now = noiseContext.currentTime;
+    const startFrequency = 1400 + Math.random() * 900;
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(startFrequency, now);
+    oscillator.frequency.exponentialRampToValueAtTime(startFrequency * 1.35, now + 0.12);
+    oscillator.frequency.exponentialRampToValueAtTime(startFrequency * 0.9, now + 0.28);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.12, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    oscillator.connect(gain).connect(noiseContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.32);
+}
+
+function startForestBirds() {
+    if(noiseType !== 'forest') return;
+    clearTimeout(forestBirdTimer);
+    const chirp = () => {
+        if(!isNoisePlaying || noiseType !== 'forest') return;
+        playForestBird();
+        forestBirdTimer = setTimeout(chirp, 3500 + Math.random() * 6500);
+    };
+    forestBirdTimer = setTimeout(chirp, 1800);
+}
+
+function startNoise() {
+    noiseContext = noiseContext || new (window.AudioContext || window.webkitAudioContext)();
+    noiseGain = noiseContext.createGain();
+    noiseGain.gain.value = (parseInt(document.getElementById('noiseVolume')?.value, 10) || 35) / 100;
+    noiseSource = noiseContext.createBufferSource();
+    noiseSource.buffer = createNoiseBuffer(noiseType);
+    noiseSource.loop = true;
+    noiseSource.connect(noiseGain).connect(noiseContext.destination);
+    noiseSource.start();
+    noiseContext.resume();
+    isNoisePlaying = true;
+    startForestBirds();
+    document.getElementById('noisePlayBtn').textContent = 'STOP AMBIENCE';
+    document.getElementById('noiseVisual')?.classList.add('playing');
+}
+
+function stopNoise() {
+    clearTimeout(forestBirdTimer);
+    forestBirdTimer = null;
+    if(noiseSource) {
+        try { noiseSource.stop(); } catch(error) {}
+        noiseSource.disconnect();
+        noiseSource = null;
+    }
+    if(noiseGain) { noiseGain.disconnect(); noiseGain = null; }
+    isNoisePlaying = false;
+    const button = document.getElementById('noisePlayBtn');
+    if(button) button.textContent = 'START AMBIENCE';
+    document.getElementById('noiseVisual')?.classList.remove('playing');
+}
+
+function toggleNoise() { if(isNoisePlaying) stopNoise(); else startNoise(); }
+function setNoiseType(type) {
+    noiseType = type;
+    const icons = { rain: '☔', forest: '🌲', ocean: '🌊', white: '☁' };
+    const visual = document.getElementById('noiseVisual');
+    if(visual) visual.textContent = icons[type] || '☁';
+    ['rain', 'forest', 'ocean', 'white'].forEach(name => {
+        const button = document.getElementById(`noise${name.charAt(0).toUpperCase() + name.slice(1)}Btn`);
+        if(button) { button.style.background = name === type ? 'var(--gb-text)' : 'transparent'; button.style.color = name === type ? 'var(--gb-bg)' : 'var(--gb-text)'; }
+    });
+    if(isNoisePlaying) { stopNoise(); startNoise(); }
+}
+function setNoiseVolume(value) {
+    if(noiseGain) noiseGain.gain.value = Number(value) / 100;
+    const label = document.getElementById('noiseVolumeLabel');
+    if(label) label.textContent = `${value}%`;
+}
 async function searchRadio() {
     const query = document.getElementById('radioSearch').value; const list = document.getElementById('radioStationList');
     list.innerHTML = 'SEARCHING...';
@@ -839,7 +1005,7 @@ window.setNewsCategory = function(cat) {
     window.initNews(cat);
 };
 
-// ========== NEWS (Algolia API) ==========
+// ========== NEWS (Spaceflight News + Algolia fallback) ==========
 window.initNews = async function(category = 'space') {
     const list = document.getElementById('newsList');
     const screen = document.getElementById('newsScreen');
@@ -856,15 +1022,30 @@ window.initNews = async function(category = 'space') {
     if(catBar) catBar.style.display = 'flex';
 
     try {
-        const res = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=15`);
-        const data = await res.json();
-        const stories = (data.hits || []).map(h => ({
-            title: h.title || 'Untitled',
-            url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
-            source: h.author || 'HN',
-            date: h.created_at,
-            points: h.points || 0
-        }));
+        let stories;
+        if(category === 'space') {
+            const res = await fetch('https://api.spaceflightnewsapi.net/v4/articles/?limit=15');
+            if(!res.ok) throw new Error('Spaceflight News unavailable');
+            const data = await res.json();
+            stories = (data.results || []).map(article => ({
+                title: article.title || 'Untitled',
+                url: article.url || '#',
+                source: article.news_site || 'Spaceflight News',
+                date: article.published_at,
+                image: article.image_url || '',
+                summary: article.summary || ''
+            }));
+        } else {
+            const res = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=15`);
+            const data = await res.json();
+            stories = (data.hits || []).map(h => ({
+                title: h.title || 'Untitled',
+                url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+                source: h.author || 'HN',
+                date: h.created_at,
+                points: h.points || 0
+            }));
+        }
 
         window.newsItems = stories;
         renderNewsList(stories);
@@ -894,6 +1075,7 @@ window.renderNewsList = function(stories) {
         const points = s.points ? `⬆ ${s.points}` : '';
         
         item.innerHTML = `
+            ${s.image ? `<img src="${s.image}" style="width:100%;height:70px;object-fit:cover;margin-bottom:4px;border:1px solid var(--gb-text);" onerror="this.style.display='none'">` : ''}
             <div style="font-weight: bold; font-size: 7px; line-height: 1.2;">${s.title.toUpperCase()}</div>
             <div style="font-size: 5px; opacity: 0.7; margin-top: 3px;">
                 📡 ${sourceName.toUpperCase()} | 📅 ${date} ${points}
@@ -937,6 +1119,8 @@ window.openNewsDetail = function(index) {
             <button onclick="closeNewsDetail()" style="flex: 1; padding: 8px; font-size: 6px;">BACK</button>
             <a href="${item.url}" target="_blank" style="flex: 1; padding: 8px; background: var(--gb-text); color: var(--gb-bg); font-size: 6px; text-decoration: none; text-align: center;">FULL STORY</a>
         </div>
+        ${item.summary ? `<div style="font-size:7px;line-height:1.4;margin-top:8px;">${item.summary}</div>` : ''}
+        ${item.url && item.url !== '#' ? `<a href="${item.url}" target="_blank" style="display:inline-block;margin-top:10px;font-size:6px;color:var(--gb-text);text-decoration:underline;">OPEN SOURCE ↗</a>` : ''}
     `;
     sounds.click();
 };
@@ -1462,6 +1646,9 @@ window.handleVaultInput = function(dir) {
 
 // ========== KARAOKE APP ==========
 const karaoke = {
+    currentLineIndex: -1,
+    lyricsArray: [],
+    currentSong: null,
     init: () => {
         const screen = document.getElementById('karaokeScreen');
         if(!screen) return;
@@ -1509,6 +1696,9 @@ const karaoke = {
         const ctrls = document.getElementById('kControls');
         const back = document.getElementById('kBackBtn');
         
+        karaoke.currentSong = { artist, title };
+        karaoke.currentLineIndex = -1;
+        karaoke.lyricsArray = [];
         resDiv.style.display = 'none';
         lyricDiv.style.display = 'block';
         lyricDiv.innerHTML = 'FETCHING LYRICS...';
@@ -1517,10 +1707,12 @@ const karaoke = {
         try {
             // Try LRCLIB first
             let lyrics = '';
+            let isSynced = false;
             try {
                 const res = await fetch(`https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`);
                 const data = await res.json();
                 lyrics = data.syncedLyrics || data.plainLyrics;
+                isSynced = Boolean(data.syncedLyrics);
             } catch(e) {}
             
             if(!lyrics) {
@@ -1533,24 +1725,37 @@ const karaoke = {
             if(lyrics) {
                 // Formatting
                 lyricDiv.innerHTML = '';
-                const lines = lyrics.split('\n');
-                lines.forEach((line, i) => {
-                    // Remove timestamp for display if plain
-                    const txt = line.replace(/^\[.*?\]/, '').trim();
-                    if(txt) {
+                const parsedLines = [];
+                lyrics.split('\n').forEach(line => {
+                    const timestamp = line.match(/^\[(\d+):(\d+(?:\.\d+)?)\](.*)$/);
+                    const text = (timestamp ? timestamp[3] : line).trim();
+                    if(text) {
+                        parsedLines.push({
+                            text,
+                            time: timestamp ? Number(timestamp[1]) * 60 + Number(timestamp[2]) : null
+                        });
+                    }
+                });
+                karaoke.lyricsArray = parsedLines;
+
+                parsedLines.forEach((line, i) => {
                         const d = document.createElement('div');
                         d.className = 'karaoke-line'; // Add CSS class if needed
-                        d.textContent = txt;
-                        d.style.padding = "2px";
+                        d.textContent = line.text;
+                        d.dataset.lineIndex = i;
+                        if(line.time !== null) d.dataset.time = line.time;
+                        d.style.cssText = 'padding:6px 8px;margin:3px 0;border-radius:3px;cursor:pointer;font-size:8px;transition:color 0.25s,background 0.25s,transform 0.25s;';
                         d.style.cursor = "pointer";
                         d.onclick = () => {
-                            document.querySelectorAll('.karaoke-line').forEach(l => l.style.background = 'transparent');
-                            d.style.background = 'rgba(255, 255, 0, 0.3)';
+                            karaoke.setActiveLine(i);
                             d.scrollIntoView({behavior: "smooth", block: "center"});
                         };
                         lyricDiv.appendChild(d);
-                    }
                 });
+                const syncNote = document.createElement('div');
+                syncNote.style.cssText = 'font-size:6px;opacity:0.6;text-align:center;padding:6px;';
+                syncNote.textContent = isSynced ? 'SYNCED LYRICS · PLAY AUDIO TO FOLLOW' : 'PLAIN LYRICS · MANUAL SCROLL';
+                lyricDiv.appendChild(syncNote);
                 ctrls.style.display = 'flex';
             } else {
                 if(lyricDiv) lyricDiv.textContent = 'NO LYRICS FOUND :(';
@@ -1566,7 +1771,24 @@ const karaoke = {
         _el = document.getElementById('kLyrics'); if(_el) _el.textContent = '';
         karaoke.stopAutoScroll();
     },
-    // Simple auto-scroller
+    setActiveLine: (index) => {
+        if(index < 0 || index >= karaoke.lyricsArray.length) return;
+        karaoke.currentLineIndex = index;
+        document.querySelectorAll('.karaoke-line').forEach((line, i) => {
+            line.classList.toggle('karaoke-current', i === index);
+            line.classList.toggle('karaoke-past', i < index);
+        });
+        const activeLine = document.querySelector(`.karaoke-line[data-line-index="${index}"]`);
+        if(activeLine) activeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    },
+    syncToAudio: () => {
+        if(typeof currentAudio === 'undefined' || !currentAudio || currentAudio.paused || !karaoke.lyricsArray.length) return;
+        let activeIndex = -1;
+        karaoke.lyricsArray.forEach((line, index) => {
+            if(line.time !== null && line.time <= currentAudio.currentTime) activeIndex = index;
+        });
+        if(activeIndex >= 0 && activeIndex !== karaoke.currentLineIndex) karaoke.setActiveLine(activeIndex);
+    },
     scrollTimer: null,
     togglePlay: () => {
         const btn = document.getElementById('kPlayBtn');
@@ -1574,10 +1796,13 @@ const karaoke = {
             karaoke.stopAutoScroll();
             if(btn) btn.textContent = "▶ START";
         } else {
-            const div = document.getElementById('kLyrics');
-            karaoke.scrollTimer = setInterval(() => {
-                div.scrollTop += 1;
-            }, 50);
+            if(typeof currentAudio !== 'undefined' && currentAudio && karaoke.lyricsArray.some(line => line.time !== null)) {
+                karaoke.scrollTimer = setInterval(karaoke.syncToAudio, 100);
+                karaoke.syncToAudio();
+            } else {
+                const div = document.getElementById('kLyrics');
+                karaoke.scrollTimer = setInterval(() => { div.scrollTop += 1; }, 50);
+            }
             if(btn) btn.textContent = "⏸ PAUSE";
         }
     },
@@ -2778,18 +3003,51 @@ window.showBookDetail = function(book) {
     if(coverId) {
         cover.src = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
         cover.style.display = 'block';
+    } else if(book.cover_url) {
+        cover.src = book.cover_url;
+        cover.style.display = 'block';
     } else {
         cover.style.display = 'none';
     }
     if(title) title.textContent = book.title ? book.title.toUpperCase() : 'UNKNOWN';
-    if(author) author.textContent = book.author_name ? 'BY ' + book.author_name.join(', ') : 'BY Unknown';
-    if(year) year.textContent = book.first_publish_year ? 'PUBLISHED ' + book.first_publish_year : '';
-    if(desc) desc.textContent = book.first_sentence ? (Array.isArray(book.first_sentence) ? book.first_sentence[0] : book.first_sentence) : 'No description available.';
+    if(author) author.textContent = book.author_name ? 'BY ' + book.author_name.join(', ') : book.authors ? 'BY ' + book.authors.join(', ') : 'BY Unknown';
+    if(year) year.textContent = book.first_publish_year ? 'PUBLISHED ' + book.first_publish_year : book.published ? 'PUBLISHED ' + book.published : '';
+    if(desc) desc.textContent = book.first_sentence ? (Array.isArray(book.first_sentence) ? book.first_sentence[0] : book.first_sentence) : book.summary || 'No description available.';
     const key = book.key || '';
-    link.href = key ? `https://openlibrary.org${key}` : '#';
-    link.style.display = key ? 'inline-block' : 'none';
+    link.href = book.download_url || (key ? `https://openlibrary.org${key}` : '#');
+    link.textContent = book.download_url ? 'READ FREE BOOK ↗' : 'READ ON OPENLIBRARY ↗';
+    link.style.display = key || book.download_url ? 'inline-block' : 'none';
     detail.style.display = 'block';
     if(window.sounds) sounds.coin();
+};
+
+window.getRandomClassic = async function() {
+    const list = document.getElementById('bookList');
+    if(!list) return;
+    list.innerHTML = '<div style="padding:10px;text-align:center;">FETCHING FREE CLASSIC...</div>';
+    try {
+        const page = Math.floor(Math.random() * 10) + 1;
+        const response = await fetch(`https://gutendex.com/books/?page=${page}`);
+        if(!response.ok) throw new Error('Gutendex unavailable');
+        const data = await response.json();
+        const book = data.results[Math.floor(Math.random() * data.results.length)];
+        if(!book) throw new Error('No classic found');
+
+        const authorNames = (book.authors || []).map(author => author.name);
+        const coverUrl = book.formats?.['image/jpeg'] || '';
+        const downloadUrl = book.formats?.['text/html'] || book.formats?.['text/plain'] || '';
+        showBookDetail({
+            title: book.title,
+            authors: authorNames,
+            cover_url: coverUrl,
+            summary: book.summaries?.[0] || 'A free public-domain book from Project Gutenberg.',
+            published: book.authors?.[0]?.birth_year ? `${book.authors[0].birth_year} - ${book.authors[0].death_year || ''}` : '',
+            download_url: downloadUrl
+        });
+        list.innerHTML = `<div style="padding:10px;text-align:center;">FREE CLASSIC LOADED<br><span style="font-size:5px;opacity:0.7;">${book.download_count || 0} DOWNLOADS</span></div>`;
+    } catch(error) {
+        list.innerHTML = '<div style="padding:10px;text-align:center;">CLASSICS ARCHIVE OFFLINE</div>';
+    }
 };
 
 window.closeBookDetail = function() {
@@ -3254,10 +3512,9 @@ window.getWeather = window.getWeather || async function() {};
 
 // ========== DICT (ENHANCED: PHONETICS + POS + EXAMPLES + WORD OF DAY) ==========
 const wordOfDayList = [
-    'ephemeral','loquacious','serendipity','mellifluous','petrichor',
-    'vellichor','sonder','psithurism','apricity','clinomania',
-    'eudaimonia','hiraeth','saudade','fugacious','redamancy',
-    'philophobia','astrophile','vellichor','syzygy','calliope'
+    'adventure','balance','brilliant','curious','discover','focus',
+    'freedom','harmony','imagine','journey','kindness','luminous',
+    'momentum','patience','quiet','resilient','sunshine','wonder'
 ];
 
 window.initDict = function() {};
@@ -3270,11 +3527,31 @@ window.getDefinition = async function() {
     sounds.click();
     
     try {
-        const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-        const data = await res.json();
-        if(!Array.isArray(data)) throw new Error();
-        
-        const entry = data[0];
+        let entry;
+        try {
+            const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+            if(!res.ok) throw new Error('Primary dictionary lookup failed');
+            const data = await res.json();
+            if(!Array.isArray(data) || !data[0]?.meanings?.length) throw new Error('No dictionary entry');
+            entry = data[0];
+        } catch(primaryError) {
+            const fallbackRes = await fetch(`https://api.datamuse.com/words?sp=${encodeURIComponent(word)}&md=d&max=1`);
+            if(!fallbackRes.ok) throw primaryError;
+            const fallbackData = await fallbackRes.json();
+            const fallbackEntry = fallbackData[0];
+            if(!fallbackEntry?.defs?.length) throw primaryError;
+
+            entry = {
+                word: fallbackEntry.word,
+                meanings: [{
+                    partOfSpeech: 'definition',
+                    definitions: fallbackEntry.defs.map(definition => ({
+                        definition: definition.replace(/^[^\t]*\t/, '')
+                    }))
+                }]
+            };
+        }
+
         const phonetic = entry.phonetic || entry.phonetics?.find(p => p.text)?.text || '';
         
         let html = `<div style="font-weight:bold; font-size:10px; margin-bottom:2px;">${entry.word.toUpperCase()}</div>`;
@@ -3767,9 +4044,10 @@ window.initPixel = function() {
     grid.innerHTML = '';
     grid.style.display = 'grid';
     grid.style.gridTemplateColumns = `repeat(${pixelSize}, 1fr)`;
-    const cellSize = Math.floor(220 / pixelSize);
-    grid.style.width = (cellSize * pixelSize) + 'px';
-    grid.style.height = (cellSize * pixelSize) + 'px';
+    const gridSize = pixelSize === 8 ? 220 : pixelSize === 16 ? 300 : 320;
+    grid.style.width = `min(${gridSize}px, 100%)`;
+    grid.style.height = 'auto';
+    grid.style.aspectRatio = '1';
     pixelUndoStack = [];
 
     const totalCells = pixelSize * pixelSize;
@@ -3791,6 +4069,47 @@ window.initPixel = function() {
         };
         grid.appendChild(d);
     }
+};
+
+window.downloadPixelArt = async function() {
+    const grid = document.getElementById('pixelGrid');
+    if(!grid) return;
+
+    const exportScale = 32;
+    const canvas = document.createElement('canvas');
+    canvas.width = pixelSize * exportScale;
+    canvas.height = pixelSize * exportScale;
+    const ctx = canvas.getContext('2d');
+    const cells = Array.from(grid.children);
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    cells.forEach((cell, index) => {
+        ctx.fillStyle = cell.style.background || '#fff';
+        const x = (index % pixelSize) * exportScale;
+        const y = Math.floor(index / pixelSize) * exportScale;
+        ctx.fillRect(x, y, exportScale, exportScale);
+    });
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    if(!blob) return;
+
+    const file = new File([blob], `gameboy-pixel-art-${pixelSize}x${pixelSize}.png`, { type: 'image/png' });
+    if(navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({ title: 'GameBoy Pixel Art', files: [file] });
+            return;
+        } catch(error) {
+            if(error.name === 'AbortError') return;
+        }
+    }
+
+    const link = document.createElement('a');
+    link.download = file.name;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    if(window.sounds && window.sounds.coin) window.sounds.coin();
 };
 
 window.clearPixel = function() {

@@ -153,6 +153,69 @@ window.initSos = function() {
     }
 };
 
+// ========== QURAN READER ==========
+const QURAN_API_URL = 'https://api.alquran.cloud/v1/ayah';
+let quranCurrentAyah = 1;
+
+function quranDayNumber() {
+    const now = new Date();
+    const yearStart = Date.UTC(now.getUTCFullYear(), 0, 0);
+    const dayOfYear = Math.floor((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - yearStart) / 86400000);
+    return ((dayOfYear - 1) % 6236) + 1;
+}
+
+function escapeQuranText(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+window.initQuran = function() {
+    quranCurrentAyah = quranDayNumber();
+    loadQuranAyah(quranCurrentAyah);
+};
+
+window.loadQuranAyah = async function(selection) {
+    if (selection === 'next') quranCurrentAyah = quranCurrentAyah >= 6236 ? 1 : quranCurrentAyah + 1;
+    if (selection === 'previous') quranCurrentAyah = quranCurrentAyah <= 1 ? 6236 : quranCurrentAyah - 1;
+    if (selection === 'random') quranCurrentAyah = Math.floor(Math.random() * 6236) + 1;
+    if (typeof selection === 'number') quranCurrentAyah = selection;
+
+    const arabic = document.getElementById('quranArabic');
+    const translation = document.getElementById('quranTranslation');
+    const reference = document.getElementById('quranReference');
+    const count = document.getElementById('quranAyahCount');
+    if (!arabic || !translation || !reference || !count) return;
+
+    arabic.textContent = 'LOADING...';
+    translation.textContent = 'LOADING TRANSLATION...';
+    reference.textContent = 'FETCHING AYAH';
+
+    try {
+        const response = await fetch(`${QURAN_API_URL}/${quranCurrentAyah}/editions/quran-uthmani,en.sahih`);
+        if (!response.ok) throw new Error('Quran API request failed');
+        const payload = await response.json();
+        if (!Array.isArray(payload.data) || payload.data.length < 2) throw new Error('Incomplete Quran response');
+
+        const arabicData = payload.data.find(item => item.edition?.identifier === 'quran-uthmani');
+        const translationData = payload.data.find(item => item.edition?.identifier === 'en.sahih');
+        if (!arabicData || !translationData) throw new Error('Missing Quran editions');
+
+        arabic.innerHTML = escapeQuranText(arabicData.text);
+        translation.innerHTML = escapeQuranText(translationData.text);
+        reference.textContent = `${arabicData.surah.englishName} · ${arabicData.surah.englishNameTranslation} · AYAH ${arabicData.numberInSurah}`;
+        count.textContent = `AYAH ${quranCurrentAyah} / 6236`;
+        if (window.sounds && window.sounds.coin) window.sounds.coin();
+    } catch (error) {
+        arabic.textContent = 'QURAN CONTENT UNAVAILABLE';
+        translation.textContent = 'CHECK YOUR CONNECTION AND TRY AGAIN.';
+        reference.textContent = 'API CONNECTION ERROR';
+    }
+};
+
 window.sosAction = function(type) {
     if(typeof sounds !== 'undefined') sounds.launch();
     if(type === '911') window.location.href = "tel:911";

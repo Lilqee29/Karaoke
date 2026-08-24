@@ -143,6 +143,83 @@ body {
   min-height: 0;
 }
 
+.paint-palette-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.paint-palette-row #paintPalette {
+  flex: 1;
+  min-width: 0;
+}
+
+.scroll-jump {
+  flex-shrink: 0;
+  display: none;
+}
+
+.scroll-jump.visible {
+  display: block;
+}
+
+.scroll-jump button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 2px solid var(--gb-text);
+  border-radius: 50%;
+  background: var(--gb-bg);
+  color: var(--gb-text);
+  font: 20px/1 "VT323", monospace;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.scroll-jump button:hover,
+.scroll-jump button:focus-visible {
+  background: var(--gb-text);
+  color: var(--gb-bg);
+}
+
+.karaoke-line {
+  color: var(--gb-text);
+  opacity: 0.62;
+}
+
+.karaoke-line.karaoke-past {
+  opacity: 0.38;
+}
+
+.karaoke-line.karaoke-current {
+  background: var(--gb-text);
+  color: var(--gb-screen);
+  opacity: 1;
+  transform: scale(1.03);
+  box-shadow: 0 0 8px rgba(15, 56, 15, 0.45);
+}
+
+.noise-visual {
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--gb-text);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(15, 56, 15, 0.12));
+  font-size: 46px;
+  opacity: 0.7;
+}
+
+.noise-visual.playing {
+  animation: noise-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes noise-pulse {
+  0%, 100% { transform: scale(0.96); opacity: 0.55; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+
 /* Screens that need flex layout when active (already flex via .game-screen.active) */
 #calcScreen.active,
 #paintScreen.active,

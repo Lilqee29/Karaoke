@@ -227,7 +227,8 @@
                     <div id="paintScreen" class="game-screen" style="padding: 0; flex-direction: column; height: 100%; box-sizing: border-box;">
                         <canvas id="paintCanvas" width="300" height="280" style="background: white; cursor: crosshair; flex: 1; width: 100%; border: none;"></canvas>
                         <div style="flex-shrink: 0; padding: 6px; border-top: 2px solid var(--gb-text); background: var(--gb-bg);">
-                            <div id="paintPalette" style="display: flex; gap: 3px; overflow-x: auto; margin-bottom: 6px; padding-bottom: 2px; scrollbar-width: none;">
+                            <div class="paint-palette-row">
+                                <div id="paintPalette" style="display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none;">
                                 <div onclick="setPaintColor('#000000')" style="width:20px;height:20px;background:#000;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 <div onclick="setPaintColor('#ffffff')" style="width:20px;height:20px;background:#fff;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 <div onclick="setPaintColor('#ff0000')" style="width:20px;height:20px;background:#f00;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
@@ -240,7 +241,12 @@
                                 <div onclick="setPaintColor('#888888')" style="width:20px;height:20px;background:#888;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 <div onclick="setPaintColor('#ffcccc')" style="width:20px;height:20px;background:#fcc;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 <div onclick="setPaintColor('#884400')" style="width:20px;height:20px;background:#840;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
+                                </div>
+                                <div id="scrollJump" class="scroll-jump" aria-live="polite">
+                                    <button id="scrollJumpButton" type="button" aria-label="Scroll to bottom" title="Scroll to bottom">↓</button>
+                                </div>
                             </div>
+                            
                             <div style="display: flex; gap: 4px; align-items: center;">
                                 <input type="color" id="paintColor" value="#000000" style="width: 24px; height: 20px; padding: 0; border: none; cursor: pointer;">
                                 <input type="range" id="brushSize" min="1" max="20" value="3" style="flex: 1;">
@@ -334,7 +340,21 @@
                         <button class="bb-preset-btn" data-preset="REGGAE"   onclick="loadPreset('REGGAE')">🌴 REGGAE</button>
                         <button class="bb-preset-btn" data-preset="FUNK"     onclick="loadPreset('FUNK')">🪩 FUNK</button>
                         <button class="bb-preset-btn" data-preset="HIP HOP"  onclick="loadPreset('HIP HOP')">🎤 HIP HOP</button>
+                        <button class="bb-preset-btn" data-preset="AFROBEAT" onclick="loadPreset('AFROBEAT')">🌍 AFROBEAT</button>
                         </div>
+
+                        <div style="display:flex; gap:4px; align-items:center; margin-bottom:5px; flex-wrap:wrap;">
+                        <span class="bb-section-label">MUSIC:</span>
+                        <select id="bbScaleSelect" onchange="setBbScale(this.value)" style="font-size:5px; padding:2px 4px; background:#0a0a0a; color:#0f0; border:1px solid #333;">
+                            <option value="aminor">A MINOR</option>
+                            <option value="cmajor">C MAJOR</option>
+                            <option value="ddorian">D DORIAN</option>
+                        </select>
+                        <button onclick="bbGenerateVariation()" style="font-size:5px; padding:3px 5px;">↻ VARIATION</button>
+                        <button onclick="bbToggleRecording()" id="bbRecordBtn" style="font-size:5px; padding:3px 5px; color:#f55; border-color:#933;">● REC</button>
+                        <button onclick="bbExportRecording()" id="bbExportBtn" style="font-size:5px; padding:3px 5px;" disabled>↓ WAV</button>
+                        </div>
+                        <div id="bbRecordStatus" style="display:none; font-size:5px; color:#f55; margin-bottom:4px;">RECORDING...</div>
 
                         <!-- ── Drum Kit Selector ───────────────────────────────────── -->
                         <div style="display:flex; align-items:center; gap:4px; margin-bottom:5px; flex-wrap:wrap;">
@@ -504,20 +524,43 @@
                     <!-- WORLD RADIO -->
                     <div id="radioScreen" class="game-screen">
                         <div style="text-align: center; padding: 10px;">
-                            <div style="font-size: 8px; margin-bottom: 5px;">WORLD RADIO</div>
-                            <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                            <div style="font-size: 8px; margin-bottom: 6px;">WAVE STATION</div>
+                            <div style="display: flex; gap: 4px; margin-bottom: 8px;">
+                                <button onclick="switchRadioMode('radio')" id="radioModeBtn" style="flex:1; font-size: 6px; padding: 5px; background: var(--gb-text); color: var(--gb-bg);">📻 RADIO</button>
+                                <button onclick="switchRadioMode('noise')" id="noiseModeBtn" style="flex:1; font-size: 6px; padding: 5px;">☁ WHITE NOISE</button>
+                            </div>
+                            <div id="radioMode">
+                                <div style="display: flex; gap: 5px; margin-bottom: 5px;">
                                 <input type="text" id="radioSearch" placeholder="STATION/COUNTRY..." style="flex: 1; font-size: 6px;">
                                 <button onclick="searchRadio()" style="font-size: 5px;">SEARCH</button>
+                                </div>
+                                <div id="radioVisual" style="height: 50px; background: #000; margin-bottom: 5px; position: relative; overflow: hidden; border: 2px solid var(--gb-text);">
+                                    <canvas id="radioCanvas" width="300" height="50" style="width:100%; height:100%"></canvas>
+                                    <div id="radioFreqText" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 10px; font-family: monospace; z-index: 10;">88.0</div>
+                                </div>
+                                <div id="radioStationList" style="background: rgba(0,0,0,0.1); height: 120px; overflow-y: auto; font-size: 6px; text-align: left; padding: 5px; margin-bottom: 5px; border: 1px solid var(--gb-text);">
+                                    <div style="text-align: center; padding-top: 40px; opacity: 0.5;">SEARCH TO FIND STATIONS</div>
+                                </div>
+                                <div style="display: flex; gap: 5px;">
+                                    <button onclick="toggleRadio()" id="radioPlayBtn" style="flex: 1; background: #f00; color: #fff;">START</button>
+                                </div>
                             </div>
-                            <div id="radioVisual" style="height: 50px; background: #000; margin-bottom: 5px; position: relative; overflow: hidden; border: 2px solid var(--gb-text);">
-                                <canvas id="radioCanvas" width="300" height="50" style="width:100%; height:100%"></canvas>
-                                <div id="radioFreqText" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #0f0; font-size: 10px; font-family: monospace; z-index: 10;">88.0</div>
+                            <div id="noiseMode" style="display: none;">
+                                <div id="noiseVisual" class="noise-visual">☔</div>
+                                <div style="font-size: 8px; margin: 8px 0;">NATURE SPACE</div>
+                                <div style="display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;">
+                                    <button onclick="setNoiseType('rain')" id="noiseRainBtn" style="flex:1; min-width: 52px; font-size: 6px; padding: 5px; background: var(--gb-text); color: var(--gb-bg);">RAIN</button>
+                                    <button onclick="setNoiseType('forest')" id="noiseForestBtn" style="flex:1; min-width: 52px; font-size: 6px; padding: 5px;">FOREST</button>
+                                    <button onclick="setNoiseType('ocean')" id="noiseOceanBtn" style="flex:1; min-width: 52px; font-size: 6px; padding: 5px;">OCEAN</button>
+                                    <button onclick="setNoiseType('white')" id="noiseWhiteBtn" style="flex:1; min-width: 52px; font-size: 6px; padding: 5px;">WHITE</button>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 8px; font-size: 6px;">
+                                    <span>VOLUME</span>
+                                    <input type="range" id="noiseVolume" min="0" max="100" value="35" oninput="setNoiseVolume(this.value)" style="flex: 1;">
+                                    <span id="noiseVolumeLabel">35%</span>
+                                </div>
+                                <button onclick="toggleNoise()" id="noisePlayBtn" style="width: 100%; padding: 8px;">START AMBIENCE</button>
                             </div>
-                            <div id="radioStationList" style="background: rgba(0,0,0,0.1); height: 120px; overflow-y: auto; font-size: 6px; text-align: left; padding: 5px; margin-bottom: 5px; border: 1px solid var(--gb-text);">
-                                <div style="text-align: center; padding-top: 40px; opacity: 0.5;">SEARCH TO FIND STATIONS</div>
-                            </div>
-                            <div style="display: flex; gap: 5px;">
-                                <button onclick="toggleRadio()" id="radioPlayBtn" style="flex: 1; background: #f00; color: #fff;">START</button>
                             </div>
                         </div>
                     </div>
@@ -715,6 +758,7 @@
                             <div style="display: flex; gap: 4px; margin-bottom: 6px;">
                                 <input type="text" id="bookSearch" placeholder="TITLE / AUTHOR..." style="flex: 1; font-size: 7px; padding: 5px;">
                                 <button onclick="searchBook()" style="padding: 5px 10px; font-size: 7px;">🔍</button>
+                                <button onclick="getRandomClassic()" style="padding: 5px 7px; font-size: 6px;">🎲 CLASSIC</button>
                             </div>
                             <div id="bookList" style="flex: 1; overflow-y: auto; font-size: 6px;"></div>
                             <div id="bookDetail" style="display: none; padding: 6px; border: 2px solid var(--gb-text); border-radius: 4px; margin-top: 4px; background: rgba(15,56,15,0.08);">
@@ -907,6 +951,27 @@
                         </div>
                     </div>
 
+                    <!-- QURAN APP -->
+                    <div id="quranScreen" class="game-screen">
+                        <div style="padding: 8px; display: flex; flex-direction: column; height: 100%; box-sizing: border-box;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="font-size: 9px; font-weight: bold;">QURAN READER</span>
+                                <span id="quranAyahCount" style="font-size: 5px; opacity: 0.65;">AYAH 1 / 6236</span>
+                            </div>
+                            <div id="quranReference" style="font-size: 7px; text-align: center; margin-bottom: 6px; min-height: 12px;">AYAH OF THE DAY</div>
+                            <div id="quranDisplay" style="flex: 1; overflow-y: auto; border: 1px solid var(--gb-text); border-radius: 4px; padding: 10px; background: rgba(255,255,255,0.18);">
+                                <div id="quranArabic" dir="rtl" style="font-size: 18px; line-height: 1.9; text-align: right; margin-bottom: 12px;">Loading...</div>
+                                <div id="quranTranslation" style="font-size: 8px; line-height: 1.5;">Loading translation...</div>
+                            </div>
+                            <div style="display: flex; gap: 4px; margin-top: 6px;">
+                                <button onclick="loadQuranAyah('previous')" style="flex: 1; font-size: 6px; padding: 5px;">← PREV</button>
+                                <button onclick="loadQuranAyah('random')" style="flex: 1; font-size: 6px; padding: 5px;">🎲 RANDOM</button>
+                                <button onclick="loadQuranAyah('next')" style="flex: 1; font-size: 6px; padding: 5px;">NEXT →</button>
+                            </div>
+                            <div style="font-size: 5px; text-align: center; opacity: 0.55; margin-top: 5px;">QURAN CLOUD API · FREE</div>
+                        </div>
+                    </div>
+
                     <!-- TIC TAC TOE -->
                     <div id="tttScreen" class="game-screen">
                         <div style="padding: 10px; text-align: center;">
@@ -1018,7 +1083,7 @@
                             
                             <div id="pixelCoord" style="font-size: 6px; margin-bottom: 3px; opacity: 0.7;">X: - Y: -</div>
                             
-                            <div id="pixelGrid" style="width: 220px; height: 220px; display: grid; margin: 0 auto; border: 1px solid #333; margin-bottom: 4px;"></div>
+                            <div id="pixelGrid" style="width: 220px; height: 220px; max-width: 100%; aspect-ratio: 1; display: grid; margin: 0 auto; border: 1px solid #333; margin-bottom: 4px;"></div>
                             
                             <div style="display: flex; gap: 2px; justify-content: center; flex-wrap: wrap; margin-bottom: 4px;">
                                 <div onclick="setPixelColor('#000')" style="width: 14px; height: 14px; background: #000; border: 1px solid #777; cursor:pointer;"></div>
@@ -1035,6 +1100,7 @@
                                 <div onclick="setPixelColor('#840')" style="width: 14px; height: 14px; background: #840; border: 1px solid #777; cursor:pointer;"></div>
                             </div>
                             <input type="color" id="pixelCustomColor" value="#000000" onchange="setPixelColor(this.value)" style="width: 30px; height: 16px; padding: 0; border: none; cursor: pointer; margin: 0 auto;">
+                            <button onclick="downloadPixelArt()" style="font-size: 6px; padding: 4px 8px; margin: 4px auto 0;">↓ SAVE PNG</button>
                         </div>
                     </div>
 
@@ -1943,6 +2009,42 @@
     <script src="scripts/utils_expanded.js"></script>
     <script src="scripts/app_upgrades.js"></script>
     <script src="app.js"></script>
+
+    <script>
+        (() => {
+            const jump = document.getElementById('scrollJump');
+            const button = document.getElementById('scrollJumpButton');
+            const content = document.querySelector('.screen-content');
+
+            if (!jump || !button || !content) return;
+
+            function updateScrollJump() {
+                const screen = content.querySelector('.game-screen.active');
+                const canScroll = screen && screen.scrollHeight > screen.clientHeight + 2;
+                jump.classList.toggle('visible', Boolean(canScroll));
+
+                if (!canScroll) return;
+
+                const atBottom = screen.scrollTop + screen.clientHeight >= screen.scrollHeight - 2;
+                button.textContent = atBottom ? '↑' : '↓';
+                button.setAttribute('aria-label', atBottom ? 'Scroll to top' : 'Scroll to bottom');
+                button.title = atBottom ? 'Scroll to top' : 'Scroll to bottom';
+            }
+
+            button.addEventListener('click', () => {
+                const screen = content.querySelector('.game-screen.active');
+                if (!screen) return;
+
+                const atBottom = screen.scrollTop + screen.clientHeight >= screen.scrollHeight - 2;
+                screen.scrollTo({ top: atBottom ? 0 : screen.scrollHeight, behavior: 'smooth' });
+            });
+
+            content.addEventListener('scroll', updateScrollJump, true);
+            new MutationObserver(updateScrollJump).observe(content, { attributes: true, subtree: true, attributeFilter: ['class'] });
+            window.addEventListener('resize', updateScrollJump);
+            updateScrollJump();
+        })();
+    </script>
 
     <!-- PERSISTENT BITCHAT FLOATING WIDGET -->
     <div id="bitchatFloatingCircle" onclick="toggleQuickChat()" style="position: fixed; bottom: 20px; right: 20px; width: 44px; height: 44px; background: #000; border: 2px solid #0f0; border-radius: 50%; color: #0f0; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; z-index: 99999; box-shadow: 0 0 12px rgba(0,255,0,0.6); user-select: none;">

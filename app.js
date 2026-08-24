@@ -30,12 +30,13 @@ const apps = [
     { id: 'remix', name: 'BEATS', icon: '🎹' },
     { id: 'groove', name: 'GROOVE', icon: '🥁' },
     { id: 'music', name: 'MUSIC', icon: '🎵' },
-    { id: 'radio', name: 'RADIO', icon: '📻' },
+    { id: 'radio', name: 'WAVE', icon: '📻' },
 
     // ── INFORMATION & LEARNING ────────────────────────────────────────────
     { id: 'news', name: 'NEWS', icon: '📰' },
     { id: 'weather', name: 'WEATH', icon: '☀️' },
     { id: 'dict', name: 'WORD', icon: '📖' },
+    { id: 'quran', name: 'QURAN', icon: '☪️' },
     { id: 'translate', name: 'TRANS', icon: '🌐' },
     { id: 'wiki', name: 'WIKI', icon: '🌐' },
     { id: 'book', name: 'BOOKS', icon: '📚' },
