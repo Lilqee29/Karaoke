@@ -1,6 +1,6 @@
 // ========================================================
-//  PAINT v2.1 — Clean Toolbar + Native Color Picker
-//  Oil paint, watercolor, smudge, fill, eyedropper
+//  PAINT v3.0 — Smooth Brush + Fill + Shapes
+//  Based on jspaint quadratic curve interpolation
 //  Pure vanilla JS + Canvas 2D — zero dependencies
 // ========================================================
 
@@ -9,7 +9,7 @@
 
 // ── State ────────────────────────────────────────────────
 let canvas, ctx;
-let _pMode = 'oil';        // oil | watercolor | spray | smudge | fill | eraser | eyedropper
+let _pMode = 'brush';     // brush | fill | eyedropper | eraser
 let _pColor = '#000000';
 let _pOpacity = 1.0;
 let _pSize = 4;
@@ -21,7 +21,6 @@ let _pMaxUndo = 30;
 let _pShape = 'free';     // free | line | rect | circle
 let _pShapeStart = null;
 let _pShapeSnapshot = null;
-let _pErasing = false;
 
 // ── Color Utils ──────────────────────────────────────────
 function _pHexToRgb(hex) {
@@ -85,110 +84,62 @@ function _pGetPos(e) {
   };
 }
 
-// ── Brush Engines ────────────────────────────────────────
+// ── Smooth Brush (quadratic curve interpolation) ────────
+// Based on jspaint technique: draw curves through midpoints
+// for smooth, natural-looking strokes
+let _pPoints = [];
 
-function _pOilBrush(x, y) {
-  if (_pLastX === null) { _pLastX = x; _pLastY = y; }
-  const dx = x - _pLastX, dy = y - _pLastY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  const speed = Math.min(dist, 50);
-  const alpha = Math.max(0.15, 1.0 - speed / 60) * _pOpacity;
+function _pSmoothBrush(x, y) {
+  _pPoints.push({ x, y });
 
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = _pSize;
-
-  ctx.strokeStyle = _pColor;
-  ctx.beginPath();
-  ctx.moveTo(_pLastX, _pLastY);
-  ctx.lineTo(x, y);
-  ctx.stroke();
-
-  if (_pSize > 2) {
-    ctx.globalAlpha = alpha * 0.4;
-    ctx.lineWidth = _pSize * 0.6;
-    const angle = Math.atan2(dy, dx) + Math.PI / 2;
-    const offset = _pSize * 0.3;
-    ctx.strokeStyle = _pErasing ? '#ffffff' : _pLightenColor(_pColor, 20);
-    ctx.beginPath();
-    ctx.moveTo(_pLastX + Math.cos(angle) * offset, _pLastY + Math.sin(angle) * offset);
-    ctx.lineTo(x + Math.cos(angle) * offset, y + Math.sin(angle) * offset);
-    ctx.stroke();
-
-    ctx.strokeStyle = _pErasing ? '#ffffff' : _pDarkenColor(_pColor, 20);
-    ctx.beginPath();
-    ctx.moveTo(_pLastX - Math.cos(angle) * offset, _pLastY - Math.sin(angle) * offset);
-    ctx.lineTo(x - Math.cos(angle) * offset, y - Math.sin(angle) * offset);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-  _pLastX = x;
-  _pLastY = y;
-}
-
-function _pWatercolorBrush(x, y) {
-  ctx.save();
-  const baseAlpha = 0.05 * _pOpacity;
-
-  for (let i = 0; i < 3; i++) {
-    const ox = (Math.random() - 0.5) * _pSize * 1.5;
-    const oy = (Math.random() - 0.5) * _pSize * 1.5;
-    const r = _pSize * (0.8 + Math.random() * 0.8);
-    ctx.globalAlpha = baseAlpha * (0.5 + Math.random() * 0.5);
+  // Need at least 3 points to start drawing curves
+  if (_pPoints.length < 3) {
+    // For first 2 points, just draw dots
+    ctx.save();
+    ctx.globalAlpha = _pOpacity;
     ctx.fillStyle = _pColor;
     ctx.beginPath();
-    ctx.arc(x + ox, y + oy, r, 0, Math.PI * 2);
+    ctx.arc(x, y, _pSize / 2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+    return;
   }
 
-  ctx.restore();
-  if (_pLastX === null) { _pLastX = x; _pLastY = y; }
-  _pLastX = x;
-  _pLastY = y;
-}
+  const p0 = _pPoints[_pPoints.length - 3];
+  const p1 = _pPoints[_pPoints.length - 2];
+  const p2 = _pPoints[_pPoints.length - 1];
 
-function _pSprayBrush(x, y) {
+  // Midpoint between p0 and p1
+  const mx = (p0.x + p1.x) / 2;
+  const my = (p0.y + p1.y) / 2;
+
+  // Midpoint between p1 and p2
+  const mx2 = (p1.x + p2.x) / 2;
+  const my2 = (p1.y + p2.y) / 2;
+
   ctx.save();
+  ctx.globalAlpha = _pOpacity;
+  ctx.strokeStyle = _pColor;
   ctx.fillStyle = _pColor;
-  for (let i = 0; i < _pSize * 1.5; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const r = Math.random() * _pSize;
-    ctx.globalAlpha = Math.random() * 0.5 * _pOpacity + 0.05;
-    ctx.fillRect(x + Math.cos(a) * r, y + Math.sin(a) * r, 1, 1);
-  }
-  ctx.restore();
-}
-
-function _pSmudge(x, y) {
-  if (_pLastX === null) { _pLastX = x; _pLastY = y; return; }
-  const dist = Math.sqrt((x - _pLastX) ** 2 + (y - _pLastY) ** 2);
-  const steps = Math.max(1, Math.ceil(dist / 2));
-
-  ctx.save();
-  ctx.globalAlpha = 0.3 * _pOpacity;
-  ctx.lineCap = 'round';
   ctx.lineWidth = _pSize;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
 
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const sx = _pLastX + (x - _pLastX) * t;
-    const sy = _pLastY + (y - _pLastY) * t;
-    const pixel = ctx.getImageData(Math.round(sx), Math.round(sy), 1, 1).data;
-    ctx.globalAlpha = 0.15 * _pOpacity;
-    ctx.fillStyle = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
-    ctx.beginPath();
-    ctx.arc(sx, sy, _pSize * 0.8, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  // Draw quadratic curve through midpoints
+  ctx.beginPath();
+  ctx.moveTo(mx, my);
+  ctx.quadraticCurveTo(p1.x, p1.y, mx2, my2);
+  ctx.stroke();
+
+  // Draw circle at midpoint for smooth joins
+  ctx.beginPath();
+  ctx.arc(mx, my, _pSize / 2, 0, Math.PI * 2);
+  ctx.fill();
 
   ctx.restore();
-  _pLastX = x;
-  _pLastY = y;
 }
 
+// ── Flood Fill ───────────────────────────────────────────
 function _pFloodFill(startX, startY) {
   const w = canvas.width, h = canvas.height;
   const imageData = ctx.getImageData(0, 0, w, h);
@@ -232,6 +183,7 @@ function _pFloodFill(startX, startY) {
   ctx.putImageData(imageData, 0, 0);
 }
 
+// ── Eyedropper ───────────────────────────────────────────
 function _pEyeDrop(x, y) {
   const pixel = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
   const hex = '#' + [pixel[0], pixel[1], pixel[2]].map(v => v.toString(16).padStart(2, '0')).join('');
@@ -272,19 +224,24 @@ function _pDrawShape(x0, y0, x1, y1) {
   ctx.restore();
 }
 
+// ── Eraser ───────────────────────────────────────────────
+function _pErase(x, y) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.arc(x, y, _pSize / 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 // ── Main Drawing Router ──────────────────────────────────
 function _pDraw(x, y) {
-  if (_pDown && _pMode === 'smudge') { _pSmudge(x, y); return; }
-
   switch (_pMode) {
-    case 'oil':       _pOilBrush(x, y); break;
-    case 'watercolor': _pWatercolorBrush(x, y); break;
-    case 'spray':     _pSprayBrush(x, y); break;
+    case 'brush':
+      _pSmoothBrush(x, y);
+      break;
     case 'eraser':
-      const prev = _pColor;
-      _pColor = '#ffffff';
-      _pOilBrush(x, y);
-      _pColor = prev;
+      _pErase(x, y);
       break;
   }
 }
@@ -296,6 +253,7 @@ function _pOnDown(e) {
   const p = _pGetPos(e);
   _pLastX = p.x;
   _pLastY = p.y;
+  _pPoints = [p];
 
   if (_pMode === 'fill') {
     _pFloodFill(p.x, p.y);
@@ -330,6 +288,7 @@ function _pOnMove(e) {
     return;
   }
 
+  // Interpolate between last and current position for smooth lines
   const dx = p.x - _pLastX, dy = p.y - _pLastY;
   const dist = Math.sqrt(dx * dx + dy * dy);
   const steps = Math.max(1, Math.ceil(dist / 2));
@@ -359,6 +318,7 @@ function _pOnUp(e) {
   _pSaveUndo();
   _pLastX = null;
   _pLastY = null;
+  _pPoints = [];
 }
 
 // ── UI Updates ───────────────────────────────────────────
@@ -367,7 +327,6 @@ function _pUpdateColorUI() {
   if (preview) preview.style.background = _pColor;
   const native = document.getElementById('paintColorPicker');
   if (native) native.value = _pColor;
-  // Highlight matching quick swatch
   document.querySelectorAll('.paint-swatch').forEach(s => {
     const match = s.dataset.color?.toLowerCase() === _pColor.toLowerCase();
     s.classList.toggle('active', match);
@@ -381,7 +340,6 @@ window.initPaint = function() {
 
   ctx = canvas.getContext('2d');
 
-  // Wait for layout then size canvas
   requestAnimationFrame(() => {
     const wrapper = canvas.parentElement;
     canvas.width = wrapper ? wrapper.clientWidth : 300;
@@ -401,8 +359,6 @@ window.initPaint = function() {
   canvas.addEventListener('touchstart', _pOnDown, { passive: false });
   canvas.addEventListener('touchmove', _pOnMove, { passive: false });
   canvas.addEventListener('touchend', _pOnUp);
-
-  _pUpdateColorUI();
 };
 
 window._paintCleanup = function() {
@@ -421,12 +377,9 @@ window._paintCleanup = function() {
 
 window.paintSetTool = function(tool) {
   _pMode = tool;
-  _pErasing = tool === 'eraser';
   document.querySelectorAll('.paint-tool-btn').forEach(b => {
-    const active = b.dataset.tool === tool;
-    b.classList.toggle('active', active);
+    b.classList.toggle('active', b.dataset.tool === tool);
   });
-  // Haptic feedback
   if (navigator.vibrate) navigator.vibrate(10);
 };
 
@@ -503,7 +456,6 @@ window.paintSave = function() {
   }, 'image/png');
 };
 
-// Expand/Collapse panel
 window.paintTogglePanel = function() {
   const panel = document.getElementById('paintExpanded');
   const btn = document.getElementById('paintScrollToggle');
