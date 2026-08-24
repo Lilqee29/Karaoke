@@ -151,8 +151,19 @@ function _glitchLoop() {
   _glitchAnim = requestAnimationFrame(_glitchLoop);
 }
 
-function setGlitchMode(m) { _glitchMode = m; renderGlitchUI(document.getElementById('glitchContent')); }
-function clearGlitchParticles() { _glitchParticles = []; }
+function setGlitchMode(m) {
+  _glitchMode = m;
+  renderGlitchUI(document.getElementById('glitchContent'));
+  // Re-acquire canvas after innerHTML rewrite
+  _glitchCanvas = document.getElementById('glitchCanvas');
+  if (_glitchCanvas) _glitchCtx = _glitchCanvas.getContext('2d');
+}
+function clearGlitchParticles() {
+  _glitchParticles = [];
+  renderGlitchUI(document.getElementById('glitchContent'));
+  _glitchCanvas = document.getElementById('glitchCanvas');
+  if (_glitchCanvas) _glitchCtx = _glitchCanvas.getContext('2d');
+}
 
 // ================================================================
 //  VISUAL — Audio Visualizer + Lofi White Noise + Mic Reactive
@@ -211,9 +222,11 @@ function renderWaveUI(container) {
 }
 
 function setWavePreset(name) {
-  if (_waveMicStream) return; // mic mode overrides presets
+  if (_waveMicStream) return;
   _waveApplyPreset(name);
   renderWaveUI(document.getElementById('visualContent'));
+  _visualCanvas = document.getElementById('visualCanvas');
+  if (_visualCanvas) _waveCtx = _visualCanvas.getContext('2d');
 }
 
 async function waveToggleMic() {
@@ -384,7 +397,12 @@ function _waveDraw() {
   }
 }
 
-function setWaveStyle(s) { _waveStyle = s; renderWaveUI(document.getElementById('visualContent')); }
+function setWaveStyle(s) {
+  _waveStyle = s;
+  renderWaveUI(document.getElementById('visualContent'));
+  _visualCanvas = document.getElementById('visualCanvas');
+  if (_visualCanvas) _waveCtx = _visualCanvas.getContext('2d');
+}
 
 // ================================================================
 //  NOISE — Ambient Sound Generator (friendly presets, no jargon)
@@ -533,6 +551,8 @@ function setNoiseGenType(type) {
   if (wasPlaying) _noiseGenStop();
   _noiseType = type;
   renderNoiseUI(document.getElementById('noiseContent'));
+  _noiseCanvas = document.getElementById('noiseVis');
+  if (_noiseCanvas) _noiseCtx2d = _noiseCanvas.getContext('2d');
   if (wasPlaying) toggleNoiseGen();
 }
 
