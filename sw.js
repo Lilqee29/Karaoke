@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gbos-v18';
+const CACHE_NAME = 'gbos-v20';
 const ASSETS = [
     './',
     './index.html',
@@ -27,9 +27,11 @@ const ASSETS = [
     './scripts/kartracing.js',
     './scripts/newapps_utility.js',
     './scripts/app_upgrades.js',
+    './scripts/creative_hub.js',
     './beat-boy.js',
 ];
 
+// ── INSTALL: cache everything, then activate immediately ────────
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
@@ -43,31 +45,64 @@ self.addEventListener('install', (e) => {
     self.skipWaiting();
 });
 
+// ── ACTIVATE: nuke ALL old caches, then take over every tab ────
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then((names) => {
-            return Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)));
+            return Promise.all(
+                names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
+            );
+        }).then(() => {
+            // Force every open tab to reload so they get the new SW
+            return self.clients.matchAll({ type: 'window' }).then(clients => {
+                clients.forEach(client => client.navigate(client.url));
+            });
         })
     );
     self.clients.claim();
 });
 
+// ── FETCH: stale-while-revalidate for HTML, cache-first for assets ──
 self.addEventListener('fetch', (e) => {
-    // ONLY cache same-origin requests. Everything else goes straight to network.
     if (!e.request.url.startsWith(self.location.origin)) return;
     if (e.request.method !== 'GET') return;
 
-    e.respondWith(
-        caches.match(e.request).then((cached) => {
-            return cached || fetch(e.request).then((res) => {
-                if (res && res.status === 200) {
-                    const clone = res.clone();
-                    caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
-                }
+    const url = new URL(e.request.url);
+    const isHTML = e.request.mode === 'navigate' ||
+                   e.headers.get('accept')?.includes('text/html') ||
+                   url.pathname.endsWith('.html') ||
+                   url.pathname === './' || url.pathname === '/';
+
+    if (isHTML) {
+        // HTML: network-first so new deploys are seen immediately
+        e.respondWith(
+            fetch(e.request).then((res) => {
+                const clone = res.clone();
+                caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
                 return res;
-            });
-        }).catch(() => {
-            return new Response('Offline', { status: 503 });
-        })
-    );
+            }).catch(() => caches.match(e.request))
+        );
+    } else {
+        // JS/CSS/images: cache-first, but check network in background
+        e.respondWith(
+            caches.match(e.request).then((cached) => {
+                const fetchPromise = fetch(e.request).then((res) => {
+                    if (res && res.status === 200) {
+                        const clone = res.clone();
+                        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+                    }
+                    return res;
+                }).catch(() => cached);
+
+                return cached || fetchPromise;
+            })
+        );
+    }
+});
+
+// ── MESSAGE: force-skip waiting when client sends SKIP message ─
+self.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
