@@ -38,6 +38,7 @@ const apps = [
     { id: 'gravity', name: 'GRAVITY', icon: '🪐' },
     { id: 'orbit', name: 'ORBIT', icon: '🌍' },
     { id: 'sand', name: 'SAND', icon: '🏖' },
+    { id: 'fluid', name: 'FLUID', icon: '🌊' },
     { id: 'platform', name: 'QUEST', icon: '⚔' },
 
     // ── INFORMATION & LEARNING ────────────────────────────────────────────
@@ -297,6 +298,7 @@ function goBack() {
         if (typeof _gravCleanup === 'function') _gravCleanup();
         if (typeof _orbCleanup === 'function') _orbCleanup();
         if (typeof _sandCleanup === 'function') _sandCleanup();
+        if (typeof _fluidCleanup === 'function') _fluidCleanup();
         if (typeof _platCleanup === 'function') _platCleanup();
         if (currentScreen === 'noise' && typeof noiseStop === 'function') noiseStop();
         if (currentScreen === 'visual' && typeof _waveStopAuto === 'function') _waveStopAuto();

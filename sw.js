@@ -30,6 +30,7 @@ const ASSETS = [
     './scripts/creative_apps.js',
     './scripts/platformer.js',
     './beat-boy.js',
+    './fluid.js',
 ];
 
 // ── INSTALL: cache everything, then activate immediately ────────
