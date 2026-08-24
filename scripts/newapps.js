@@ -2657,57 +2657,6 @@ window.toggleFlashlight = async function() {
     }
 };
 
-function initPaint() {
-    const canvas = document.getElementById('paintCanvas');
-    if(!canvas) return;
-    paintCtx = canvas.getContext('2d');
-    paintCtx.lineCap = 'round';
-    paintCtx.fillStyle = '#fff';
-    paintCtx.fillRect(0,0,canvas.width,canvas.height);
-    
-    canvas.onmousedown = startPainting;
-    canvas.onmouseup = stopPainting;
-    canvas.onmousemove = drawPaint;
-    
-    // Touch support
-    canvas.ontouchstart = (e) => { e.preventDefault(); startPainting(e.touches[0]); };
-    canvas.ontouchend = (e) => { e.preventDefault(); stopPainting(); };
-    canvas.ontouchmove = (e) => { e.preventDefault(); drawPaint(e.touches[0]); };
-}
-window.initPaint = initPaint;
-
-function startPainting(e) {
-    isPainting = true;
-    drawPaint(e);
-}
-
-function stopPainting() {
-    isPainting = false;
-    if(paintCtx) paintCtx.beginPath();
-}
-
-function drawPaint(e) {
-    if(!isPainting || !paintCtx) return;
-    const canvas = document.getElementById('paintCanvas');
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-    
-    paintCtx.lineWidth = document.getElementById('brushSize').value;
-    paintCtx.strokeStyle = document.getElementById('paintColor').value;
-    
-    paintCtx.lineTo(x, y);
-    paintCtx.stroke();
-    paintCtx.beginPath();
-    paintCtx.moveTo(x, y);
-}
-
-window.paintFunc = function(action) {
-    if(action === 'clear') {
-        initPaint(); // Reset canvas
-    }
-};
-
 // ========== STUBS FOR OTHER APPS ==========
 // To prevent crashes when launching incomplete apps
 window.nextFlashcard = () => { _el = document.getElementById('flashCard'); if(_el) _el.textContent = "Concept: CLOSURE"; };

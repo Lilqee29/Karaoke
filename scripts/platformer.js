@@ -885,10 +885,11 @@ function initPlatform() {
   _platAudio.init();
   _platAudio.resume();
 
-  // Keyboard input — use e.key (not e.code) so D-pad buttons work
+  // Keyboard input — use e.key (not e.code) so D-pad and A/B buttons work
   _platKeyDownHandler = (e) => {
     const k = e.key;
-    if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') {
+    // A button sends 'z', Space/ArrowUp/W = jump
+    if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
       if (_platGameState === 'TITLE') { _platStartGame(); _platKeys.jump = false; return; }
       if (_platGameState === 'LEVEL_COMPLETE') {
         _platLevelIdx++;
@@ -903,7 +904,7 @@ function initPlatform() {
     if (_platGameState === 'PLAYING') {
       if (k === 'ArrowLeft' || k === 'a' || k === 'A') _platKeys.left = true;
       if (k === 'ArrowRight' || k === 'd' || k === 'D') _platKeys.right = true;
-      if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'w' || k === 'W' || k === 's' || k === 'S' || k === ' ') {
+      if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'w' || k === 'W' || k === 's' || k === 'S' || k === ' ' || k === 'z' || k === 'Z') {
         _platKeys.jump = true; e.preventDefault();
       }
     }
@@ -912,7 +913,7 @@ function initPlatform() {
     const k = e.key;
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') _platKeys.left = false;
     if (k === 'ArrowRight' || k === 'd' || k === 'D') _platKeys.right = false;
-    if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'w' || k === 'W' || k === 's' || k === 'S' || k === ' ') _platKeys.jump = false;
+    if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'w' || k === 'W' || k === 's' || k === 'S' || k === ' ' || k === 'z' || k === 'Z') _platKeys.jump = false;
   };
   _platBlurHandler = () => { _platKeys.left = false; _platKeys.right = false; _platKeys.jump = false; };
 

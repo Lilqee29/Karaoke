@@ -427,15 +427,19 @@ async function bbInitAudio() {
     volume: -12,
   }).connect(new Tone.Reverb({ decay: 2, wet: 0.35 }).connect(bbTrackGains[7]));
 
-  // Salamander piano sampler
-  bbPiano = new Tone.Sampler({
-    urls: {
-      C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', A4: 'A4.mp3',
-      C5: 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', A5: 'A5.mp3',
-    },
-    release: 1.2,
-    baseUrl: BB_PIANO_BASE,
-  }).connect(new Tone.Reverb({ decay: 1.5, wet: 0.2 }).connect(bbTrackGains[6]));
+  // Salamander piano sampler — wrapped in try/catch for CDN failures
+  try {
+    bbPiano = new Tone.Sampler({
+      urls: {
+        C4: 'C4.mp3', 'D#4': 'Ds4.mp3', 'F#4': 'Fs4.mp3', A4: 'A4.mp3',
+        C5: 'C5.mp3', 'D#5': 'Ds5.mp3', 'F#5': 'Fs5.mp3', A5: 'A5.mp3',
+      },
+      release: 1.2,
+      baseUrl: BB_PIANO_BASE,
+      onload: () => {},
+      onerror: () => { bbPiano = null; },
+    }).connect(new Tone.Reverb({ decay: 1.5, wet: 0.2 }).connect(bbTrackGains[6]));
+  } catch(e) { bbPiano = null; }
 
   await bbLoadKit(currentKit);
   audioReady = true;

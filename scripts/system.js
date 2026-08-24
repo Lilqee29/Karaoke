@@ -86,8 +86,10 @@ window.safeText = function(id, value) {
     return el;
 };
 
-// Global Error Handler
+// Global Error Handler — ignore null errors from Tone.js CDN failures
 window.addEventListener('error', (e) => {
+    // Tone.js fires null errors when CDN samples fail to load — these are harmless
+    if (e.error === null || e.error === undefined) return;
     console.error('Global error:', e.error);
     const errorDiv = document.createElement('div');
     errorDiv.style.cssText = `
