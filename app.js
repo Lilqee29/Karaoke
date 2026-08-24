@@ -307,7 +307,7 @@ function goBack() {
         
         if (typeof stopNightVision === 'function') stopNightVision();
         if (typeof stopRemix === 'function') stopRemix();
-        else if (typeof remixInterval !== 'undefined') clearInterval(remixInterval);
+        else if (typeof remixInterval !== 'undefined') clearTimeout(remixInterval);
         if (typeof spiritPingInterval !== 'undefined') clearInterval(spiritPingInterval);
         if (typeof breatheInterval !== 'undefined') clearInterval(breatheInterval);
         if (typeof vinylInterval !== 'undefined') { clearInterval(vinylInterval); vinylRotation = 0; }

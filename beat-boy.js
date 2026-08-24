@@ -261,6 +261,13 @@ const PRESETS = {
 let _bbFallbackCtx = null;
 let _bbFallbackAnalyser = null;
 let _bbFallbackMasterGain = null;
+let _bbNativeFilter = null;
+let _bbNativeDelay = null;
+let _bbNativeDelayGain = null;
+let _bbNativeDelayFeedback = null;
+let _bbNativeReverb = null;
+let _bbNativeReverbGain = null;
+let _bbNativeInput = null;
 
 function bbInitFallbackAudio() {
   _bbFallbackCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -270,7 +277,46 @@ function bbInitFallbackAudio() {
   _bbFallbackAnalyser.connect(_bbFallbackCtx.destination);
   // Create native master gain for synth sounds (BeatForge-style)
   _bbFallbackMasterGain = _bbFallbackCtx.createGain();
-  _bbFallbackMasterGain.connect(_bbFallbackAnalyser);
+  _bbFallbackMasterGain.gain.value = remixMasterVol;
+
+  // Native effects chain: synth -> filter -> delay/reverb -> masterGain -> destination
+  _bbNativeFilter = _bbFallbackCtx.createBiquadFilter();
+  _bbNativeFilter.type = 'lowpass';
+  _bbNativeFilter.frequency.value = 20000;
+
+  _bbNativeDelay = _bbFallbackCtx.createDelay(2);
+  _bbNativeDelay.delayTime.value = 60000/remixBPM/1000;
+  _bbNativeDelayGain = _bbFallbackCtx.createGain();
+  _bbNativeDelayGain.gain.value = 0;
+  _bbNativeDelayFeedback = _bbFallbackCtx.createGain();
+  _bbNativeDelayFeedback.gain.value = 0.3;
+  _bbNativeDelay.connect(_bbNativeDelayFeedback);
+  _bbNativeDelayFeedback.connect(_bbNativeDelay);
+  _bbNativeDelay.connect(_bbNativeDelayGain);
+  _bbNativeDelayGain.connect(_bbNativeFilter);
+
+  const irLen = _bbFallbackCtx.sampleRate * 1.5;
+  const irBuf = _bbFallbackCtx.createBuffer(2, irLen, _bbFallbackCtx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = irBuf.getChannelData(ch);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLen, 2.5);
+  }
+  _bbNativeReverb = _bbFallbackCtx.createConvolver();
+  _bbNativeReverb.buffer = irBuf;
+  _bbNativeReverbGain = _bbFallbackCtx.createGain();
+  _bbNativeReverbGain.gain.value = 0;
+  _bbNativeReverb.connect(_bbNativeReverbGain);
+  _bbNativeReverbGain.connect(_bbNativeFilter);
+
+  // Input routing: inputGain -> filter + delay + reverb
+  _bbNativeInput = _bbFallbackCtx.createGain();
+  _bbNativeInput.connect(_bbNativeFilter);
+  _bbNativeInput.connect(_bbNativeDelay);
+  _bbNativeInput.connect(_bbNativeReverb);
+
+  _bbNativeFilter.connect(_bbFallbackMasterGain);
+  _bbFallbackMasterGain.connect(_bbFallbackCtx.destination);
+
   audioReady = true;
   bbSetStatus('');
 }
@@ -398,6 +444,48 @@ async function bbInitAudio() {
   const rawCtx = Tone.context.rawContext;
   _bbFallbackMasterGain = rawCtx.createGain();
   _bbFallbackMasterGain.gain.value = remixMasterVol;
+
+  // Native effects chain: synth -> filter -> delay -> reverb -> masterGain -> destination
+  _bbNativeFilter = rawCtx.createBiquadFilter();
+  _bbNativeFilter.type = 'lowpass';
+  _bbNativeFilter.frequency.value = 20000;
+
+  _bbNativeDelay = rawCtx.createDelay(2);
+  _bbNativeDelay.delayTime.value = rawCtx.currentTime; // will be set by bbSetDelayTime
+  _bbNativeDelayGain = rawCtx.createGain();
+  _bbNativeDelayGain.gain.value = 0; // off by default
+  _bbNativeDelayFeedback = rawCtx.createGain();
+  _bbNativeDelayFeedback.gain.value = 0.3;
+
+  // Delay feedback loop: delay -> feedback -> delay
+  _bbNativeDelay.connect(_bbNativeDelayFeedback);
+  _bbNativeDelayFeedback.connect(_bbNativeDelay);
+  _bbNativeDelay.connect(_bbNativeDelayGain);
+  _bbNativeDelayGain.connect(_bbNativeFilter);
+
+  // Reverb via convolver (simple impulse)
+  _bbNativeReverbGain = rawCtx.createGain();
+  _bbNativeReverbGain.gain.value = 0; // off by default
+  // Create a simple reverb impulse
+  const irLen = rawCtx.sampleRate * 1.5;
+  const irBuf = rawCtx.createBuffer(2, irLen, rawCtx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = irBuf.getChannelData(ch);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLen, 2.5);
+  }
+  _bbNativeReverb = rawCtx.createConvolver();
+  _bbNativeReverb.buffer = irBuf;
+  _bbNativeReverb.connect(_bbNativeReverbGain);
+  _bbNativeReverbGain.connect(_bbNativeFilter);
+
+  // Chain: inputGain -> filter -> masterGain -> destination
+  // Also: inputGain -> delay -> delayGain -> filter (feedback loop)
+  // Also: inputGain -> reverb -> reverbGain -> filter
+  _bbNativeInput = rawCtx.createGain();
+  _bbNativeInput.connect(_bbNativeFilter);
+  _bbNativeInput.connect(_bbNativeDelay);
+  _bbNativeInput.connect(_bbNativeReverb);
+  _bbNativeFilter.connect(_bbFallbackMasterGain);
   _bbFallbackMasterGain.connect(rawCtx.destination);
 
   // Delay effect: input → delay → delayGain → compressor
@@ -527,7 +615,7 @@ function bbPlaySynthSound(name, targetGain) {
                  _bbFallbackCtx || 
                  new (window.AudioContext || window.webkitAudioContext)();
   const now = ctx.currentTime;
-  const dest = _bbFallbackMasterGain || ctx.destination;
+  const dest = _bbNativeInput || _bbNativeFilter || _bbFallbackMasterGain || ctx.destination;
 
   switch(name) {
     // ── VOICES (formant synthesis) ──
@@ -1420,7 +1508,7 @@ window.initRemix = async function() {
   trackVols      = INSTRUMENTS.map(() => 80);
   isRemixPlaying = false;
   remixStep      = 0;
-  if (remixInterval) clearInterval(remixInterval);
+  if (remixInterval) clearTimeout(remixInterval);
 
   const bpmEl = document.getElementById('remixBpmDisplay');
   if (bpmEl) bpmEl.textContent = `${remixBPM} BPM`;
@@ -1488,15 +1576,14 @@ window.toggleRemixPlay = async function() {
   const btn = document.getElementById('remixPlayBtn');
 
   if (isRemixPlaying) {
-    clearInterval(remixInterval);
+    clearTimeout(remixInterval);
     cancelAnimationFrame(vizAnimFrame);
     if (btn) { btn.textContent = '▶ PLAY'; btn.style.background = '#0f0'; btn.style.color = '#000'; }
     document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('highlight'));
   } else {
     remixStep = 0;
-    // Use simple setInterval like v4 — reliable, no Tone.js timing dependency
-    const ms = (60000 / remixBPM) / 4;
-    remixInterval = setInterval(bbPlayStep, ms);
+    // Use setTimeout chain with swing support
+    _bbRestartInterval();
     if (btn) { btn.textContent = '⏹ STOP'; btn.style.background = '#f00'; btn.style.color = '#fff'; }
     bbDrawViz();
   }
@@ -1514,9 +1601,7 @@ window.changeBPM = function(delta) {
   const el = document.getElementById('remixBpmDisplay');
   if (el) el.textContent = `${remixBPM} BPM`;
   if (isRemixPlaying) {
-    clearInterval(remixInterval);
-    const ms = (60000 / remixBPM) / 4;
-    remixInterval = setInterval(bbPlayStep, ms);
+    _bbRestartInterval();
   }
   if (typeof sounds !== 'undefined') sounds.click?.();
 };
@@ -1560,16 +1645,38 @@ function bbPlayStep() {
   remixStep = (remixStep + 1) % 16;
 }
 
+// Restart interval with current BPM + division + swing
+function _bbRestartInterval() {
+  if (!isRemixPlaying) return;
+  clearTimeout(remixInterval);
+  const baseMs = (60000 / remixBPM) / 4 * _bbDivMultiplier();
+  const swingAmt = remixSwing / 100 * baseMs * 0.5;
+  function tick() {
+    bbPlayStep();
+    const nextSwing = (remixStep % 2 === 0) ? swingAmt : -swingAmt;
+    remixInterval = setTimeout(tick, baseMs + nextSwing);
+  }
+  remixInterval = setTimeout(tick, baseMs);
+}
+
 // ── Swing ─────────────────────────────────────────────────
 
 window.setSwing = function(val) {
   remixSwing = Math.max(0, Math.min(100, parseInt(val)));
   const el = document.getElementById('swingLabel');
   if (el) el.textContent = `${remixSwing}%`;
+  if (isRemixPlaying) _bbRestartInterval();
   if (typeof sounds !== 'undefined') sounds.click?.();
 };
 
 // ── Note Division ─────────────────────────────────────────
+
+// Convert division to a multiplier for the interval timing
+function _bbDivMultiplier() {
+  if (remixDivision === '8n') return 2;    // 8th = half speed
+  if (remixDivision === '32n') return 0.5; // 32nd = double speed
+  return 1; // 16n = normal
+}
 
 window.setDivision = function(div) {
   remixDivision = div;
@@ -1577,9 +1684,7 @@ window.setDivision = function(div) {
     b.classList.toggle('active', b.dataset.div === div);
   });
   if (isRemixPlaying) {
-    clearInterval(remixInterval);
-    const ms = (60000 / remixBPM) / 4;
-    remixInterval = setInterval(bbPlayStep, ms);
+    _bbRestartInterval();
   }
   if (typeof sounds !== 'undefined') sounds.click?.();
 };
@@ -1676,6 +1781,8 @@ window.bbExportRecording = function() {
 window.clearRemix = function() {
   document.querySelectorAll('.beat-boy-step').forEach(s => s.classList.remove('active'));
   remixGrid.forEach(row => row.fill(false));
+  // Also clear imported library rows
+  dynamicRows.forEach(row => row.grid.fill(false));
   document.querySelectorAll('.bb-preset-btn').forEach(b => b.classList.remove('active'));
   if (typeof sounds !== 'undefined') sounds.back?.();
 };
@@ -1780,12 +1887,19 @@ function bbRefreshSavedList() {
 window.bbSetDelay = function(val) {
   const wet = parseInt(val) / 100;
   if (bbDelayGain) bbDelayGain.gain.value = wet;
+  if (_bbNativeDelayGain) _bbNativeDelayGain.gain.value = wet;
   const el = document.getElementById('delayLabel');
   if (el) el.textContent = `${val}%`;
 };
 
 window.bbSetDelayTime = function(time) {
   if (bbDelay) bbDelay.delayTime.value = time;
+  // Also set native delay — convert Tone.js time to seconds
+  if (_bbNativeDelay) {
+    const bpm = remixBPM;
+    const timeMap = { '4n': 60000/bpm/1000*2, '8n': 60000/bpm/1000, '8n.': 60000/bpm/1000*1.5, '16n': 60000/bpm/1000/2 };
+    _bbNativeDelay.delayTime.value = timeMap[time] || 60000/bpm/1000;
+  }
   document.querySelectorAll('.bb-delay-time-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.time === time);
   });
@@ -1794,12 +1908,14 @@ window.bbSetDelayTime = function(time) {
 
 window.bbSetFilter = function(freq) {
   if (bbFilter) bbFilter.frequency.value = parseInt(freq);
+  if (_bbNativeFilter) _bbNativeFilter.frequency.value = parseInt(freq);
   const el = document.getElementById('filterLabel');
   if (el) el.textContent = freq >= 1000 ? `${(freq/1000).toFixed(1)}k` : `${freq}Hz`;
 };
 
 window.bbSetFilterType = function(type) {
   if (bbFilter) bbFilter.type = type;
+  if (_bbNativeFilter) _bbNativeFilter.type = type;
   document.querySelectorAll('.bb-filter-type-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.ftype === type);
   });
@@ -1809,6 +1925,7 @@ window.bbSetFilterType = function(type) {
 window.bbSetReverb = function(val) {
   const wet = parseInt(val) / 100;
   if (bbReverbGain) bbReverbGain.gain.value = wet;
+  if (_bbNativeReverbGain) _bbNativeReverbGain.gain.value = wet;
   const el = document.getElementById('reverbLabel');
   if (el) el.textContent = `${val}%`;
 };
@@ -1933,7 +2050,7 @@ function bbDrawViz() {
 // ── Cleanup ───────────────────────────────────────────────
 
 window.stopRemix = function() {
-  if (remixInterval) { clearInterval(remixInterval); remixInterval = null; }
+  if (remixInterval) { clearTimeout(remixInterval); remixInterval = null; }
   if (vizAnimFrame) { cancelAnimationFrame(vizAnimFrame); vizAnimFrame = null; }
   isRemixPlaying = false;
   bbUnbindKeyboard();
