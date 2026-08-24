@@ -299,6 +299,7 @@ function goBack() {
         if (typeof _orbCleanup === 'function') _orbCleanup();
         if (typeof _sandCleanup === 'function') _sandCleanup();
         if (typeof _fluidCleanup === 'function') _fluidCleanup();
+        if (typeof _paintCleanup === 'function') _paintCleanup();
         if (typeof _platCleanup === 'function') _platCleanup();
         if (currentScreen === 'noise' && typeof noiseStop === 'function') noiseStop();
         if (currentScreen === 'visual' && typeof _waveStopAuto === 'function') _waveStopAuto();
