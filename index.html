@@ -228,8 +228,8 @@
                         <canvas id="paintCanvas" width="300" height="280" style="background: white; cursor: crosshair; flex: 1; width: 100%; border: none;"></canvas>
                         <div style="flex-shrink: 0; padding: 5px 6px; border-top: 2px solid var(--gb-text); background: var(--gb-bg);">
                             <!-- Color palette -->
-                            <div class="paint-palette-row">
-                                <div id="paintPalette" style="display: flex; gap: 3px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none;">
+                            <div class="paint-palette-row" style="display:flex; gap:3px; align-items:center;">
+                                <div id="paintPalette" style="display: flex; gap: 3px; overflow-x: auto; flex: 1; padding-bottom: 2px; scrollbar-width: none;">
                                 <div onclick="setPaintColor('#000000')" style="width:18px;height:18px;background:#000;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 <div onclick="setPaintColor('#ffffff')" style="width:18px;height:18px;background:#fff;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 <div onclick="setPaintColor('#ff0000')" style="width:18px;height:18px;background:#f00;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
@@ -242,8 +242,8 @@
                                 <div onclick="setPaintColor('#888888')" style="width:18px;height:18px;background:#888;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 <div onclick="setPaintColor('#ffcccc')" style="width:18px;height:18px;background:#fcc;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
                                 <div onclick="setPaintColor('#884400')" style="width:18px;height:18px;background:#840;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;"></div>
-                                <div id="paintScrollToggle" onclick="paintToggleScroll()" style="width:18px;height:18px;background:#222;color:#aaa;font-size:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;" title="Scroll down">▼</div>
                                 </div>
+                                <div id="paintScrollToggle" onclick="paintToggleScroll()" style="width:18px;height:18px;background:#222;color:#aaa;font-size:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:3px;flex-shrink:0;border:1px solid #555;" title="Scroll down">▼</div>
                             </div>
 
                             <!-- Blend colors: Primary / Secondary / Tertiary -->

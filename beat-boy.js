@@ -140,6 +140,7 @@ let bbTrackGains  = [];
 let bbDrumPlayers = null;
 let bbBassSynth   = null;
 let bbPiano       = null;
+let bbPianoSynth  = null;
 let bbChordSynth  = null;
 let bbAnalyser    = null;
 
@@ -428,6 +429,7 @@ async function bbInitAudio() {
   }).connect(new Tone.Reverb({ decay: 2, wet: 0.35 }).connect(bbTrackGains[7]));
 
   // Salamander piano sampler — wrapped in try/catch for CDN failures
+  // Sampler only loads specific notes, so we also create a synth fallback
   try {
     bbPiano = new Tone.Sampler({
       urls: {
@@ -440,6 +442,13 @@ async function bbInitAudio() {
       onerror: () => { bbPiano = null; },
     }).connect(new Tone.Reverb({ decay: 1.5, wet: 0.2 }).connect(bbTrackGains[6]));
   } catch(e) { bbPiano = null; }
+
+  // Piano synth fallback — used when sampler can't play a note
+  bbPianoSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: 'triangle' },
+    envelope: { attack: 0.01, decay: 0.4, sustain: 0.1, release: 0.6 },
+    volume: -8,
+  }).connect(new Tone.Reverb({ decay: 1.5, wet: 0.2 }).connect(bbTrackGains[6]));
 
   await bbLoadKit(currentKit);
   audioReady = true;
@@ -1160,6 +1169,13 @@ window.bbAddSample = async function(name, data) {
     }
   }
 
+  // Create per-row gain for volume control
+  if (data.type === 'synth') {
+    try {
+      row.gain = new Tone.Volume(0).connect(bbMasterVol);
+    } catch(e) {}
+  }
+
   // Switch back to beats tab to show the new row
   bbSwitchTab('beats');
 
@@ -1235,7 +1251,8 @@ function bbTriggerDynamic(idx, step) {
       row.player.start(now);
     } catch(e) {}
   } else if (row.data.type === 'synth') {
-    bbPlaySynthSound(row.data.synth);
+    // Route through row's own gain for independent volume control
+    bbPlaySynthSound(row.data.synth, row.gain || bbMasterVol);
   }
 }
 
@@ -1354,9 +1371,18 @@ function bbTrigger(r, step) {
     const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;
     bbBassSynth.triggerAttackRelease((melody?.bass || BASS_NOTES)[step % 8], '8n', now);
 
-  } else if (r === 6 && bbPiano?.loaded) {
+  } else if (r === 6) {
     const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;
-    bbPiano.triggerAttackRelease((melody?.lead || LEAD_NOTES)[step % 8], '8n', now);
+    const note = (melody?.lead || LEAD_NOTES)[step % 8];
+    // Try sampler first, fall back to synth if note not loaded
+    if (bbPiano && bbPiano.loaded) {
+      try { bbPiano.triggerAttackRelease(note, '8n', now); } catch(e) {
+        // Note not in sampler mapping — use synth fallback
+        if (bbPianoSynth) bbPianoSynth.triggerAttackRelease(note, '8n', now);
+      }
+    } else if (bbPianoSynth) {
+      bbPianoSynth.triggerAttackRelease(note, '8n', now);
+    }
 
   } else if (r === 7 && bbChordSynth) {
     const melody = bbMelodyStyle === 'afrobeat' ? AFROBEAT_NOTES[bbScale] : null;
@@ -1499,14 +1525,18 @@ function bbPlayStep() {
     s.classList.toggle('highlight', parseInt(s.dataset.c) === remixStep);
   });
 
-  // Trigger fixed tracks
+  // Trigger fixed tracks — wrapped in try/catch so one bad track doesn't kill the whole sequencer
   for (let r = 0; r < INSTRUMENTS.length; r++) {
-    if (remixGrid[r]?.[remixStep]) bbTrigger(r, remixStep);
+    if (remixGrid[r]?.[remixStep]) {
+      try { bbTrigger(r, remixStep); } catch(e) { console.warn('bbTrigger error:', r, e); }
+    }
   }
 
   // Trigger dynamic sample rows
   for (let i = 0; i < dynamicRows.length; i++) {
-    if (dynamicRows[i].grid[remixStep]) bbTriggerDynamic(i, remixStep);
+    if (dynamicRows[i].grid[remixStep]) {
+      try { bbTriggerDynamic(i, remixStep); } catch(e) { console.warn('bbTriggerDynamic error:', i, e); }
+    }
   }
 
   remixStep = (remixStep + 1) % 16;
@@ -1793,7 +1823,7 @@ function bbBindKeyboard() {
         pad.classList.add('active');
         remixGrid[r][step] = true;
       }
-      bbTrigger(r, step);
+      try { bbTrigger(r, step); } catch(e) { console.warn('Key trigger error:', e); }
     }
 
     // Spacebar = play/stop
@@ -1951,7 +1981,7 @@ function bbBuildPads() {
       if (!audioReady) { bbSetStatus('⟳ Loading…'); await bbInitAudio(); }
 
       // Trigger the sound
-      bbTrigger(r, remixStep);
+      try { bbTrigger(r, remixStep); } catch(e) { console.warn('Pad trigger error:', e); }
 
       // Visual flash
       pad.classList.add('bb-pad-flash');

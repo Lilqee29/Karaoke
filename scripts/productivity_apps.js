@@ -985,7 +985,8 @@ window.paintBrushDown = function() {
 
 window.paintToggleScroll = function() {
     const btn = document.getElementById('paintScrollToggle');
-    const screen = document.querySelector('.screen-content') || document.querySelector('.screen');
+    // Scroll the active game-screen (it has overflow-y:auto), not screen-content (overflow:hidden)
+    const screen = document.querySelector('.game-screen.active') || document.querySelector('.screen-content');
     if (!screen || !btn) return;
     const scrolled = screen.scrollTop > 10;
     if (scrolled) {
