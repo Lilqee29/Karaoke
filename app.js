@@ -31,6 +31,9 @@ const apps = [
     { id: 'groove', name: 'GROOVE', icon: '🥁' },
     { id: 'music', name: 'MUSIC', icon: '🎵' },
     { id: 'radio', name: 'WAVE', icon: '📻' },
+    { id: 'pulse', name: 'PULSE', icon: '⚡' },
+    { id: 'synth', name: 'SYNTH', icon: '🎵' },
+    { id: 'flow', name: 'FLOW', icon: '🌊' },
 
     // ── INFORMATION & LEARNING ────────────────────────────────────────────
     { id: 'news', name: 'NEWS', icon: '📰' },

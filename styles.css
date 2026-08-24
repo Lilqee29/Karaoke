@@ -1593,3 +1593,62 @@ select:focus {
   margin-top: 8px;
   font-family: "Press Start 2P", monospace;
 }
+
+/* ================================================================
+   CREATIVE HUB — PULSE · SYNTH · FLOW
+   ================================================================ */
+
+#pulseScreen.active,
+#synthScreen.active,
+#flowScreen.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* PULSE Feed Cards */
+#pulseFeed > div {
+  transition: background 0.15s ease;
+}
+#pulseFeed > div:hover {
+  background: rgba(15, 56, 15, 0.08);
+}
+
+/* SYNTH Keyboard Keys */
+#synthKeyboard button {
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+}
+#synthKeyboard button:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  background: var(--gb-text) !important;
+  color: var(--gb-bg) !important;
+}
+
+/* SYNTH Pattern Steps */
+#synthPattern {
+  scrollbar-width: none;
+}
+#synthPattern::-webkit-scrollbar {
+  display: none;
+}
+
+/* FLOW Stat Cards */
+#flowContent > div > div[style*="background:rgba"] {
+  transition: transform 0.1s ease;
+}
+#flowContent > div > div[style*="background:rgba"]:hover {
+  transform: scale(1.02);
+}
+
+/* Mobile overrides for Creative Hub */
+@media (max-width: 768px) {
+  #synthKeyboard button {
+    width: 32px;
+    height: 40px;
+    font-size: 5px;
+  }
+  
+  #pulseFeed > div {
+    padding: 6px !important;
+  }
+}
