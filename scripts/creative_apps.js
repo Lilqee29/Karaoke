@@ -1437,6 +1437,7 @@ function _sandLoop() {
   _sandFrame++;
 
   // Update grid (bottom-up so falling works correctly)
+  const totalCells = _sandW * _sandH;
   for (let y = _sandH - 1; y >= 0; y--) {
     // Alternate left-right scan each frame to prevent bias
     const leftToRight = (_sandFrame % 2 === 0);
@@ -1459,11 +1460,9 @@ function _sandLoop() {
 
       switch (cell) {
         case CELL.SAND:
-          // Falls straight, or diagonal
           if (isEmpty(below)) { swap(idx, (y + 1) * _sandW + x); }
           else if (isEmpty(belowL) && Math.random() < 0.5) { swap(idx, (y + 1) * _sandW + x - 1); }
           else if (isEmpty(belowR)) { swap(idx, (y + 1) * _sandW + x + 1); }
-          // Sink through water/oil
           else if (isLiquid(below)) { swap(idx, (y + 1) * _sandW + x); }
           else if (isLiquid(belowL) && Math.random() < 0.5) { swap(idx, (y + 1) * _sandW + x - 1); }
           else if (isLiquid(belowR)) { swap(idx, (y + 1) * _sandW + x + 1); }
@@ -1479,7 +1478,6 @@ function _sandLoop() {
           break;
 
         case CELL.FIRE:
-          // Fire rises and dies
           _sandColorIdx[idx] = Math.floor(Math.random() * 4);
           if (Math.random() < 0.05) { _sandGrid[idx] = CELL.SMOKE; _sandColorIdx[idx] = Math.floor(Math.random() * 4); break; }
           if (Math.random() < 0.02) { _sandGrid[idx] = CELL.EMPTY; break; }
@@ -1489,7 +1487,6 @@ function _sandLoop() {
             if (nx >= 0 && nx < _sandW && isEmpty((y - 1) * _sandW + nx))
               swap(idx, (y - 1) * _sandW + nx);
           }
-          // Burn adjacent plants
           [[y-1,x],[y+1,x],[y,x-1],[y,x+1]].forEach(([ny,nx]) => {
             if (ny >= 0 && ny < _sandH && nx >= 0 && nx < _sandW) {
               const ni = ny * _sandW + nx;
@@ -1500,7 +1497,6 @@ function _sandLoop() {
           break;
 
         case CELL.PLANT:
-          // Grow upward toward light occasionally
           if (Math.random() < 0.005 && isEmpty(above)) { _sandGrid[(y - 1) * _sandW + x] = CELL.PLANT; _sandColorIdx[(y - 1) * _sandW + x] = Math.floor(Math.random() * 4); }
           break;
 
@@ -1516,28 +1512,39 @@ function _sandLoop() {
     }
   }
 
-  // Draw
-  const img = _sandCtx.createImageData(_sandCanvas.width, _sandCanvas.height);
+  // Draw — use pre-parsed color lookup for speed
+  const W = _sandCanvas.width, H = _sandCanvas.height;
+  const img = _sandCtx.createImageData(W, H);
   const d = img.data;
   const cs = _sandCellSize;
+
+  // Pre-parse colors to RGB arrays
+  const colorCache = {};
+  for (const [cellId, hexArr] of Object.entries(CELL_COLORS)) {
+    if (!hexArr) continue;
+    colorCache[cellId] = hexArr.map(hex => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return [r, g, b];
+    });
+  }
 
   for (let gy = 0; gy < _sandH; gy++) {
     for (let gx = 0; gx < _sandW; gx++) {
       const cell = _sandGrid[gy * _sandW + gx];
       if (cell === CELL.EMPTY) continue;
-      const colors = CELL_COLORS[cell];
-      const cHex = colors[_sandColorIdx[gy * _sandW + gx] % colors.length];
-      const r = parseInt(cHex.slice(1, 3), 16);
-      const g = parseInt(cHex.slice(3, 5), 16);
-      const b = parseInt(cHex.slice(5, 7), 16);
+      const rgb = colorCache[cell]?.[_sandColorIdx[gy * _sandW + gx] % 4];
+      if (!rgb) continue;
+      const [cr, cg, cb] = rgb;
 
-      // Fill cell pixels
-      for (let py = 0; py < cs; py++) {
-        for (let px = 0; px < cs; px++) {
-          const sx = gx * cs + px, sy = gy * cs + py;
-          if (sx >= _sandCanvas.width || sy >= _sandCanvas.height) continue;
-          const pi = (sy * _sandCanvas.width + sx) * 4;
-          d[pi] = r; d[pi + 1] = g; d[pi + 2] = b; d[pi + 3] = 255;
+      const x0 = gx * cs, y0 = gy * cs;
+      const x1 = Math.min(x0 + cs, W), y1 = Math.min(y0 + cs, H);
+      for (let py = y0; py < y1; py++) {
+        const rowOff = py * W;
+        for (let px = x0; px < x1; px++) {
+          const pi = (rowOff + px) << 2;
+          d[pi] = cr; d[pi + 1] = cg; d[pi + 2] = cb; d[pi + 3] = 255;
         }
       }
     }

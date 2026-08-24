@@ -117,6 +117,22 @@ const BB_SAMPLE_LIB = {
     'Brass':        { synth: 'brass',    type: 'synth' },
     'Strings':      { synth: 'strings',  type: 'synth' },
   },
+  '🎸 BASS': {
+    'Sub Bass':     { synth: 'subbass',   type: 'synth' },
+    'Saw Bass':     { synth: 'sawbass',   type: 'synth' },
+    'Fretless':     { synth: 'fretless',  type: 'synth' },
+    'Slap Bass':    { synth: 'slap',      type: 'synth' },
+    'Wobble':       { synth: 'wobble',    type: 'synth' },
+    'Reese':        { synth: 'reese',     type: 'synth' },
+  },
+  '🌊 PADS': {
+    'Warm Pad':     { synth: 'warmpad',   type: 'synth' },
+    'Choir':        { synth: 'choir',     type: 'synth' },
+    'Ambient':      { synth: 'ambient',   type: 'synth' },
+    'Evolving':     { synth: 'evolving',  type: 'synth' },
+    'Shimmer':      { synth: 'shimmer',   type: 'synth' },
+    'Dark Pad':     { synth: 'darkpad',   type: 'synth' },
+  },
 };
 
 // Tone.js nodes
@@ -722,19 +738,160 @@ function bbPlaySynthSound(name, targetGain) {
       });
       break;
     }
+    // ── BASS category ────────────────────────────
+    case 'subbass': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 55;
+      g.gain.setValueAtTime(0.35, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.4);
+      break;
+    }
+    case 'sawbass': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 600;
+      o.type = 'sawtooth'; o.frequency.value = 110;
+      g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      o.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.3);
+      break;
+    }
+    case 'fretless': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.setValueAtTime(146, now);
+      o.frequency.linearRampToValueAtTime(130, now + 0.2);
+      g.gain.setValueAtTime(0.25, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.4);
+      break;
+    }
+    case 'slap': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'square'; o.frequency.setValueAtTime(300, now);
+      o.frequency.exponentialRampToValueAtTime(80, now + 0.05);
+      g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 0.1);
+      break;
+    }
+    case 'wobble': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      const lfo = ctx.createOscillator(); const lg = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.value = 110;
+      lfo.type = 'sine'; lfo.frequency.value = 6;
+      lg.gain.value = 400;
+      lfo.connect(lg); lg.connect(o.frequency);
+      g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      lfo.start(now); o.start(now); o.stop(now + 0.5); lfo.stop(now + 0.5);
+      break;
+    }
+    case 'reese': {
+      [110, 111.5].forEach(freq => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1200;
+        o.type = 'sawtooth'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.15, now); g.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+        o.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+        o.start(now); o.stop(now + 0.6);
+      });
+      break;
+    }
+    // ── PADS category ────────────────────────────
+    case 'warmpad': {
+      [262, 330, 392, 523].forEach(freq => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.06, now + 0.3);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+        o.connect(g); g.connect(bbTrackGains[0]);
+        o.start(now); o.stop(now + 1.0);
+      });
+      break;
+    }
+    case 'choir': {
+      [196, 247, 294, 392].forEach(freq => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.04, now + 0.4);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+        o.connect(g); g.connect(bbTrackGains[0]);
+        o.start(now); o.stop(now + 1.2);
+      });
+      break;
+    }
+    case 'ambient': {
+      [130.8, 196, 261.6].forEach(freq => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'triangle'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.05, now + 0.5);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+        o.connect(g); g.connect(bbTrackGains[0]);
+        o.start(now); o.stop(now + 1.5);
+      });
+      break;
+    }
+    case 'evolving': {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(200, now);
+      o.frequency.linearRampToValueAtTime(400, now + 1.0);
+      g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.06, now + 0.3);
+      g.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
+      o.connect(g); g.connect(bbTrackGains[0]);
+      o.start(now); o.stop(now + 1.2);
+      break;
+    }
+    case 'shimmer': {
+      [523, 659, 784].forEach(freq => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.04, now + 0.2);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+        o.connect(g); g.connect(bbTrackGains[0]);
+        o.start(now); o.stop(now + 0.8);
+      });
+      break;
+    }
+    case 'darkpad': {
+      [110, 138.6, 164.8].forEach(freq => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.value = freq;
+        const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400;
+        g.gain.setValueAtTime(0, now); g.gain.linearRampToValueAtTime(0.05, now + 0.4);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+        o.connect(f); f.connect(g); g.connect(bbTrackGains[0]);
+        o.start(now); o.stop(now + 1.0);
+      });
+      break;
+    }
   }
 }
 
+// ── Tab System ─────────────────────────────────────────────
+let _bbCurrentTab = 'beats';
+
+window.bbSwitchTab = function(tab) {
+  _bbCurrentTab = tab;
+  const panels = ['beats', 'library', 'fx', 'save'];
+  panels.forEach(p => {
+    const el = document.getElementById('bbTab' + p.charAt(0).toUpperCase() + p.slice(1));
+    if (el) el.style.display = p === tab ? '' : 'none';
+  });
+  document.querySelectorAll('.bb-tab-btn').forEach(b => {
+    const active = b.dataset.bbtab === tab;
+    b.style.background = active ? 'var(--gb-text)' : 'transparent';
+    b.style.color = active ? 'var(--gb-bg)' : 'var(--gb-text)';
+    b.style.borderColor = active ? 'var(--gb-text)' : '#333';
+    b.classList.toggle('active', active);
+  });
+  if (tab === 'library') renderSampleBrowser();
+};
+
 // ── Sample Browser UI ─────────────────────────────────────
+let _bbLibCategory = 'all';
+
 window.toggleSampleBrowser = function() {
-  const browser = document.getElementById('bbSampleBrowser');
-  if (!browser) return;
-  if (browser.style.display === 'none') {
-    renderSampleBrowser();
-    browser.style.display = 'block';
-  } else {
-    browser.style.display = 'none';
-  }
+  bbSwitchTab('library');
 };
 
 // Add a sample as a NEW row in the sequencer grid
@@ -769,6 +926,9 @@ window.bbAddSample = async function(name, data) {
       bbSetStatus(`⚠ Failed: ${name}`);
     }
   }
+
+  // Switch back to beats tab to show the new row
+  bbSwitchTab('beats');
 
   // Add row to grid DOM
   const gridEl = document.getElementById('remixGrid');
@@ -833,11 +993,13 @@ function bbTriggerDynamic(idx, step) {
   const vol = row.vol / 100;
   if (vol === 0) return;
 
-  const now = Tone.now();
   if (row.data.type === 'sample' && row.player) {
+    if (!row.player.loaded) return; // skip if not loaded yet
+    const now = Tone.now();
     try {
       row.player.volume.value = Tone.gainToDb(vol);
-      if (row.player.loaded) { row.player.stop(now); row.player.start(now); }
+      row.player.stop(now);
+      row.player.start(now);
     } catch(e) {}
   } else if (row.data.type === 'synth') {
     bbPlaySynthSound(row.data.synth);
@@ -847,24 +1009,44 @@ function bbTriggerDynamic(idx, step) {
 function renderSampleBrowser() {
   const browser = document.getElementById('bbSampleBrowser');
   if (!browser) return;
-  let html = '';
-  for (const [category, samples] of Object.entries(BB_SAMPLE_LIB)) {
-    html += `<div style="margin-bottom:6px;">`;
-    html += `<div style="font-size:5px; color:#0ff; font-weight:bold; margin-bottom:3px; border-bottom:1px solid #222; padding-bottom:2px;">${category}</div>`;
-    html += `<div style="display:flex; flex-wrap:wrap; gap:3px;">`;
+
+  const categories = Object.keys(BB_SAMPLE_LIB);
+  const catButtons = [`<button onclick="bbLibFilter('all')" class="bb-lib-cat ${_bbLibCategory === 'all' ? 'active' : ''}" style="font-size:4px; padding:2px 5px; background:${_bbLibCategory === 'all' ? '#0ff' : '#0a0a0a'}; color:${_bbLibCategory === 'all' ? '#000' : '#aaa'}; border:1px solid ${_bbLibCategory === 'all' ? '#0ff' : '#333'}; border-radius:2px; cursor:pointer;">ALL</button>`];
+  categories.forEach(cat => {
+    const label = cat.replace(/^[^\w]*/, '').trim();
+    const isActive = _bbLibCategory === cat;
+    catButtons.push(`<button onclick="bbLibFilter('${cat.replace(/'/g, "\\'")}')" class="bb-lib-cat" style="font-size:4px; padding:2px 5px; background:${isActive ? '#0ff' : '#0a0a0a'}; color:${isActive ? '#000' : '#aaa'}; border:1px solid ${isActive ? '#0ff' : '#333'}; border-radius:2px; cursor:pointer;">${label}</button>`);
+  });
+
+  let html = `<div style="display:flex; gap:2px; flex-wrap:wrap; margin-bottom:5px;">${catButtons.join('')}</div>`;
+
+  const catsToShow = _bbLibCategory === 'all' ? categories : [_bbLibCategory];
+
+  for (const category of catsToShow) {
+    const samples = BB_SAMPLE_LIB[category];
+    if (!samples) continue;
+    html += `<div style="margin-bottom:5px;">`;
+    html += `<div style="font-size:4.5px; color:#0ff; font-weight:bold; margin-bottom:3px; border-bottom:1px solid #222; padding-bottom:2px;">${category}</div>`;
+    html += `<div style="display:flex; flex-wrap:wrap; gap:2px;">`;
     for (const [name, data] of Object.entries(samples)) {
-      const bgColor = '#111';
-      html += `<button onclick="if (!this.dataset.touchHandled) bbPreviewSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')}); this.dataset.touchHandled=''; event.stopPropagation();"
-        ontouchend="bbHandleSampleTouch(event, this, '${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
-        ondblclick="bbAddSample('${name}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
-        style="font-size:4.5px; padding:2px 4px; background:${bgColor}; color:#ccc; border:1px solid #333; border-radius:2px; cursor:pointer;"
-        title="Tap once = preview, tap twice = add to grid">${name} +</button>`;
+      const isSynth = data.type === 'synth';
+      const tag = isSynth ? ' ♪' : ' ♪';
+      html += `<button onclick="if (!this.dataset.touchHandled) bbPreviewSample('${name.replace(/'/g, "\\'")}', ${JSON.stringify(data).replace(/"/g, '&quot;')}); this.dataset.touchHandled=''; event.stopPropagation();"
+        ontouchend="bbHandleSampleTouch(event, this, '${name.replace(/'/g, "\\'")}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
+        ondblclick="bbAddSample('${name.replace(/'/g, "\\'")}', ${JSON.stringify(data).replace(/"/g, '&quot;')})"
+        style="font-size:4.5px; padding:2px 4px; background:#111; color:#ccc; border:1px solid #333; border-radius:2px; cursor:pointer;"
+        title="Tap = preview, double-tap = add row">${name}${tag}</button>`;
     }
     html += `</div></div>`;
   }
-  html += `<div style="font-size:4px; color:#666; margin-top:4px;">Tap once to preview • Tap twice to add as new row</div>`;
+
   browser.innerHTML = html;
 }
+
+window.bbLibFilter = function(cat) {
+  _bbLibCategory = cat;
+  renderSampleBrowser();
+};
 
 window.bbHandleSampleTouch = function(event, button, name, data) {
   event.preventDefault();
@@ -887,9 +1069,13 @@ window.bbPreviewSample = function(name, data) {
   if (!audioReady) return;
   if (data.type === 'sample' && data.url) {
     try {
-      const player = new Tone.Player(data.url).toDestination();
+      const player = new Tone.Player({
+        url: data.url,
+        onload: () => { try { player.start(); } catch(e) {} },
+        onerror: (e) => { console.warn('Preview load failed:', name, e); }
+      });
       player.volume.value = -6;
-      player.start();
+      player.toDestination();
       setTimeout(() => { try { player.dispose(); } catch(e) {} }, 5000);
     } catch(e) { console.warn('Preview error:', e); }
   } else if (data.type === 'synth' && data.synth) {
@@ -1115,9 +1301,8 @@ window.switchKit = async function(kitFolder) {
   if (!audioReady) await bbInitAudio();
   currentKit = kitFolder;
   await bbLoadKit(kitFolder);
-  document.querySelectorAll('.bb-kit-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.kit === kitFolder);
-  });
+  const sel = document.getElementById('bbKitSelect');
+  if (sel) sel.value = kitFolder;
   if (typeof sounds !== 'undefined') sounds.click?.();
 };
 

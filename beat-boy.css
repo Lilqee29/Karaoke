@@ -409,3 +409,14 @@
 .dynamic-track .beat-boy-track-header {
   border-bottom: 1px solid #222;
 }
+
+/* ── Tab System ───────────────────────────────────────────── */
+.bb-tab-btn {
+  transition: all 0.1s !important;
+}
+.bb-tab-btn.active {
+  font-weight: bold !important;
+}
+.bb-lib-cat {
+  transition: all 0.1s !important;
+}

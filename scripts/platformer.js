@@ -885,9 +885,10 @@ function initPlatform() {
   _platAudio.init();
   _platAudio.resume();
 
-  // Keyboard input
+  // Keyboard input — use e.key (not e.code) so D-pad buttons work
   _platKeyDownHandler = (e) => {
-    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+    const k = e.key;
+    if (k === ' ' || k === 'ArrowUp' || k === 'w' || k === 'W') {
       if (_platGameState === 'TITLE') { _platStartGame(); _platKeys.jump = false; return; }
       if (_platGameState === 'LEVEL_COMPLETE') {
         _platLevelIdx++;
@@ -900,17 +901,18 @@ function initPlatform() {
       }
     }
     if (_platGameState === 'PLAYING') {
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') _platKeys.left = true;
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') _platKeys.right = true;
-      if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'Space') {
+      if (k === 'ArrowLeft' || k === 'a' || k === 'A') _platKeys.left = true;
+      if (k === 'ArrowRight' || k === 'd' || k === 'D') _platKeys.right = true;
+      if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'w' || k === 'W' || k === 's' || k === 'S' || k === ' ') {
         _platKeys.jump = true; e.preventDefault();
       }
     }
   };
   _platKeyUpHandler = (e) => {
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') _platKeys.left = false;
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') _platKeys.right = false;
-    if (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'Space') _platKeys.jump = false;
+    const k = e.key;
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A') _platKeys.left = false;
+    if (k === 'ArrowRight' || k === 'd' || k === 'D') _platKeys.right = false;
+    if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'w' || k === 'W' || k === 's' || k === 'S' || k === ' ') _platKeys.jump = false;
   };
   _platBlurHandler = () => { _platKeys.left = false; _platKeys.right = false; _platKeys.jump = false; };
 

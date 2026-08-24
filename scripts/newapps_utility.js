@@ -157,6 +157,39 @@ window.initSos = function() {
 const QURAN_API_URL = 'https://api.alquran.cloud/v1/ayah';
 let quranCurrentAyah = 1;
 
+// Surah data: [startAyah, ayahCount, englishName]
+const QURAN_SURAHS = [
+  [1,7,'Al-Fatihah'],[8,206,'Al-Baqarah'],[216,120,'Ali-Imran'],[255,110,'An-Nisa'],
+  [372,126,'Al-Ma\'idah'],[453,148,'Al-An\'am'],[526,206,'Al-A\'raf'],[621,87,'Al-Anfal'],
+  [653,129,'At-Tawbah'],[750,109,'Yunus'],[816,123,'Hud'],[869,111,'Yusuf'],
+  [912,43,'Ar-Ra\'d'],[932,52,'Ibrahim'],[955,99,'Al-Hijr'],[980,128,'An-Nahl'],
+  [1041,111,'Al-Isra'],[1091,110,'Al-Kahf'],[1118,98,'Maryam'],[1151,135,'Taha'],
+  [1198,112,'Al-Anbiya'],[1235,111,'Al-Hajj'],[1266,64,'Al-Mu\'minun'],[1291,37,'An-Nur'],
+  [1319,18,'Al-Furqan'],[1328,120,'Ash-Shu\'ara'],[1373,88,'An-Naml'],[1406,88,'Al-Qasas'],
+  [1457,69,'Al-Ankabut'],[1488,60,'Ar-Rum'],[1509,34,'Luqman'],[1523,30,'As-Sajdah'],
+  [1530,73,'Al-Ahbab'],[1542,54,'Al-Ahzab'],[1563,45,'Saba'],[1577,55,'Fatir'],
+  [1594,45,'Ya-Sin'],[1607,53,'As-Saffat'],[1621,88,'Sad'],[1651,69,'Az-Zumar'],
+  [1674,23,'Ghafir'],[1683,14,'Fussilat'],[1693,53,'Ash-Shura'],[1701,89,'Az-Zukhruf'],
+  [1723,59,'Ad-Dukhan'],[1732,40,'Al-Jathiyah'],[1742,53,'Al-Ahqaf'],[1750,45,'Muhammad'],
+  [1763,38,'Al-Fath'],[1771,29,'Al-Hujurat'],[1784,18,'Qaf'],[1791,45,'Adh-Dhariyat'],
+  [1799,60,'At-Tur'],[1809,49,'An-Najm'],[1819,62,'Al-Qamar'],[1829,55,'Ar-Rahman'],
+  [1840,78,'Al-Waqi\'ah'],[1857,96,'Al-Hadid'],[1878,43,'Al-Mujadila'],[1890,24,'Al-Hashr'],
+  [1899,13,'Al-Mumtahanah'],[1904,14,'As-Saff'],[1910,11,'Al-Jumu\'ah'],[1913,11,'Al-Munafiqun'],
+  [1915,18,'At-Taghabun'],[1922,12,'At-Talaq'],[1926,22,'At-Tahrim'],[1931,28,'Al-Mulk'],
+  [1939,28,'Al-Qalam'],[1947,18,'Al-Haqqah'],[1954,28,'Al-Ma\'arij'],[1962,21,'Nuh'],
+  [1966,11,'Al-Jinn'],[1970,11,'Al-Muzzammil'],[1974,8,'Al-Muddaththir'],
+  [1976,19,'Al-Qiyamah'],[1980,5,'Al-Insan'],[1982,40,'Al-Mursalat'],[1986,8,'An-Naba'],
+  [1989,8,'An-Nazi\'at'],[1992,6,'Abasa'],[1995,59,'At-Takwir'],[1997,40,'Al-Infitar'],
+  [1999,8,'Al-Mutaffifin'],[2001,17,'Al-Inshiqaq'],[2003,5,'Al-Buruj'],[2005,8,'At-Tariq'],
+  [2006,11,'Al-A\'la'],[2008,19,'Al-Ghashiyah'],[2010,33,'Al-Fajr'],[2014,11,'Al-Balad'],
+  [2016,8,'Ash-Shams'],[2017,11,'Al-Layl'],[2018,5,'Ad-Duha'],[2019,8,'Ash-Sharh'],
+  [2020,3,'At-Tin'],[2021,9,'Al-Alaq'],[2022,12,'Al-Qadr'],[2023,19,'Al-Bayyinah'],
+  [2026,5,'Az-Zalzalah'],[2027,8,'Al-Adiyat'],[2028,11,'Al-Qari\'ah'],[2029,8,'At-Takathur'],
+  [2031,3,'Al-Asr'],[2032,9,'Al-Humazah'],[2034,5,'Al-Fil'],[2035,7,'Quraysh'],
+  [2036,6,'Al-Ma\'un'],[2037,3,'Al-Kawthar'],[2038,6,'Al-Kafirun'],[2040,3,'An-Nasr'],
+  [2041,5,'Al-Masad'],[2042,6,'Al-Ikhlas'],[2043,2,'Al-Falaq'],[2044,6,'An-Nas'],
+];
+
 function quranDayNumber() {
     const now = new Date();
     const yearStart = Date.UTC(now.getUTCFullYear(), 0, 0);
@@ -175,6 +208,37 @@ function escapeQuranText(value) {
 
 window.initQuran = function() {
     quranCurrentAyah = quranDayNumber();
+    // Populate surah dropdown
+    const sel = document.getElementById('quranSurahSelect');
+    if (sel && sel.options.length <= 1) {
+        QURAN_SURAHS.forEach((s, i) => {
+            const opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = `${i + 1}. ${s[2]}`;
+            sel.appendChild(opt);
+        });
+    }
+    // Auto-select current surah
+    _quranHighlightSurah();
+    loadQuranAyah(quranCurrentAyah);
+};
+
+function _quranHighlightSurah() {
+    // Find which surah the current ayah belongs to
+    const sel = document.getElementById('quranSurahSelect');
+    if (!sel) return;
+    for (let i = QURAN_SURAHS.length - 1; i >= 0; i--) {
+        if (quranCurrentAyah >= QURAN_SURAHS[i][0]) {
+            sel.value = i;
+            return;
+        }
+    }
+}
+
+window.quranGoToSurah = function(idx) {
+    const i = parseInt(idx);
+    if (isNaN(i) || i < 0 || i >= QURAN_SURAHS.length) return;
+    quranCurrentAyah = QURAN_SURAHS[i][0];
     loadQuranAyah(quranCurrentAyah);
 };
 
@@ -183,6 +247,8 @@ window.loadQuranAyah = async function(selection) {
     if (selection === 'previous') quranCurrentAyah = quranCurrentAyah <= 1 ? 6236 : quranCurrentAyah - 1;
     if (selection === 'random') quranCurrentAyah = Math.floor(Math.random() * 6236) + 1;
     if (typeof selection === 'number') quranCurrentAyah = selection;
+
+    _quranHighlightSurah();
 
     const arabic = document.getElementById('quranArabic');
     const translation = document.getElementById('quranTranslation');
