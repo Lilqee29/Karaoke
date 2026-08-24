@@ -287,6 +287,12 @@ function goBack() {
         // Fix: Use correct variable names from games.js
         if (typeof snakeGame !== 'undefined' && snakeGame) { clearInterval(snakeGame); snakeGame = null; }
         if (typeof flappyRAF !== 'undefined' && flappyRAF) { cancelAnimationFrame(flappyRAF); flappyRAF = null; }
+        
+        // Cleanup creative apps
+        if (typeof _mazeCleanup === 'function') _mazeCleanup();
+        if (currentScreen === 'noise' && typeof noiseStop === 'function') noiseStop();
+        if (currentScreen === 'visual' && typeof _waveStopAuto === 'function') _waveStopAuto();
+        if (currentScreen === 'glitch' && typeof _glitchAnim !== 'undefined') { cancelAnimationFrame(_glitchAnim); _glitchAnim = null; }
         if (typeof breakoutRAF !== 'undefined' && breakoutRAF) { cancelAnimationFrame(breakoutRAF); breakoutRAF = null; }
         if (typeof tetrisRAF !== 'undefined' && tetrisRAF) { cancelAnimationFrame(tetrisRAF); tetrisRAF = null; }
         if (typeof tetrisDropInt !== 'undefined') clearInterval(tetrisDropInt);

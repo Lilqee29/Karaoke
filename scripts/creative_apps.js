@@ -1,6 +1,6 @@
 // ================================================================
-//  CREATIVE APPS — GLITCH · WAVE · NOISE · MAZE
-//  Four interconnected creative apps for GameBoy OS
+//  CREATIVE APPS — GLITCH · VISUAL · NOISE · MAZE
+//  Four creative apps for GameBoy OS
 // ================================================================
 
 // ── Shared Utilities ─────────────────────────────────────────────
@@ -13,13 +13,11 @@ function getCreativeAudioCtx() {
 function killAllCreativeAudio() {
   if (_creativeAudioCtx) { try { _creativeAudioCtx.close(); } catch(e){} _creativeAudioCtx = null; }
   if (_waveMicStream) { _waveMicStream.getTracks().forEach(t => t.stop()); _waveMicStream = null; }
-  if (_noiseScriptNode) { try { _noiseScriptNode.disconnect(); } catch(e){} _noiseScriptNode = null; }
+  if (_noiseSource) { try { _noiseSource.stop(); } catch(e){} try { _noiseSource.disconnect(); } catch(e){} _noiseSource = null; }
   if (_noiseGainNode) { try { _noiseGainNode.disconnect(); } catch(e){} _noiseGainNode = null; }
-  if (_noiseInterval) { clearInterval(_noiseInterval); _noiseInterval = null; }
   _noisePlaying = false;
   _waveAutoOsc = null;
 }
-function _hash(n) { n = (n >> 13) ^ n; n = (n * (n * n * 60493 + 19990303) + 1376312589) & 0x7fffffff; return (n % 1000) / 1000; }
 
 // ================================================================
 //  GLITCH — Generative Particle Art Canvas
@@ -31,6 +29,8 @@ const GLITCH_MODES = ['flow','rain','galaxy','fire','magnetic'];
 function initGlitch() {
   const container = document.getElementById('glitchContent');
   if (!container) return;
+  // Render FIRST so canvas element exists in DOM
+  renderGlitchUI(container);
   _glitchCanvas = document.getElementById('glitchCanvas');
   if (!_glitchCanvas) return;
   _glitchCtx = _glitchCanvas.getContext('2d');
@@ -45,7 +45,6 @@ function initGlitch() {
   resize();
   window.addEventListener('resize', resize);
 
-  // Touch/mouse events
   const getPos = (e) => {
     const r = _glitchCanvas.getBoundingClientRect();
     const t = e.touches ? e.touches[0] : e;
@@ -58,7 +57,6 @@ function initGlitch() {
   _glitchCanvas.addEventListener('touchmove', e => { e.preventDefault(); _glitchMouse = { ...getPos(e), active: true }; }, {passive:false});
   _glitchCanvas.addEventListener('touchend', () => { _glitchMouse.active = false; });
 
-  renderGlitchUI(container);
   _glitchLoop();
 }
 
@@ -85,16 +83,9 @@ function _glitchLoop() {
   if (!_glitchCtx || !_glitchCanvas) return;
   const w = _glitchCanvas.width, h = _glitchCanvas.height;
   _glitchTime += 0.016;
-
-  // Fade background
-  if (_glitchMode === 'fire') {
-    _glitchCtx.fillStyle = 'rgba(0,0,0,0.08)';
-  } else {
-    _glitchCtx.fillStyle = 'rgba(0,0,0,0.05)';
-  }
+  _glitchCtx.fillStyle = _glitchMode === 'fire' ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.05)';
   _glitchCtx.fillRect(0, 0, w, h);
 
-  // Spawn from mouse
   if (_glitchMouse.active) {
     for (let i = 0; i < 5; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -109,76 +100,53 @@ function _glitchLoop() {
     }
   }
 
-  // Auto-spawn ambient particles
   if (_glitchParticles.length < 200 && Math.random() < 0.3) {
-    const x = Math.random() * w, y = Math.random() * h;
     _glitchParticles.push({
-      x, y, vx: 0, vy: 0, life: 1, decay: 0.002 + Math.random() * 0.005,
-      size: 0.5 + Math.random() * 2, hue: (Math.random() * 360)
+      x: Math.random() * w, y: Math.random() * h, vx: 0, vy: 0,
+      life: 1, decay: 0.002 + Math.random() * 0.005,
+      size: 0.5 + Math.random() * 2, hue: Math.random() * 360
     });
   }
 
-  // Update & draw
   const cx = w / 2, cy = h / 2;
   for (let i = _glitchParticles.length - 1; i >= 0; i--) {
     const p = _glitchParticles[i];
-
     switch (_glitchMode) {
       case 'flow': {
         const angle = (Math.sin(p.x * 0.01 + _glitchTime) + Math.cos(p.y * 0.01 + _glitchTime * 0.7)) * Math.PI;
-        p.vx += Math.cos(angle) * 0.15;
-        p.vy += Math.sin(angle) * 0.15;
-        p.vx *= 0.98; p.vy *= 0.98;
-        break;
+        p.vx += Math.cos(angle) * 0.15; p.vy += Math.sin(angle) * 0.15;
+        p.vx *= 0.98; p.vy *= 0.98; break;
       }
       case 'rain':
-        p.vy += 0.12;
-        p.vx *= 0.99;
-        if (p.y > h) { p.y = 0; p.x = Math.random() * w; }
-        break;
+        p.vy += 0.12; p.vx *= 0.99;
+        if (p.y > h) { p.y = 0; p.x = Math.random() * w; } break;
       case 'galaxy': {
-        const dx = cx - p.x, dy = cy - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+        const dx = cx - p.x, dy = cy - p.y, dist = Math.sqrt(dx * dx + dy * dy) + 1;
         const ang = Math.atan2(dy, dx);
         p.vx += Math.cos(ang + Math.PI / 2) * (80 / dist);
         p.vy += Math.sin(ang + Math.PI / 2) * (80 / dist);
-        p.vx += dx / dist * 0.3;
-        p.vy += dy / dist * 0.3;
-        p.vx *= 0.97; p.vy *= 0.97;
-        break;
+        p.vx += dx / dist * 0.3; p.vy += dy / dist * 0.3;
+        p.vx *= 0.97; p.vy *= 0.97; break;
       }
       case 'fire':
-        p.vy -= 0.08;
-        p.vx += (Math.random() - 0.5) * 0.5;
-        p.vx *= 0.96;
-        p.hue = 20 + p.life * 40;
-        break;
+        p.vy -= 0.08; p.vx += (Math.random() - 0.5) * 0.5; p.vx *= 0.96;
+        p.hue = 20 + p.life * 40; break;
       case 'magnetic': {
-        const dx2 = cx - p.x, dy2 = cy - p.y;
-        const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) + 1;
+        const dx2 = cx - p.x, dy2 = cy - p.y, dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) + 1;
         const force = (dist2 < 100 ? -2 : 1.5) * (50 / dist2);
-        p.vx += dx2 / dist2 * force;
-        p.vy += dy2 / dist2 * force;
-        p.vx *= 0.97; p.vy *= 0.97;
-        break;
+        p.vx += dx2 / dist2 * force; p.vy += dy2 / dist2 * force;
+        p.vx *= 0.97; p.vy *= 0.97; break;
       }
     }
-
-    p.x += p.vx; p.y += p.vy;
-    p.life -= p.decay;
-
+    p.x += p.vx; p.y += p.vy; p.life -= p.decay;
     if (p.life <= 0 || p.x < -20 || p.x > w + 20 || p.y < -20 || p.y > h + 20) {
-      _glitchParticles.splice(i, 1);
-      continue;
+      _glitchParticles.splice(i, 1); continue;
     }
-
-    const alpha = p.life * 0.8;
-    _glitchCtx.fillStyle = `hsla(${p.hue},80%,60%,${alpha})`;
+    _glitchCtx.fillStyle = `hsla(${p.hue},80%,60%,${p.life * 0.8})`;
     _glitchCtx.beginPath();
     _glitchCtx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
     _glitchCtx.fill();
   }
-
   _glitchAnim = requestAnimationFrame(_glitchLoop);
 }
 
@@ -186,15 +154,17 @@ function setGlitchMode(m) { _glitchMode = m; renderGlitchUI(document.getElementB
 function clearGlitchParticles() { _glitchParticles = []; }
 
 // ================================================================
-//  WAVE — Audio Visualizer + Mic Reactive
+//  VISUAL — Audio Visualizer + Mic Reactive
 // ================================================================
 let _visualCanvas, _waveCtx, _waveAnim, _waveAnalyser, _waveData;
-let _waveMicStream = null, _waveStyle = 'bars', _waveActive = false;
+let _waveMicStream = null, _waveStyle = 'bars';
 let _waveAutoOsc = null;
 
 function initVisual() {
   const container = document.getElementById('visualContent');
   if (!container) return;
+  // Render FIRST so canvas exists
+  renderWaveUI(container);
   _visualCanvas = document.getElementById('visualCanvas');
   if (!_visualCanvas) return;
   _waveCtx = _visualCanvas.getContext('2d');
@@ -207,7 +177,6 @@ function initVisual() {
   resize();
   window.addEventListener('resize', resize);
 
-  renderWaveUI(container);
   _waveStartAuto();
 }
 
@@ -233,8 +202,7 @@ function renderWaveUI(container) {
 async function waveToggleMic() {
   if (_waveMicStream) {
     _waveMicStream.getTracks().forEach(t => t.stop());
-    _waveMicStream = null;
-    _waveAnalyser = null;
+    _waveMicStream = null; _waveAnalyser = null;
     _waveStartAuto();
     renderWaveUI(document.getElementById('visualContent'));
     return;
@@ -248,8 +216,7 @@ async function waveToggleMic() {
     _waveAnalyser.fftSize = 256;
     src.connect(_waveAnalyser);
     _waveData = new Uint8Array(_waveAnalyser.frequencyBinCount);
-    _waveStopAuto();
-    _waveStartLoop();
+    _waveStopAuto(); _waveStartLoop();
     renderWaveUI(document.getElementById('visualContent'));
   } catch(e) { /* mic denied */ }
 }
@@ -260,8 +227,6 @@ function _waveStartAuto() {
   _waveAnalyser = ctx.createAnalyser();
   _waveAnalyser.fftSize = 256;
   _waveData = new Uint8Array(_waveAnalyser.frequencyBinCount);
-
-  // Generate ambient tones — very quiet so it's not annoying
   const osc1 = ctx.createOscillator();
   const osc2 = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -270,11 +235,7 @@ function _waveStartAuto() {
   gain.gain.value = 0.03;
   osc1.connect(gain); osc2.connect(gain);
   gain.connect(_waveAnalyser);
-  // Don't connect to destination — silent visualization only
-  // User can enable mic for audio-reactive mode
   osc1.start(); osc2.start();
-
-  // Slowly modulate frequencies for interesting visuals
   _waveAutoOsc = { osc1, osc2, gain, interval: setInterval(() => {
     try {
       if (!osc1 || !osc1.context) return;
@@ -282,7 +243,6 @@ function _waveStartAuto() {
       osc2.frequency.value = 120 + Math.cos(Date.now() * 0.0005) * 80;
     } catch(e) {}
   }, 100)};
-
   _waveStartLoop();
 }
 
@@ -314,26 +274,19 @@ function _waveDraw() {
   const w = _visualCanvas.width, h = _visualCanvas.height;
   _waveCtx.fillStyle = 'rgba(0,0,0,0.15)';
   _waveCtx.fillRect(0, 0, w, h);
-
   if (!_waveData) return;
-  const d = _waveData;
-  const len = d.length;
-
+  const d = _waveData, len = d.length;
   if (_waveStyle === 'bars') {
     const bw = w / len;
     for (let i = 0; i < len; i++) {
-      const v = d[i] / 255;
-      const bh = v * h * 0.85;
-      const hue = (i / len * 120 + _waveAnim * 0.1) % 360;
-      _waveCtx.fillStyle = `hsl(${hue},80%,${40 + v * 30}%)`;
+      const v = d[i] / 255, bh = v * h * 0.85;
+      _waveCtx.fillStyle = `hsl(${(i / len * 120 + _waveAnim * 0.1) % 360},80%,${40 + v * 30}%)`;
       _waveCtx.fillRect(i * bw, h - bh, bw - 1, bh);
     }
   } else if (_waveStyle === 'circular') {
     const cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.3;
     for (let i = 0; i < len; i++) {
-      const v = d[i] / 255;
-      const ang = (i / len) * Math.PI * 2;
-      const len2 = r + v * r * 0.8;
+      const v = d[i] / 255, ang = (i / len) * Math.PI * 2, len2 = r + v * r * 0.8;
       _waveCtx.strokeStyle = `hsl(${i / len * 360},80%,${50 + v * 20}%)`;
       _waveCtx.lineWidth = 2;
       _waveCtx.beginPath();
@@ -342,15 +295,11 @@ function _waveDraw() {
       _waveCtx.stroke();
     }
   } else {
-    // Scope
-    _waveCtx.strokeStyle = '#0f0';
-    _waveCtx.lineWidth = 1.5;
+    _waveCtx.strokeStyle = '#0f0'; _waveCtx.lineWidth = 1.5;
     _waveCtx.beginPath();
     for (let i = 0; i < len; i++) {
-      const v = d[i] / 255;
-      const y = v * h;
-      if (i === 0) _waveCtx.moveTo(0, y);
-      else _waveCtx.lineTo(i / len * w, y);
+      const y = (d[i] / 255) * h;
+      if (i === 0) _waveCtx.moveTo(0, y); else _waveCtx.lineTo(i / len * w, y);
     }
     _waveCtx.stroke();
   }
@@ -359,14 +308,15 @@ function _waveDraw() {
 function setWaveStyle(s) { _waveStyle = s; renderWaveUI(document.getElementById('visualContent')); }
 
 // ================================================================
-//  NOISE — Live Coding Bytebeat Synth
+//  NOISE — Bytebeat Synth (using createBufferSource loop)
+//  Pattern from GitHub repos: fill buffer with generated data,
+//  set loop=true, connect source→gain→destination.
 // ================================================================
-let _noiseCanvas, _noiseCtx, _noiseAnim;
+let _noiseCanvas, _noiseCtx2d;
 let _noiseFormula = 't*((t>>12|t>>8)&63&t>>4)';
 let _noisePlaying = false;
-let _noiseScriptNode = null;
+let _noiseSource = null;
 let _noiseGainNode = null;
-let _noiseInterval = null;
 let _noiseT = 0;
 let _noiseHistory = [];
 const NOISE_PRESETS = [
@@ -383,9 +333,9 @@ const NOISE_PRESETS = [
 function initNoise() {
   const container = document.getElementById('noiseContent');
   if (!container) return;
-  _noiseCanvas = document.getElementById('noiseVis');
-  if (_noiseCanvas) _noiseCtx = _noiseCanvas.getContext('2d');
   renderNoiseUI(container);
+  _noiseCanvas = document.getElementById('noiseVis');
+  if (_noiseCanvas) _noiseCtx2d = _noiseCanvas.getContext('2d');
 }
 
 function renderNoiseUI(container) {
@@ -427,47 +377,47 @@ function noisePlay() {
   if (_noisePlaying) { noiseStop(); return; }
   try {
     const ctx = getCreativeAudioCtx();
-    const bufSize = 4096;
-    // createScriptProcessor deprecated but AudioWorklet requires separate file
-    // Using createScriptProcessor with small buffer for compatibility
-    _noiseScriptNode = ctx.createScriptProcessor(bufSize, 0, 1);
+    const sampleRate = ctx.sampleRate;
+    // Generate 2 seconds of bytebeat audio into a buffer, then loop it
+    const duration = 2;
+    const length = sampleRate * duration;
+    const buffer = ctx.createBuffer(1, length, sampleRate);
+    const data = buffer.getChannelData(0);
+    const fn = _getNoiseFn();
     _noiseT = 0;
+    for (let i = 0; i < length; i++) {
+      try { data[i] = (fn(_noiseT) & 255) / 127.5 - 1; } catch(e) { data[i] = 0; }
+      _noiseT++;
+    }
 
-    // Create gain for volume control
-    const gain = ctx.createGain();
-    gain.gain.value = 0.3;
-    _noiseScriptNode.connect(gain);
-    gain.connect(ctx.destination);
-
-    _noiseScriptNode.onaudioprocess = (e) => {
-      const out = e.outputBuffer.getChannelData(0);
-      const fn = _getNoiseFn();
-      for (let i = 0; i < out.length; i++) {
-        try { out[i] = (fn(_noiseT) & 255) / 127.5 - 1; } catch(err) { out[i] = 0; }
-        _noiseT++;
-      }
-    };
+    _noiseSource = ctx.createBufferSource();
+    _noiseSource.buffer = buffer;
+    _noiseSource.loop = true;
+    _noiseGainNode = ctx.createGain();
+    _noiseGainNode.gain.value = 0.3;
+    _noiseSource.connect(_noiseGainNode).connect(ctx.destination);
+    _noiseSource.start();
 
     _noisePlaying = true;
-    _noiseGainNode = gain;
     renderNoiseUI(document.getElementById('noiseContent'));
     _noiseVisLoop();
-  } catch(e) { /* audio failed */ }
+  } catch(e) { console.warn('NOISE audio failed:', e); }
 }
 
 function noiseStop() {
-  if (_noiseScriptNode) { try { _noiseScriptNode.disconnect(); } catch(e){} _noiseScriptNode = null; }
+  if (_noiseSource) {
+    try { _noiseSource.stop(); } catch(e) {}
+    try { _noiseSource.disconnect(); } catch(e) {}
+    _noiseSource = null;
+  }
   if (_noiseGainNode) { try { _noiseGainNode.disconnect(); } catch(e){} _noiseGainNode = null; }
   _noisePlaying = false;
   renderNoiseUI(document.getElementById('noiseContent'));
 }
 
 function _getNoiseFn() {
-  try {
-    return new Function('t', 'return (' + _noiseFormula + ') & 255;');
-  } catch(e) {
-    return () => 128;
-  }
+  try { return new Function('t', 'return (' + _noiseFormula + ') & 255;'); }
+  catch(e) { return () => 128; }
 }
 
 function noiseApply() {
@@ -488,32 +438,30 @@ function noiseLoadFormula(fn) {
 }
 
 function _noiseVisLoop() {
-  if (!_noisePlaying || !_noiseCtx || !_noiseCanvas) return;
+  if (!_noisePlaying || !_noiseCtx2d || !_noiseCanvas) return;
   const w = _noiseCanvas.width, h = _noiseCanvas.height;
-  const img = _noiseCtx.createImageData(w, h);
+  const img = _noiseCtx2d.createImageData(w, h);
   const fn = _getNoiseFn();
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const v = (fn(_noiseT + x + y * w) & 255);
+      const v = fn(_noiseT + x + y * w) & 255;
       const idx = (y * w + x) * 4;
-      img.data[idx] = v;
-      img.data[idx + 1] = v;
-      img.data[idx + 2] = v;
-      img.data[idx + 3] = 255;
+      img.data[idx] = v; img.data[idx + 1] = v; img.data[idx + 2] = v; img.data[idx + 3] = 255;
     }
   }
-  _noiseCtx.putImageData(img, 0, 0);
+  _noiseCtx2d.putImageData(img, 0, 0);
   requestAnimationFrame(_noiseVisLoop);
 }
 
 // ================================================================
-//  MAZE — Procedural Dungeon Crawler
+//  MAZE — Procedural Dungeon Crawler (D-pad / Arrow Keys)
 // ================================================================
 let _mazeGrid = [], _mazeW = 0, _mazeH = 0;
 let _mazePlayer = {x:1,y:1};
-let _mazeItems = [], _mazeEnemies = [], _mazeFog = [];
+let _mazeEnemies = [], _mazeFog = [];
 let _mazeLevel = 1, _mazeHP = 5, _mazeMaxHP = 5;
 let _mazeKeys = 0, _mazeScore = 0, _mazeRunning = false;
+let _mazeKeyHandler = null;
 const MAZE_CELL = { WALL: 0, FLOOR: 1, DOOR: 2, KEY: 3, POTION: 4, EXIT: 5, ENEMY: 6, COIN: 7 };
 const MAZE_SYMBOLS = { 0:'██', 1:'  ', 2:'▒▒', 3:'⚷', 4:'♥', 5:'▶', 6:'☠', 7:'●' };
 const MAZE_COLORS = { 0:'#555', 1:'#111', 2:'#886633', 3:'#ff0', 4:'#f44', 5:'#0f0', 6:'#f00', 7:'#ff0' };
@@ -524,14 +472,29 @@ function initMaze() {
   _mazeGenerate();
   _mazeRunning = true;
   renderMazeUI(container);
+  // Wire physical D-pad via arrow key events
+  _mazeKeyHandler = (e) => {
+    if (currentScreen !== 'maze') return;
+    if (e.key === 'ArrowUp')    { mazeMove(0, -1); e.preventDefault(); }
+    if (e.key === 'ArrowDown')  { mazeMove(0,  1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft')  { mazeMove(-1, 0); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { mazeMove( 1, 0); e.preventDefault(); }
+  };
+  document.addEventListener('keydown', _mazeKeyHandler);
+}
+
+function _mazeCleanup() {
+  if (_mazeKeyHandler) {
+    document.removeEventListener('keydown', _mazeKeyHandler);
+    _mazeKeyHandler = null;
+  }
 }
 
 function _mazeGenerate() {
   _mazeW = 21; _mazeH = 15;
   _mazeGrid = Array.from({length:_mazeH}, () => Array(_mazeW).fill(0));
-  _mazeItems = []; _mazeEnemies = []; _mazeFog = Array.from({length:_mazeH}, () => Array(_mazeW).fill(false));
+  _mazeEnemies = []; _mazeFog = Array.from({length:_mazeH}, () => Array(_mazeW).fill(false));
 
-  // Carve rooms
   const rooms = [];
   for (let i = 0; i < 6 + _mazeLevel; i++) {
     const rw = 3 + Math.floor(Math.random() * 3) * 2;
@@ -545,11 +508,9 @@ function _mazeGenerate() {
     if (overlap) continue;
     rooms.push({x:rx,y:ry,w:rw,h:rh});
     for (let y = ry; y < ry + rh; y++)
-      for (let x = rx; x < rx + rw; x++)
-        _mazeGrid[y][x] = MAZE_CELL.FLOOR;
+      for (let x = rx; x < rx + rw; x++) _mazeGrid[y][x] = MAZE_CELL.FLOOR;
   }
 
-  // Connect rooms with corridors
   for (let i = 1; i < rooms.length; i++) {
     const a = rooms[i-1], b = rooms[i];
     let cx = Math.floor((a.x + a.w/2 + b.x + b.w/2) / 2);
@@ -574,35 +535,27 @@ function _mazeGenerate() {
     }
   }
 
-  // Place player
   if (rooms.length > 0) {
     _mazePlayer = { x: Math.floor(rooms[0].x + rooms[0].w/2), y: Math.floor(rooms[0].y + rooms[0].h/2) };
   }
-
-  // Place exit in last room
   if (rooms.length > 1) {
     const last = rooms[rooms.length - 1];
     _mazeGrid[Math.floor(last.y + last.h/2)][Math.floor(last.x + last.w/2)] = MAZE_CELL.EXIT;
   }
-
-  // Place items in rooms
   for (let i = 1; i < rooms.length - 1; i++) {
     const r = rooms[i];
     const cx2 = Math.floor(r.x + r.w/2), cy2 = Math.floor(r.y + r.h/2);
     if (Math.random() < 0.4) _mazeGrid[cy2][cx2] = MAZE_CELL.KEY;
     else if (Math.random() < 0.3) _mazeGrid[cy2][cx2] = MAZE_CELL.POTION;
     else if (Math.random() < 0.5) _mazeGrid[cy2][cx2] = MAZE_CELL.COIN;
-    // Enemy
     if (Math.random() < 0.3 + _mazeLevel * 0.05) {
       const ex = r.x + 1 + Math.floor(Math.random() * (r.w - 2));
       const ey = r.y + 1 + Math.floor(Math.random() * (r.h - 2));
       if (_mazeGrid[ey][ex] === MAZE_CELL.FLOOR) {
-        _mazeEnemies.push({x:ex, y:ey, hp: 1 + Math.floor(_mazeLevel/2), dir: Math.floor(Math.random()*4)});
+        _mazeEnemies.push({x:ex, y:ey, hp: 1 + Math.floor(_mazeLevel/2)});
       }
     }
   }
-
-  // Reveal around player
   _mazeReveal(_mazePlayer.x, _mazePlayer.y, 3);
 }
 
@@ -616,7 +569,6 @@ function _mazeReveal(px, py, r) {
 
 function renderMazeUI(container) {
   const cellW = Math.floor(Math.min(280 / _mazeW, 18));
-  const cellH = cellW;
   let gridHTML = '';
   for (let y = 0; y < _mazeH; y++) {
     for (let x = 0; x < _mazeW; x++) {
@@ -627,12 +579,11 @@ function renderMazeUI(container) {
       if (isPlayer) { ch = '@'; clr = '#0ff'; }
       else if (!visible) { ch = '  '; clr = '#111'; }
       else {
-        // Check enemy
         const enemy = _mazeEnemies.find(e => e.x === x && e.y === y);
         if (enemy) { ch = MAZE_SYMBOLS[6]; clr = MAZE_COLORS[6]; }
         else { ch = MAZE_SYMBOLS[cell] || '  '; clr = MAZE_COLORS[cell] || '#111'; }
       }
-      gridHTML += `<span style="display:inline-block;width:${cellW}px;height:${cellH}px;line-height:${cellH}px;text-align:center;font-size:${Math.max(cellW-4,5)}px;color:${clr};background:${visible?'rgba(0,0,0,0.3)':'#050'};font-family:monospace;">${ch}</span>`;
+      gridHTML += `<span style="display:inline-block;width:${cellW}px;height:${cellW}px;line-height:${cellW}px;text-align:center;font-size:${Math.max(cellW-4,5)}px;color:${clr};background:${visible?'rgba(0,0,0,0.3)':'#050'};font-family:monospace;">${ch}</span>`;
     }
     gridHTML += '<br>';
   }
@@ -646,14 +597,7 @@ function renderMazeUI(container) {
       <div style="flex:1;overflow:auto;padding:4px 6px;font-size:${Math.max(cellW-4,5)}px;line-height:1;letter-spacing:0;">
         ${gridHTML}
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;padding:0 6px 4px;">
-        <div></div>
-        <button onclick="mazeMove(0,-1)" style="font-size:8px;padding:4px;">▲</button>
-        <div></div>
-        <button onclick="mazeMove(-1,0)" style="font-size:8px;padding:4px;">◄</button>
-        <button onclick="mazeMove(0,1)" style="font-size:8px;padding:4px;">▼</button>
-        <button onclick="mazeMove(1,0)" style="font-size:8px;padding:4px;">►</button>
-      </div>
+      <div style="padding:0 6px 4px;font-size:4px;text-align:center;opacity:0.4;">USE D-PAD OR ARROW KEYS TO MOVE</div>
     </div>
   `;
 }
@@ -662,17 +606,13 @@ function mazeMove(dx, dy) {
   if (!_mazeRunning) return;
   const nx = _mazePlayer.x + dx, ny = _mazePlayer.y + dy;
   if (nx < 0 || nx >= _mazeW || ny < 0 || ny >= _mazeH) return;
-
   const cell = _mazeGrid[ny][nx];
   if (cell === MAZE_CELL.WALL) return;
-
   if (cell === MAZE_CELL.DOOR && _mazeKeys <= 0) return;
 
-  _mazePlayer.x = nx;
-  _mazePlayer.y = ny;
+  _mazePlayer.x = nx; _mazePlayer.y = ny;
   _mazeReveal(nx, ny, 3);
 
-  // Collect
   if (cell === MAZE_CELL.KEY) { _mazeKeys++; _mazeGrid[ny][nx] = MAZE_CELL.FLOOR; if(window.sounds)sounds.click(); }
   if (cell === MAZE_CELL.POTION) { _mazeHP = Math.min(_mazeMaxHP, _mazeHP + 2); _mazeGrid[ny][nx] = MAZE_CELL.FLOOR; if(window.sounds)sounds.click(); }
   if (cell === MAZE_CELL.COIN) { _mazeScore += 10; _mazeGrid[ny][nx] = MAZE_CELL.FLOOR; if(window.sounds)sounds.click(); }
@@ -685,20 +625,14 @@ function mazeMove(dx, dy) {
   }
   if (cell === MAZE_CELL.DOOR) { _mazeKeys--; _mazeGrid[ny][nx] = MAZE_CELL.FLOOR; }
 
-  // Enemy collision
   const enemyIdx = _mazeEnemies.findIndex(e => e.x === nx && e.y === ny);
   if (enemyIdx >= 0) {
     _mazeEnemies.splice(enemyIdx, 1);
-    _mazeHP--;
-    _mazeScore += 25;
+    _mazeHP--; _mazeScore += 25;
     if (window.sounds) sounds.hit();
-    if (_mazeHP <= 0) {
-      _mazeRunning = false;
-      _mazeGameOver();
-    }
+    if (_mazeHP <= 0) { _mazeRunning = false; _mazeGameOver(); }
   }
 
-  // Move enemies
   _mazeEnemies.forEach(e => {
     const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
     const d = dirs[Math.floor(Math.random() * 4)];
@@ -706,7 +640,6 @@ function mazeMove(dx, dy) {
     if (enx >= 0 && enx < _mazeW && eny >= 0 && eny < _mazeH && _mazeGrid[eny][enx] !== MAZE_CELL.WALL) {
       e.x = enx; e.y = eny;
     }
-    // Damage player
     if (e.x === _mazePlayer.x && e.y === _mazePlayer.y) {
       _mazeHP--;
       if (window.sounds) sounds.hit();
@@ -718,6 +651,7 @@ function mazeMove(dx, dy) {
 }
 
 function _mazeGameOver() {
+  _mazeCleanup();
   const container = document.getElementById('mazeContent');
   if (!container) return;
   container.innerHTML = `
@@ -732,7 +666,17 @@ function _mazeGameOver() {
 }
 
 function mazeRestart() {
+  _mazeCleanup();
   _mazeLevel = 1; _mazeHP = 5; _mazeKeys = 0; _mazeScore = 0; _mazeRunning = true;
   _mazeGenerate();
   renderMazeUI(document.getElementById('mazeContent'));
+  // Re-bind D-pad
+  _mazeKeyHandler = (e) => {
+    if (currentScreen !== 'maze') return;
+    if (e.key === 'ArrowUp')    { mazeMove(0, -1); e.preventDefault(); }
+    if (e.key === 'ArrowDown')  { mazeMove(0,  1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft')  { mazeMove(-1, 0); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { mazeMove( 1, 0); e.preventDefault(); }
+  };
+  document.addEventListener('keydown', _mazeKeyHandler);
 }
