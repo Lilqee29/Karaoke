@@ -683,6 +683,16 @@ let noiseGain = null;
 let noiseType = 'rain';
 let isNoisePlaying = false;
 let forestBirdTimer = null;
+let noiseAudioEl = null; // HTML Audio element for API sounds
+
+// Real audio files from GitHub Ambient Sounds API
+const AMBIENT_API = 'https://raw.githubusercontent.com/uthumany/Ambient-sounds-API/master/';
+const AMBIENT_SOUNDS = {
+    forest: { url: AMBIENT_API + 'ES_Ambience%2C%20Forest%2C%20Singing%20Birds%2C%20Distant%20Traffic%20-%20Epidemic%20Sound.mp3' },
+    ocean:  { url: AMBIENT_API + 'ES_Water%2C%20Wave%2C%20Ocean%2C%20Big%20Waves%2C%20Crashing%20In%20On%20Beach%2C%20Swells%2004%20-%20Epidemic%20Sound.mp3' },
+    wind:   { url: AMBIENT_API + 'ES_Wind%2C%20Gust%2C%20Mountain%20Wind%2C%20Very%20Strong%2C%20Cold%20Wind%2C%20Heavy%20Gusts%2C%20Jotunheimen%2C%20Norway%2001%20-%20Epidemic%20Sound.mp3' },
+    rain:   { url: AMBIENT_API + 'dragon-studio-copyright-free-rain-sounds-331497%20%282%29.mp3' }
+};
 
 function initRadio() {
     isRadioPlaying = false;
@@ -723,7 +733,32 @@ function createNoiseBuffer(type) {
         const random = Math.random() * 2 - 1;
         if(type === 'ocean') last = (last + random * 0.015) / 1.015;
         else if(type === 'forest') last = last * 0.97 + random * 0.06;
-        else last = random;
+        else if(type === 'lofi') {
+            // Warm lofi: brown noise + subtle vinyl crackle
+            last = last * 0.998 + random * 0.002;
+            const crackle = Math.random() > 0.997 ? random * 0.15 : 0;
+            output[i] = (last + crackle) * 3;
+            continue;
+        } else if(type === 'chill') {
+            // Gentle wind + soft tone
+            last = last * 0.999 + random * 0.001;
+            const tone = Math.sin(i * 0.00005) * 0.03;
+            output[i] = (last + tone) * 4;
+            continue;
+        } else if(type === 'fire') {
+            // Crackling fire: low rumble + random pops
+            last = last * 0.995 + random * 0.005;
+            const pop = Math.random() > 0.998 ? random * 0.8 : 0;
+            const crackle2 = Math.random() > 0.99 ? random * 0.3 : 0;
+            output[i] = (last * 2 + pop + crackle2) * 1.5;
+            continue;
+        } else if(type === 'wind') {
+            // Howling wind: filtered noise with slow modulation
+            const mod = Math.sin(i * 0.00008) * 0.5 + 0.5;
+            last = last * 0.997 + random * 0.003;
+            output[i] = last * mod * 5;
+            continue;
+        } else last = random;
 
         if(type === 'rain') {
             const drop = Math.random() > 0.985 ? random * 2.5 : random * 0.08;
@@ -764,18 +799,33 @@ function startForestBirds() {
 }
 
 async function startNoise() {
+    const vol = (parseInt(document.getElementById('noiseVolume')?.value, 10) || 35) / 100;
+    
+    // Use real MP3 from GitHub API if available
+    if (AMBIENT_SOUNDS[noiseType]) {
+        stopNoise();
+        noiseAudioEl = new Audio();
+        noiseAudioEl.src = AMBIENT_SOUNDS[noiseType].url;
+        noiseAudioEl.loop = true;
+        noiseAudioEl.volume = vol;
+        await noiseAudioEl.play().catch(e => console.warn('Audio play failed:', e));
+        isNoisePlaying = true;
+        document.getElementById('noisePlayBtn').textContent = 'STOP AMBIENCE';
+        document.getElementById('noiseVisual')?.classList.add('playing');
+        return;
+    }
+    
+    // Fallback: generate with Web Audio API (lofi, chill, fire, white)
     noiseContext = noiseContext || new (window.AudioContext || window.webkitAudioContext)();
-    // CRITICAL: resume() MUST come before start() on iOS
     if (noiseContext.state === 'suspended') await noiseContext.resume();
     noiseGain = noiseContext.createGain();
-    noiseGain.gain.value = (parseInt(document.getElementById('noiseVolume')?.value, 10) || 35) / 100;
+    noiseGain.gain.value = vol;
     noiseSource = noiseContext.createBufferSource();
     noiseSource.buffer = createNoiseBuffer(noiseType);
     noiseSource.loop = true;
     noiseSource.connect(noiseGain).connect(noiseContext.destination);
     noiseSource.start();
     isNoisePlaying = true;
-    startForestBirds();
     document.getElementById('noisePlayBtn').textContent = 'STOP AMBIENCE';
     document.getElementById('noiseVisual')?.classList.add('playing');
 }
@@ -783,6 +833,13 @@ async function startNoise() {
 function stopNoise() {
     clearTimeout(forestBirdTimer);
     forestBirdTimer = null;
+    // Stop API audio
+    if(noiseAudioEl) {
+        noiseAudioEl.pause();
+        noiseAudioEl.src = '';
+        noiseAudioEl = null;
+    }
+    // Stop Web Audio
     if(noiseSource) {
         try { noiseSource.stop(); } catch(error) {}
         noiseSource.disconnect();
@@ -798,10 +855,10 @@ function stopNoise() {
 function toggleNoise() { if(isNoisePlaying) stopNoise(); else startNoise(); }
 function setNoiseType(type) {
     noiseType = type;
-    const icons = { rain: '☔', forest: '🌲', ocean: '🌊', white: '☁' };
+    const icons = { rain: '☔', forest: '🌲', ocean: '🌊', white: '☁', lofi: '🎵', chill: '😌', fire: '🔥', wind: '💨' };
     const visual = document.getElementById('noiseVisual');
     if(visual) visual.textContent = icons[type] || '☁';
-    ['rain', 'forest', 'ocean', 'white'].forEach(name => {
+    ['rain', 'forest', 'ocean', 'white', 'lofi', 'chill', 'fire', 'wind'].forEach(name => {
         const button = document.getElementById(`noise${name.charAt(0).toUpperCase() + name.slice(1)}Btn`);
         if(button) { button.style.background = name === type ? 'var(--gb-text)' : 'transparent'; button.style.color = name === type ? 'var(--gb-bg)' : 'var(--gb-text)'; }
     });
@@ -809,6 +866,7 @@ function setNoiseType(type) {
 }
 function setNoiseVolume(value) {
     if(noiseGain) noiseGain.gain.value = Number(value) / 100;
+    if(noiseAudioEl) noiseAudioEl.volume = Number(value) / 100;
     const label = document.getElementById('noiseVolumeLabel');
     if(label) label.textContent = `${value}%`;
 }

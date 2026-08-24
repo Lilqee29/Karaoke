@@ -387,26 +387,24 @@ function _waveDraw() {
 function setWaveStyle(s) { _waveStyle = s; renderWaveUI(document.getElementById('visualContent')); }
 
 // ================================================================
-//  NOISE — Bytebeat Synth (using createBufferSource loop)
-//  Pattern from GitHub repos: fill buffer with generated data,
-//  set loop=true, connect source→gain→destination.
+//  NOISE — Ambient Sound Generator (friendly presets, no jargon)
+//  Uses createBufferSource loop pattern from GitHub repos.
 // ================================================================
 let _noiseCanvas, _noiseCtx2d;
-let _noiseFormula = 't*((t>>12|t>>8)&63&t>>4)';
+let _noiseType = 'lofi';
 let _noisePlaying = false;
 let _noiseSource = null;
 let _noiseGainNode = null;
-let _noiseT = 0;
-let _noiseHistory = [];
+let _noiseVolume = 0.3;
 const NOISE_PRESETS = [
-  { name: 'DRIFT',   fn: 't*(t>>12|t>>8&t>>2)&64' },
-  { name: 'RAVE',    fn: 't*t>>10&t&48' },
-  { name: 'WARP',    fn: '(t>>6|t>>8|t)*(t>>6|t>>8)' },
-  { name: 'HEX',     fn: 't*(t>>8&(t>>4|t>>32))' },
-  { name: 'BEAM',    fn: '(t>>7|t>>11|t>>4|t>>1)&49' },
-  { name: 'FLUX',    fn: 't*5&(t>>7)|t*3&(t>>10)' },
-  { name: 'VOID',    fn: 't>>5&1?t>>4&1?t>>3&1?t>>2&1?200:0:0:0:0' },
-  { name: 'CIPHER',  fn: '(t*9&t>>4|t*5&t>>7|t*3&t>>10)&128' }
+  { name: 'LOFI',      icon: '🎵', type: 'lofi' },
+  { name: 'RAIN',      icon: '☔', type: 'rain' },
+  { name: 'OCEAN',     icon: '🌊', type: 'ocean' },
+  { name: 'FOREST',    icon: '🌲', type: 'forest' },
+  { name: 'FIRE',      icon: '🔥', type: 'fire' },
+  { name: 'WIND',      icon: '💨', type: 'wind' },
+  { name: 'WHITE',     icon: '☁',  type: 'white' },
+  { name: 'PINK',      icon: '🩷', type: 'pink' }
 ];
 
 function initNoise() {
@@ -417,119 +415,143 @@ function initNoise() {
   if (_noiseCanvas) _noiseCtx2d = _noiseCanvas.getContext('2d');
 }
 
+function _noiseGenBuffer(type, sampleRate) {
+  const len = sampleRate * 2;
+  const buf = new Float32Array(len);
+  let last = 0, last2 = 0;
+  for (let i = 0; i < len; i++) {
+    const r = Math.random() * 2 - 1;
+    switch (type) {
+      case 'lofi': {
+        last = last * 0.998 + r * 0.002;
+        const crackle = Math.random() > 0.997 ? r * 0.12 : 0;
+        buf[i] = (last + crackle) * 2.5;
+        break;
+      }
+      case 'rain': {
+        const drop = Math.random() > 0.985 ? r * 2.5 : r * 0.08;
+        buf[i] = drop;
+        break;
+      }
+      case 'ocean':
+        last = (last + r * 0.015) / 1.015;
+        buf[i] = last * 4;
+        break;
+      case 'forest':
+        last = last * 0.97 + r * 0.06;
+        buf[i] = last * 2.5;
+        break;
+      case 'fire': {
+        last = last * 0.995 + r * 0.005;
+        const pop = Math.random() > 0.998 ? r * 0.8 : 0;
+        const crackle = Math.random() > 0.99 ? r * 0.3 : 0;
+        buf[i] = (last * 2 + pop + crackle) * 1.5;
+        break;
+      }
+      case 'wind': {
+        const mod = Math.sin(i * 0.00008) * 0.5 + 0.5;
+        last = last * 0.997 + r * 0.003;
+        buf[i] = last * mod * 5;
+        break;
+      }
+      case 'white':
+        buf[i] = r;
+        break;
+      case 'pink': {
+        // Voss-McCartney pink noise
+        last2 = last2 * 0.99 + r * 0.01;
+        buf[i] = (r + last2) * 1.5;
+        break;
+      }
+      default:
+        buf[i] = r;
+    }
+  }
+  return buf;
+}
+
 function renderNoiseUI(container) {
   container.innerHTML = `
     <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;">
         <span style="font-size:9px;font-weight:bold;color:var(--gb-text);">♯ NOISE</span>
-        <span style="font-size:5px;opacity:0.6;">${_noisePlaying ? 'LIVE' : 'IDLE'}</span>
+        <span style="font-size:5px;opacity:0.6;">${_noisePlaying ? '▶ LIVE' : '■ IDLE'}</span>
       </div>
       <div style="padding:0 6px 4px;">
         <div style="display:flex;gap:2px;flex-wrap:wrap;">
-          ${NOISE_PRESETS.map((p,i) => `<button onclick="setNoisePreset(${i})" style="font-size:4px;padding:2px 4px;${_noiseFormula===p.fn?'background:var(--gb-text);color:var(--gb-bg);':''}">${p.name}</button>`).join('')}
+          ${NOISE_PRESETS.map(p => `<button onclick="setNoiseGenType('${p.type}')" style="font-size:5px;padding:3px 5px;${_noiseType===p.type?'background:var(--gb-text);color:var(--gb-bg);':''}">${p.icon} ${p.name}</button>`).join('')}
         </div>
       </div>
       <div style="flex:0 0 40px;margin:0 6px 4px;border:2px solid var(--gb-text);border-radius:4px;overflow:hidden;background:#000;">
         <canvas id="noiseVis" width="280" height="40" style="width:100%;height:100%;"></canvas>
       </div>
-      <div style="padding:0 6px 4px;">
-        <textarea id="noiseInput" style="width:100%;height:50px;background:rgba(0,0,0,0.3);color:var(--gb-text);border:1px solid var(--gb-text);border-radius:3px;padding:4px;font-family:monospace;font-size:7px;resize:none;box-sizing:border-box;">${_noiseFormula}</textarea>
+      <div style="padding:0 6px 4px;display:flex;gap:3px;align-items:center;">
+        <span style="font-size:5px;">VOL</span>
+        <input type="range" min="0" max="100" value="${_noiseVolume * 100}" oninput="setNoiseGenVolume(this.value)" style="flex:1;height:12px;">
       </div>
       <div style="display:flex;gap:3px;padding:0 6px 4px;">
-        <button onclick="noisePlay()" style="flex:1;font-size:6px;padding:4px;${_noisePlaying?'background:#a00;color:#fff;':''}" id="bytebeatPlayBtn">${_noisePlaying ? '■ STOP' : '▶ PLAY'}</button>
-        <button onclick="noiseApply()" style="flex:1;font-size:6px;padding:4px;">APPLY</button>
+        <button onclick="toggleNoiseGen()" style="flex:1;font-size:6px;padding:6px;${_noisePlaying?'background:#a00;color:#fff;':''}" id="noiseGenPlayBtn">${_noisePlaying ? '■ STOP' : '▶ PLAY'}</button>
       </div>
-      <div style="padding:0 6px 4px;flex:1;overflow-y:auto;" id="noiseHistory">
-        ${_noiseHistory.length === 0 ? '<div style="text-align:center;font-size:5px;opacity:0.4;padding:8px;">SAVED FORMULAS APPEAR HERE</div>' :
-          _noiseHistory.slice(-8).map((h,i) => `
-            <div onclick="noiseLoadFormula('${h.fn.replace(/'/g,"\\'")}')" style="padding:3px;margin-bottom:2px;border:1px solid var(--gb-text);border-radius:3px;cursor:pointer;font-size:5px;">
-              <span style="font-weight:bold;">${h.name}</span>
-              <span style="opacity:0.5;margin-left:4px;">${h.fn.substring(0,25)}...</span>
-            </div>
-          `).join('')}
+      <div style="padding:0 6px 4px;flex:1;display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:28px;">${NOISE_PRESETS.find(p => p.type === _noiseType)?.icon || '🎵'}</span>
       </div>
+      <div style="padding:0 6px 6px;font-size:4px;text-align:center;opacity:0.5;">AMBIENT SOUNDS FOR FOCUS</div>
     </div>
   `;
 }
 
-function noisePlay() {
-  if (_noisePlaying) { noiseStop(); return; }
+function toggleNoiseGen() {
+  if (_noisePlaying) { _noiseGenStop(); return; }
   try {
     const ctx = getCreativeAudioCtx();
-    const sampleRate = ctx.sampleRate;
-    // Generate 2 seconds of bytebeat audio into a buffer, then loop it
-    const duration = 2;
-    const length = sampleRate * duration;
-    const buffer = ctx.createBuffer(1, length, sampleRate);
-    const data = buffer.getChannelData(0);
-    const fn = _getNoiseFn();
-    _noiseT = 0;
-    for (let i = 0; i < length; i++) {
-      try { data[i] = (fn(_noiseT) & 255) / 127.5 - 1; } catch(e) { data[i] = 0; }
-      _noiseT++;
-    }
-
+    if (ctx.state === 'suspended') ctx.resume();
+    const data = _noiseGenBuffer(_noiseType, ctx.sampleRate);
+    const buffer = ctx.createBuffer(1, data.length, ctx.sampleRate);
+    buffer.getChannelData(0).set(data);
     _noiseSource = ctx.createBufferSource();
     _noiseSource.buffer = buffer;
     _noiseSource.loop = true;
     _noiseGainNode = ctx.createGain();
-    _noiseGainNode.gain.value = 0.3;
+    _noiseGainNode.gain.value = _noiseVolume;
     _noiseSource.connect(_noiseGainNode).connect(ctx.destination);
     _noiseSource.start();
-
     _noisePlaying = true;
     renderNoiseUI(document.getElementById('noiseContent'));
-    _noiseVisLoop();
-  } catch(e) { console.warn('NOISE audio failed:', e); }
+    _noiseGenVisLoop();
+  } catch(e) { console.warn('NOISE gen failed:', e); }
 }
 
-function noiseStop() {
-  if (_noiseSource) {
-    try { _noiseSource.stop(); } catch(e) {}
-    try { _noiseSource.disconnect(); } catch(e) {}
-    _noiseSource = null;
-  }
+function _noiseGenStop() {
+  if (_noiseSource) { try { _noiseSource.stop(); } catch(e){} try { _noiseSource.disconnect(); } catch(e){} _noiseSource = null; }
   if (_noiseGainNode) { try { _noiseGainNode.disconnect(); } catch(e){} _noiseGainNode = null; }
   _noisePlaying = false;
   renderNoiseUI(document.getElementById('noiseContent'));
 }
 
-function _getNoiseFn() {
-  try { return new Function('t', 'return (' + _noiseFormula + ') & 255;'); }
-  catch(e) { return () => 128; }
-}
-
-function noiseApply() {
-  const inp = document.getElementById('noiseInput');
-  if (inp) _noiseFormula = inp.value.trim() || '128';
-  _noiseHistory.push({ name: 'F' + (_noiseHistory.length + 1), fn: _noiseFormula });
+function setNoiseGenType(type) {
+  const wasPlaying = _noisePlaying;
+  if (wasPlaying) _noiseGenStop();
+  _noiseType = type;
   renderNoiseUI(document.getElementById('noiseContent'));
+  if (wasPlaying) toggleNoiseGen();
 }
 
-function setNoisePreset(i) {
-  _noiseFormula = NOISE_PRESETS[i].fn;
-  renderNoiseUI(document.getElementById('noiseContent'));
-}
+function setNoiseGenVolume(v) { _noiseVolume = Number(v) / 100; if (_noiseGainNode) _noiseGainNode.gain.value = _noiseVolume; }
 
-function noiseLoadFormula(fn) {
-  _noiseFormula = fn;
-  renderNoiseUI(document.getElementById('noiseContent'));
-}
-
-function _noiseVisLoop() {
+function _noiseGenVisLoop() {
   if (!_noisePlaying || !_noiseCtx2d || !_noiseCanvas) return;
   const w = _noiseCanvas.width, h = _noiseCanvas.height;
   const img = _noiseCtx2d.createImageData(w, h);
-  const fn = _getNoiseFn();
+  const d = _noiseGenBuffer(_noiseType, 8000);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const v = fn(_noiseT + x + y * w) & 255;
+      const v = Math.abs(d[(x + y * 137) % d.length]) * 255;
       const idx = (y * w + x) * 4;
       img.data[idx] = v; img.data[idx + 1] = v; img.data[idx + 2] = v; img.data[idx + 3] = 255;
     }
   }
   _noiseCtx2d.putImageData(img, 0, 0);
-  requestAnimationFrame(_noiseVisLoop);
+  requestAnimationFrame(_noiseGenVisLoop);
 }
 
 // ================================================================
