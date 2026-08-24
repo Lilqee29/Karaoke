@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gbos-v20';
+const CACHE_NAME = 'gbos-v21';
 const ASSETS = [
     './',
     './index.html',
@@ -35,7 +35,7 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS).catch(err => {
+            return cache.addAll(ASSETS).catch(() => {
                 return Promise.all(
                     ASSETS.map(url => cache.add(url).catch(() => {}))
                 );
@@ -45,33 +45,29 @@ self.addEventListener('install', (e) => {
     self.skipWaiting();
 });
 
-// ── ACTIVATE: nuke ALL old caches, then take over every tab ────
+// ── ACTIVATE: nuke ALL old caches, then take over ──────────────
 self.addEventListener('activate', (e) => {
     e.waitUntil(
         caches.keys().then((names) => {
             return Promise.all(
                 names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))
             );
-        }).then(() => {
-            // Force every open tab to reload so they get the new SW
-            return self.clients.matchAll({ type: 'window' }).then(clients => {
-                clients.forEach(client => client.navigate(client.url));
-            });
         })
     );
     self.clients.claim();
 });
 
-// ── FETCH: stale-while-revalidate for HTML, cache-first for assets ──
+// ── FETCH: network-first for HTML, cache-first for everything else ──
 self.addEventListener('fetch', (e) => {
+    // Skip non-GET and cross-origin
     if (!e.request.url.startsWith(self.location.origin)) return;
     if (e.request.method !== 'GET') return;
 
     const url = new URL(e.request.url);
     const isHTML = e.request.mode === 'navigate' ||
-                   e.headers.get('accept')?.includes('text/html') ||
                    url.pathname.endsWith('.html') ||
-                   url.pathname === './' || url.pathname === '/';
+                   url.pathname === './' || url.pathname === '/' ||
+                   (e.request.headers && e.request.headers.get && (e.request.headers.get('accept') || '').includes('text/html'));
 
     if (isHTML) {
         // HTML: network-first so new deploys are seen immediately
@@ -83,7 +79,7 @@ self.addEventListener('fetch', (e) => {
             }).catch(() => caches.match(e.request))
         );
     } else {
-        // JS/CSS/images: cache-first, but check network in background
+        // JS/CSS/images: cache-first, update in background
         e.respondWith(
             caches.match(e.request).then((cached) => {
                 const fetchPromise = fetch(e.request).then((res) => {
@@ -100,7 +96,7 @@ self.addEventListener('fetch', (e) => {
     }
 });
 
-// ── MESSAGE: force-skip waiting when client sends SKIP message ─
+// ── MESSAGE: force-skip waiting ────────────────────────────────
 self.addEventListener('message', (e) => {
     if (e.data && e.data.type === 'SKIP_WAITING') {
         self.skipWaiting();
