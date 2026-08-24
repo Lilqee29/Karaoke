@@ -74,6 +74,13 @@ let _bbNativeEQ   = []; // [{low, mid, hi, comp}] native Web Audio nodes
 // Default EQ values (0 = flat, range -12 to +12 dB)
 let bbTrackEQSettings = INSTRUMENTS.map(() => ({ bass: 0, mid: 0, treble: 0, compress: 0 }));
 
+// ── Per-Track Effect Sends ────────────────────────────────
+// Each track has independent send levels to delay/reverb/filter (0-100%)
+let bbTrackSendSettings = INSTRUMENTS.map(() => ({ delay: 0, reverb: 0, filter: 0 }));
+let bbTrackDelaySends  = []; // Tone.Volume nodes per track → bbDelay
+let bbTrackReverbSends = []; // Tone.Volume nodes per track → bbReverb
+let bbTrackFilterSends = []; // Tone.Volume nodes per track → bbFilter
+
 // ── Sample Library — 100% Web Audio synthesized (no external URLs) ──
 // Each entry is type:'synth' so bbPlaySynthSound handles it
 const BB_SAMPLE_LIB = {
@@ -529,6 +536,9 @@ async function bbInitAudio() {
   // EQ chain: lowshelf (bass) → peaking (mid) → highshelf (treble) → compressor
   bbTrackEQ = [];
   _bbNativeEQ = [];
+  bbTrackDelaySends  = [];
+  bbTrackReverbSends = [];
+  bbTrackFilterSends = [];
 
   bbTrackGains = INSTRUMENTS.map((_, i) => {
     const g = new Tone.Volume(0);
@@ -548,10 +558,21 @@ async function bbInitAudio() {
     // Chain: g → low → mid → hi → comp → masterVol
     g.chain(low, mid, hi, comp, bbMasterVol);
 
-    // Dry path also to FX sends
-    g.connect(bbDelay);
-    g.connect(bbReverb);
-    g.connect(bbFilter);
+    // Per-track send gain nodes (independent send levels)
+    const dSend = new Tone.Volume(-Infinity); // 0% by default
+    dSend.connect(bbDelay);
+    g.connect(dSend);
+    bbTrackDelaySends.push(dSend);
+
+    const rSend = new Tone.Volume(-Infinity);
+    rSend.connect(bbReverb);
+    g.connect(rSend);
+    bbTrackReverbSends.push(rSend);
+
+    const fSend = new Tone.Volume(-Infinity);
+    fSend.connect(bbFilter);
+    g.connect(fSend);
+    bbTrackFilterSends.push(fSend);
 
     bbTrackEQ.push({ low, mid, hi, comp });
 
@@ -2028,6 +2049,7 @@ window.bbSavePattern = function() {
     trackVols: [...trackVols],
     rowDivisions: [...rowDivisions],
     eqSettings: bbTrackEQSettings.map(s => ({...s})),
+    sendSettings: bbTrackSendSettings.map(s => ({...s})),
     savedAt: Date.now(),
   };
   localStorage.setItem(BB_STORAGE_KEY, JSON.stringify(patterns));
@@ -2114,6 +2136,18 @@ window.bbLoadPattern = function(key) {
         bbSetTrackEQ(i, 'mid', s.mid);
         bbSetTrackEQ(i, 'treble', s.treble);
         bbSetTrackEQ(i, 'compress', s.compress);
+      }
+    });
+  }
+
+  // Restore send settings
+  if (p.sendSettings) {
+    p.sendSettings.forEach((s, i) => {
+      if (bbTrackSendSettings[i]) {
+        bbTrackSendSettings[i] = {...s};
+        bbSetTrackSend(i, 'delay', s.delay);
+        bbSetTrackSend(i, 'reverb', s.reverb);
+        bbSetTrackSend(i, 'filter', s.filter);
       }
     });
   }
@@ -2251,7 +2285,36 @@ window.bbSetTrackEQ = function(trackIdx, param, val) {
 const _bbOrigSwitchTab = window.bbSwitchTab;
 window.bbSwitchTab = function(tab) {
   _bbOrigSwitchTab(tab);
-  if (tab === 'fx') bbRenderTrackEQ();
+  if (tab === 'fx') { bbRenderTrackEQ(); bbRenderTrackSends(); }
+};
+
+// ── Per-Track Effect Send Controls ────────────────────────
+
+function bbRenderTrackSends() {
+  const list = document.getElementById('bbTrackSendList');
+  if (!list) return;
+  list.innerHTML = INSTRUMENTS.map((inst, i) => {
+    const s = bbTrackSendSettings[i];
+    return `<div style="display:flex;align-items:center;gap:2px;font-size:4px;">
+      <span style="color:${inst.color};min-width:18px;">${inst.emoji}</span>
+      <input type="range" min="0" max="100" value="${s.delay}" step="5"
+        oninput="bbSetTrackSend(${i},'delay',this.value)" style="width:30px;height:2px;">
+      <input type="range" min="0" max="100" value="${s.reverb}" step="5"
+        oninput="bbSetTrackSend(${i},'reverb',this.value)" style="width:30px;height:2px;">
+      <input type="range" min="0" max="100" value="${s.filter}" step="5"
+        oninput="bbSetTrackSend(${i},'filter',this.value)" style="width:30px;height:2px;">
+    </div>`;
+  }).join('');
+}
+
+window.bbSetTrackSend = function(trackIdx, sendType, val) {
+  const v = parseInt(val);
+  bbTrackSendSettings[trackIdx][sendType] = v;
+  const db = v === 0 ? -Infinity : (v / 100) * 12 - 12; // range: -12dB to 0dB
+
+  if (sendType === 'delay'  && bbTrackDelaySends[trackIdx])  bbTrackDelaySends[trackIdx].volume.value = db;
+  if (sendType === 'reverb' && bbTrackReverbSends[trackIdx]) bbTrackReverbSends[trackIdx].volume.value = db;
+  if (sendType === 'filter' && bbTrackFilterSends[trackIdx]) bbTrackFilterSends[trackIdx].volume.value = db;
 };
 
 // ── Keyboard / MIDI Input ─────────────────────────────────
