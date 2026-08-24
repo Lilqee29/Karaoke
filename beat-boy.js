@@ -67,6 +67,13 @@ let dynRowSubCounters  = [];
 // Master tick counter (finest resolution across all rows)
 let masterTick = 0;
 
+// ── Per-Track EQ + Compressor ─────────────────────────────
+// Each track: input → lowshelf (bass) → peaking (mid) → highshelf (treble) → compressor → trackGain → master
+let bbTrackEQ     = []; // [{low, mid, hi, comp}] Tone.js nodes
+let _bbNativeEQ   = []; // [{low, mid, hi, comp}] native Web Audio nodes
+// Default EQ values (0 = flat, range -12 to +12 dB)
+let bbTrackEQSettings = INSTRUMENTS.map(() => ({ bass: 0, mid: 0, treble: 0, compress: 0 }));
+
 // ── Sample Library — 100% Web Audio synthesized (no external URLs) ──
 // Each entry is type:'synth' so bbPlaySynthSound handles it
 const BB_SAMPLE_LIB = {
@@ -339,7 +346,8 @@ function _bbFallbackSynth(channel, time, vol) {
   if (!ctx) return;
   const v = vol * remixMasterVol;
   if (v <= 0) return;
-  const dest = _bbFallbackAnalyser || ctx.destination;
+  // Route through native EQ chain for this channel, or master gain as fallback
+  const dest = (_bbNativeEQ[channel]?.low) || _bbFallbackAnalyser || ctx.destination;
 
   if (channel === 0) { // Kick
     const o = ctx.createOscillator(), g = ctx.createGain();
@@ -517,13 +525,49 @@ async function bbInitAudio() {
   bbFilter = new Tone.Filter({ frequency: 20000, type: 'lowpass', rolloff: -12 });
   bbFilter.connect(bbCompressor);
 
-  // Per-track gain nodes → master (dry) + send to effects
-  bbTrackGains = INSTRUMENTS.map(() => {
+  // Per-track gain nodes → EQ chain → master (dry) + send to effects
+  // EQ chain: lowshelf (bass) → peaking (mid) → highshelf (treble) → compressor
+  bbTrackEQ = [];
+  _bbNativeEQ = [];
+
+  bbTrackGains = INSTRUMENTS.map((_, i) => {
     const g = new Tone.Volume(0);
-    g.connect(bbMasterVol);        // dry path
-    g.connect(bbDelay);            // → delay send
-    g.connect(bbReverb);           // → reverb send
-    g.connect(bbFilter);           // → filter send
+
+    // Tone.js EQ chain
+    const low  = new Tone.Filter(200, 'lowshelf').toDestination();
+    low.gain.value = 0;
+    const mid  = new Tone.Filter(1000, 'peaking');
+    mid.gain.value = 0;
+    mid.Q.value = 1;
+    const hi   = new Tone.Filter(3500, 'highshelf').toDestination();
+    hi.gain.value = 0;
+    const comp = new Tone.Compressor(-20, 4);
+    comp.threshold.value = -20;
+    comp.ratio.value = 1; // 1:1 = no compression by default
+
+    // Chain: g → low → mid → hi → comp → masterVol
+    g.chain(low, mid, hi, comp, bbMasterVol);
+
+    // Dry path also to FX sends
+    g.connect(bbDelay);
+    g.connect(bbReverb);
+    g.connect(bbFilter);
+
+    bbTrackEQ.push({ low, mid, hi, comp });
+
+    // Native Web Audio EQ chain (for fallback mode)
+    const nLow  = rawCtx.createBiquadFilter();
+    nLow.type = 'lowshelf'; nLow.frequency.value = 200; nLow.gain.value = 0;
+    const nMid  = rawCtx.createBiquadFilter();
+    nMid.type = 'peaking'; nMid.frequency.value = 1000; nMid.Q.value = 1; nMid.gain.value = 0;
+    const nHi   = rawCtx.createBiquadFilter();
+    nHi.type = 'highshelf'; nHi.frequency.value = 3500; nHi.gain.value = 0;
+    const nComp = rawCtx.createDynamicsCompressor();
+    nComp.threshold.value = -20; nComp.ratio.value = 1;
+    nLow.connect(nMid); nMid.connect(nHi); nHi.connect(nComp); nComp.connect(_bbFallbackMasterGain);
+
+    _bbNativeEQ.push({ low: nLow, mid: nMid, hi: nHi, comp: nComp });
+
     return g;
   });
 
@@ -1983,6 +2027,7 @@ window.bbSavePattern = function() {
     division: remixDivision,
     trackVols: [...trackVols],
     rowDivisions: [...rowDivisions],
+    eqSettings: bbTrackEQSettings.map(s => ({...s})),
     savedAt: Date.now(),
   };
   localStorage.setItem(BB_STORAGE_KEY, JSON.stringify(patterns));
@@ -2055,6 +2100,20 @@ window.bbLoadPattern = function(key) {
             b.style.borderColor = isActive ? '#0f0' : '#333';
           });
         }
+      }
+    });
+  }
+
+  // Restore EQ settings
+  if (p.eqSettings) {
+    p.eqSettings.forEach((s, i) => {
+      if (bbTrackEQSettings[i]) {
+        bbTrackEQSettings[i] = {...s};
+        // Apply to audio nodes
+        bbSetTrackEQ(i, 'bass', s.bass);
+        bbSetTrackEQ(i, 'mid', s.mid);
+        bbSetTrackEQ(i, 'treble', s.treble);
+        bbSetTrackEQ(i, 'compress', s.compress);
       }
     });
   }
@@ -2135,6 +2194,64 @@ window.bbSetReverb = function(val) {
   if (_bbNativeReverbGain) _bbNativeReverbGain.gain.value = wet;
   const el = document.getElementById('reverbLabel');
   if (el) el.textContent = `${val}%`;
+};
+
+// ── Per-Track EQ Controls ────────────────────────────────
+
+function bbRenderTrackEQ() {
+  const list = document.getElementById('bbTrackEQList');
+  if (!list) return;
+  list.innerHTML = INSTRUMENTS.map((inst, i) => {
+    const s = bbTrackEQSettings[i];
+    return `<div style="display:flex;align-items:center;gap:2px;font-size:4px;">
+      <span style="color:${inst.color};min-width:18px;">${inst.emoji}</span>
+      <input type="range" min="-12" max="12" value="${s.bass}" step="1"
+        oninput="bbSetTrackEQ(${i},'bass',this.value)" style="width:28px;height:2px;">
+      <input type="range" min="-12" max="12" value="${s.mid}" step="1"
+        oninput="bbSetTrackEQ(${i},'mid',this.value)" style="width:28px;height:2px;">
+      <input type="range" min="-12" max="12" value="${s.treble}" step="1"
+        oninput="bbSetTrackEQ(${i},'treble',this.value)" style="width:28px;height:2px;">
+      <input type="range" min="0" max="12" value="${s.compress}" step="1"
+        oninput="bbSetTrackEQ(${i},'compress',this.value)" style="width:28px;height:2px;">
+    </div>`;
+  }).join('');
+}
+
+window.bbSetTrackEQ = function(trackIdx, param, val) {
+  const v = parseInt(val);
+  bbTrackEQSettings[trackIdx][param] = v;
+
+  // Tone.js EQ chain
+  const eq = bbTrackEQ[trackIdx];
+  if (eq) {
+    if (param === 'bass')    eq.low.gain.value = v;
+    if (param === 'mid')     eq.mid.gain.value = v;
+    if (param === 'treble')  eq.hi.gain.value = v;
+    if (param === 'compress') {
+      // ratio: 0dB = 1:1, 12dB = 20:1
+      eq.comp.threshold.value = -20;
+      eq.comp.ratio.value = 1 + (v / 12) * 19;
+    }
+  }
+
+  // Native EQ chain
+  const neq = _bbNativeEQ[trackIdx];
+  if (neq) {
+    if (param === 'bass')    neq.low.gain.value = v;
+    if (param === 'mid')     neq.mid.gain.value = v;
+    if (param === 'treble')  neq.hi.gain.value = v;
+    if (param === 'compress') {
+      neq.comp.threshold.value = -20;
+      neq.comp.ratio.value = 1 + (v / 12) * 19;
+    }
+  }
+};
+
+// Call when FX tab opens
+const _bbOrigSwitchTab = window.bbSwitchTab;
+window.bbSwitchTab = function(tab) {
+  _bbOrigSwitchTab(tab);
+  if (tab === 'fx') bbRenderTrackEQ();
 };
 
 // ── Keyboard / MIDI Input ─────────────────────────────────
