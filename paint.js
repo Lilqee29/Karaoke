@@ -1,7 +1,6 @@
 // ========================================================
-//  PAINT v2.0 — Complete Professional Painting Suite
+//  PAINT v2.1 — Clean Toolbar + Native Color Picker
 //  Oil paint, watercolor, smudge, fill, eyedropper
-//  Full HSL color picker, layers, undo/redo
 //  Pure vanilla JS + Canvas 2D — zero dependencies
 // ========================================================
 
@@ -12,9 +11,6 @@
 let canvas, ctx;
 let _pMode = 'oil';        // oil | watercolor | spray | smudge | fill | eraser | eyedropper
 let _pColor = '#000000';
-let _pHue = 0;
-let _pSat = 100;
-let _pLight = 50;
 let _pOpacity = 1.0;
 let _pSize = 4;
 let _pLastX = null, _pLastY = null;
@@ -28,39 +24,36 @@ let _pShapeSnapshot = null;
 let _pErasing = false;
 
 // ── Color Utils ──────────────────────────────────────────
-function _pHslToHex(h, s, l) {
-  s /= 100; l /= 100;
-  const a = s * Math.min(l, 1 - l);
-  const f = n => {
-    const k = (n + h / 30) % 12;
-    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
-    return Math.round(255 * color).toString(16).padStart(2, '0');
-  };
-  return `#${f(0)}${f(8)}${f(4)}`;
-}
-
 function _pHexToRgb(hex) {
   const h = hex.replace('#', '');
   return { r: parseInt(h.substring(0, 2), 16) || 0, g: parseInt(h.substring(2, 4), 16) || 0, b: parseInt(h.substring(4, 6), 16) || 0 };
 }
 
-function _pRgbToHsl(r, g, b) {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0;
-  const l = (max + min) / 2;
+function _pLightenColor(hex, amt) {
+  const rgb = _pHexToRgb(hex);
+  const h = rgb.r / 255, s = rgb.g / 255, l = rgb.b / 255;
+  const max = Math.max(h, s, l), min = Math.min(h, s, l);
+  let hue = 0, sat = 0;
+  const light = (max + min) / 2;
   if (max !== min) {
     const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-    else if (max === g) h = ((b - r) / d + 2) / 6;
-    else h = ((r - g) / d + 4) / 6;
+    sat = light > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === h) hue = ((s - l) / d + (s < l ? 6 : 0)) / 6;
+    else if (max === s) hue = ((l - h) / d + 2) / 6;
+    else hue = ((h - s) / d + 4) / 6;
   }
-  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  const newL = Math.min(100, Math.round(light * 100 + amt));
+  const a = sat * Math.min(newL / 100, 1 - newL / 100);
+  const f = n => {
+    const k = (n + (hue * 360) / 30) % 12;
+    const c = newL / 100 - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * c).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-function _pColorFromHSL() {
-  return _pHslToHex(_pHue, _pSat, _pLight);
+function _pDarkenColor(hex, amt) {
+  return _pLightenColor(hex, -amt);
 }
 
 // ── Undo/Redo ────────────────────────────────────────────
@@ -71,14 +64,13 @@ function _pSaveUndo() {
   _pRedoStack = [];
 }
 
-function _pRestoreUndo(src, cb) {
+function _pRestoreUndo(src) {
   const img = new Image();
   img.onload = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0);
-    if (cb) cb();
   };
   img.src = src;
 }
@@ -95,7 +87,6 @@ function _pGetPos(e) {
 
 // ── Brush Engines ────────────────────────────────────────
 
-// Oil Paint — thick, textured, opacity based on speed
 function _pOilBrush(x, y) {
   if (_pLastX === null) { _pLastX = x; _pLastY = y; }
   const dx = x - _pLastX, dy = y - _pLastY;
@@ -109,14 +100,12 @@ function _pOilBrush(x, y) {
   ctx.lineJoin = 'round';
   ctx.lineWidth = _pSize;
 
-  // Main stroke
   ctx.strokeStyle = _pColor;
   ctx.beginPath();
   ctx.moveTo(_pLastX, _pLastY);
   ctx.lineTo(x, y);
   ctx.stroke();
 
-  // Texture — slightly offset secondary strokes for thick paint look
   if (_pSize > 2) {
     ctx.globalAlpha = alpha * 0.4;
     ctx.lineWidth = _pSize * 0.6;
@@ -140,17 +129,14 @@ function _pOilBrush(x, y) {
   _pLastY = y;
 }
 
-// Watercolor — transparent, flowing, wet edges
 function _pWatercolorBrush(x, y) {
   ctx.save();
   const baseAlpha = 0.05 * _pOpacity;
-  const rgb = _pHexToRgb(_pColor);
 
   for (let i = 0; i < 3; i++) {
     const ox = (Math.random() - 0.5) * _pSize * 1.5;
     const oy = (Math.random() - 0.5) * _pSize * 1.5;
     const r = _pSize * (0.8 + Math.random() * 0.8);
-
     ctx.globalAlpha = baseAlpha * (0.5 + Math.random() * 0.5);
     ctx.fillStyle = _pColor;
     ctx.beginPath();
@@ -158,21 +144,12 @@ function _pWatercolorBrush(x, y) {
     ctx.fill();
   }
 
-  // Wet edge effect
-  ctx.globalAlpha = baseAlpha * 0.3;
-  ctx.strokeStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},0.3)`;
-  ctx.lineWidth = 0.5;
-  ctx.beginPath();
-  ctx.arc(x, y, _pSize * 0.9, 0, Math.PI * 2);
-  ctx.stroke();
-
   ctx.restore();
   if (_pLastX === null) { _pLastX = x; _pLastY = y; }
   _pLastX = x;
   _pLastY = y;
 }
 
-// Spray — scattered particles
 function _pSprayBrush(x, y) {
   ctx.save();
   ctx.fillStyle = _pColor;
@@ -185,7 +162,6 @@ function _pSprayBrush(x, y) {
   ctx.restore();
 }
 
-// Smudge — pick up color and blend
 function _pSmudge(x, y) {
   if (_pLastX === null) { _pLastX = x; _pLastY = y; return; }
   const dist = Math.sqrt((x - _pLastX) ** 2 + (y - _pLastY) ** 2);
@@ -195,20 +171,14 @@ function _pSmudge(x, y) {
   ctx.globalAlpha = 0.3 * _pOpacity;
   ctx.lineCap = 'round';
   ctx.lineWidth = _pSize;
-  ctx.strokeStyle = _pColor;
-  ctx.globalCompositeOperation = 'source-over';
 
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
     const sx = _pLastX + (x - _pLastX) * t;
     const sy = _pLastY + (y - _pLastY) * t;
-
-    // Sample existing canvas color at this point
     const pixel = ctx.getImageData(Math.round(sx), Math.round(sy), 1, 1).data;
-    const sampled = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
-
     ctx.globalAlpha = 0.15 * _pOpacity;
-    ctx.fillStyle = sampled;
+    ctx.fillStyle = `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
     ctx.beginPath();
     ctx.arc(sx, sy, _pSize * 0.8, 0, Math.PI * 2);
     ctx.fill();
@@ -219,7 +189,6 @@ function _pSmudge(x, y) {
   _pLastY = y;
 }
 
-// Fill — flood fill
 function _pFloodFill(startX, startY) {
   const w = canvas.width, h = canvas.height;
   const imageData = ctx.getImageData(0, 0, w, h);
@@ -263,31 +232,11 @@ function _pFloodFill(startX, startY) {
   ctx.putImageData(imageData, 0, 0);
 }
 
-// Eyedropper — pick color from canvas
 function _pEyeDrop(x, y) {
   const pixel = ctx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
   const hex = '#' + [pixel[0], pixel[1], pixel[2]].map(v => v.toString(16).padStart(2, '0')).join('');
   _pColor = hex;
-  const rgb = _pRgbToHsl(pixel[0], pixel[1], pixel[2]);
-  _pHue = rgb.h;
-  _pSat = rgb.s;
-  _pLight = rgb.l;
   _pUpdateColorUI();
-}
-
-// ── Color Helpers ────────────────────────────────────────
-function _pLightenColor(hex, amt) {
-  const rgb = _pHexToRgb(hex);
-  const hsl = _pRgbToHsl(rgb.r, rgb.g, rgb.b);
-  hsl.l = Math.min(100, hsl.l + amt);
-  return _pHslToHex(hsl.h, hsl.s, hsl.l);
-}
-
-function _pDarkenColor(hex, amt) {
-  const rgb = _pHexToRgb(hex);
-  const hsl = _pRgbToHsl(rgb.r, rgb.g, rgb.b);
-  hsl.l = Math.max(0, hsl.l - amt);
-  return _pHslToHex(hsl.h, hsl.s, hsl.l);
 }
 
 // ── Shape Drawing ────────────────────────────────────────
@@ -299,9 +248,6 @@ function _pDrawShape(x0, y0, x1, y1) {
   ctx.lineCap = 'round';
   ctx.globalAlpha = _pOpacity;
   ctx.lineJoin = 'round';
-
-  const dx = x1 - x0, dy = y1 - y0;
-  const dist = Math.sqrt(dx * dx + dy * dy);
 
   if (_pShape === 'line') {
     ctx.beginPath();
@@ -384,7 +330,6 @@ function _pOnMove(e) {
     return;
   }
 
-  // Interpolate between last and current position
   const dx = p.x - _pLastX, dy = p.y - _pLastY;
   const dist = Math.sqrt(dx * dx + dy * dy);
   const steps = Math.max(1, Math.ceil(dist / 2));
@@ -418,20 +363,15 @@ function _pOnUp(e) {
 
 // ── UI Updates ───────────────────────────────────────────
 function _pUpdateColorUI() {
-  _pColor = _pColorFromHSL();
   const preview = document.getElementById('paintColorPreview');
   if (preview) preview.style.background = _pColor;
-  const hexInput = document.getElementById('paintHexInput');
-  if (hexInput) hexInput.value = _pColor;
-  // Update hue bar background
-  const hueBar = document.getElementById('paintHueBar');
-  if (hueBar) {
-    hueBar.style.background = `linear-gradient(to right,
-      hsl(0,${_pSat}%,${_pLight}%),hsl(60,${_pSat}%,${_pLight}%),
-      hsl(120,${_pSat}%,${_pLight}%),hsl(180,${_pSat}%,${_pLight}%),
-      hsl(240,${_pSat}%,${_pLight}%),hsl(300,${_pSat}%,${_pLight}%),
-      hsl(360,${_pSat}%,${_pLight}%))`;
-  }
+  const native = document.getElementById('paintNativeColor');
+  if (native) native.value = _pColor;
+  // Highlight matching quick swatch
+  document.querySelectorAll('.paint-swatch').forEach(s => {
+    const match = s.dataset.color?.toLowerCase() === _pColor.toLowerCase();
+    s.classList.toggle('active', match);
+  });
 }
 
 // ── Init ─────────────────────────────────────────────────
@@ -439,7 +379,6 @@ window.initPaint = function() {
   canvas = document.getElementById('paintCanvas');
   if (!canvas) return;
 
-  // Size to fill screen
   const wrapper = canvas.parentElement;
   canvas.width = wrapper ? wrapper.clientWidth : 300;
   canvas.height = wrapper ? wrapper.clientHeight : 280;
@@ -451,7 +390,6 @@ window.initPaint = function() {
   _pRedoStack = [];
   _pSaveUndo();
 
-  // Bind events
   canvas.addEventListener('mousedown', _pOnDown);
   canvas.addEventListener('mousemove', _pOnMove);
   canvas.addEventListener('mouseup', _pOnUp);
@@ -463,7 +401,6 @@ window.initPaint = function() {
   _pUpdateColorUI();
 };
 
-// ── Cleanup ──────────────────────────────────────────────
 window._paintCleanup = function() {
   if (canvas) {
     canvas.removeEventListener('mousedown', _pOnDown);
@@ -485,7 +422,8 @@ window.paintSetTool = function(tool) {
     const active = b.dataset.tool === tool;
     b.classList.toggle('active', active);
   });
-  if (typeof sounds !== 'undefined') sounds.click?.();
+  // Haptic feedback
+  if (navigator.vibrate) navigator.vibrate(10);
 };
 
 window.paintSetShape = function(shape) {
@@ -513,28 +451,14 @@ window.paintSetOpacity = function(val) {
   if (lbl) lbl.textContent = val + '%';
 };
 
-window.paintSetHue = function(val) {
-  _pHue = parseInt(val);
-  _pUpdateColorUI();
-};
-
-window.paintSetSat = function(val) {
-  _pSat = parseInt(val);
-  _pUpdateColorUI();
-};
-
-window.paintSetLight = function(val) {
-  _pLight = parseInt(val);
-  _pUpdateColorUI();
-};
-
 window.paintSetColor = function(hex) {
+  if (!hex || !hex.match(/^#[0-9a-fA-F]{6}$/)) return;
   _pColor = hex;
-  const rgb = _pHexToRgb(hex);
-  const hsl = _pRgbToHsl(rgb.r, rgb.g, rgb.b);
-  _pHue = hsl.h;
-  _pSat = hsl.s;
-  _pLight = hsl.l;
+  _pUpdateColorUI();
+};
+
+window.paintNativeColor = function(val) {
+  _pColor = val;
   _pUpdateColorUI();
 };
 
@@ -575,25 +499,23 @@ window.paintSave = function() {
   }, 'image/png');
 };
 
-// Keep old function names working (called from HTML)
+// Expand/Collapse panel
+window.paintTogglePanel = function() {
+  const panel = document.getElementById('paintExpanded');
+  const btn = document.getElementById('paintScrollToggle');
+  if (!panel || !btn) return;
+  const show = panel.style.display === 'none';
+  panel.style.display = show ? 'block' : 'none';
+  btn.textContent = show ? '▼' : '▲';
+};
+
+// Legacy compat
 window.setPaintColor = window.paintSetColor;
 window.paintFunc = function(action) {
   if (action === 'undo') window.paintUndo();
   else if (action === 'clear') window.paintClear();
   else if (action === 'save') window.paintSave();
   else if (action === 'eraser') window.paintSetTool('eraser');
-};
-window.paintBrushUp = function() {
-  _pSize = Math.min(50, _pSize + 1);
-  const slider = document.getElementById('paintSizeSlider');
-  if (slider) slider.value = _pSize;
-  window.paintSetSize(_pSize);
-};
-window.paintBrushDown = function() {
-  _pSize = Math.max(1, _pSize - 1);
-  const slider = document.getElementById('paintSizeSlider');
-  if (slider) slider.value = _pSize;
-  window.paintSetSize(_pSize);
 };
 
 })();
