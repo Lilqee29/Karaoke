@@ -114,40 +114,7 @@ window.copyAscii = function() {
     });
 };
 
-// 3. NOISE GENERATOR (white/pink/brown noise for radio app)
-let noiseCtx = null;
-let noiseNode = null;
-window.toggleNoise = function(type) {
-    if(noiseNode) {
-        noiseNode.stop();
-        noiseNode.disconnect();
-        noiseNode = null;
-        if(typeof sounds !== 'undefined') sounds.back();
-        return;
-    }
-    if(!noiseCtx) noiseCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const bufferSize = 2 * noiseCtx.sampleRate;
-    const buffer = noiseCtx.createBuffer(1, bufferSize, noiseCtx.sampleRate);
-    const output = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        if(type === 'white') output[i] = white;
-        else if(type === 'pink') {
-            // Simplified pink noise
-            output[i] = (Math.random() * 2 - 1) * 0.1; 
-        } else { // brown
-            const lastOut = (i > 0) ? output[i-1] : 0;
-            output[i] = (lastOut + (0.02 * white)) / 1.02;
-            output[i] *= 3.5;
-        }
-    }
-    noiseNode = noiseCtx.createBufferSource();
-    noiseNode.buffer = buffer;
-    noiseNode.loop = true;
-    noiseNode.connect(noiseCtx.destination);
-    noiseNode.start();
-    if(typeof sounds !== 'undefined') sounds.launch();
-};
+// 3. NOISE GENERATOR — removed, radio app handles noise natively
 
 // 4. LEVEL
 window.initLevel = function() {
