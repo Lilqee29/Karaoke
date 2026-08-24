@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gbos-v28';
+const CACHE_NAME = 'gbos-v29';
 const ASSETS = [
     './',
     './index.html',

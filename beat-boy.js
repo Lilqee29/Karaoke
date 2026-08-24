@@ -260,6 +260,7 @@ const PRESETS = {
 // Used when Tone.js CDN fails. Based on godfengliang/beatforge (MIT).
 let _bbFallbackCtx = null;
 let _bbFallbackAnalyser = null;
+let _bbFallbackMasterGain = null;
 
 function bbInitFallbackAudio() {
   _bbFallbackCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -267,6 +268,9 @@ function bbInitFallbackAudio() {
   _bbFallbackAnalyser = _bbFallbackCtx.createAnalyser();
   _bbFallbackAnalyser.fftSize = 2048;
   _bbFallbackAnalyser.connect(_bbFallbackCtx.destination);
+  // Create native master gain for synth sounds (BeatForge-style)
+  _bbFallbackMasterGain = _bbFallbackCtx.createGain();
+  _bbFallbackMasterGain.connect(_bbFallbackAnalyser);
   audioReady = true;
   bbSetStatus('');
 }
@@ -388,6 +392,14 @@ async function bbInitAudio() {
   bbRecorder   = new Tone.Recorder();
   bbAnalyser.connect(bbRecorder);
 
+  // ── Native master gain for synth library sounds ─────────────
+  // bbPlaySynthSound uses native Web Audio nodes (like BeatForge) which can't
+  // connect to Tone.js wrapper nodes. This native gain bridges them to the speakers.
+  const rawCtx = Tone.context.rawContext;
+  _bbFallbackMasterGain = rawCtx.createGain();
+  _bbFallbackMasterGain.gain.value = remixMasterVol;
+  _bbFallbackMasterGain.connect(rawCtx.destination);
+
   // Delay effect: input → delay → delayGain → compressor
   bbDelay     = new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 1 });
   bbDelayGain = new Tone.Gain(0);
@@ -505,12 +517,17 @@ function bbSetStatus(msg) {
 // ── Sound Trigger ─────────────────────────────────────────
 
 // Synthesized sounds (voices, FX, synths)
-// targetGain: optional — route to a specific track gain instead of default (track 0)
+// Uses native Web Audio API (like BeatForge) — connects to rawContext.destination
+// Tone.js wrapper nodes can't be used as AudioNode.connect() targets
 function bbPlaySynthSound(name, targetGain) {
   if (!audioReady) return;
-  const now = Tone.now();
-  const ctx = Tone.context;
-  const dest = targetGain || bbTrackGains[0];
+  // Use raw AudioContext — native Web Audio nodes can't connect to Tone.js wrapper nodes
+  // This matches the BeatForge pattern: Oscillator -> Gain -> rawCtx.destination
+  const ctx = (window.Tone && Tone.context && Tone.context.rawContext) || 
+                 _bbFallbackCtx || 
+                 new (window.AudioContext || window.webkitAudioContext)();
+  const now = ctx.currentTime;
+  const dest = _bbFallbackMasterGain || ctx.destination;
 
   switch(name) {
     // ── VOICES (formant synthesis) ──
@@ -1507,6 +1524,7 @@ window.changeBPM = function(delta) {
 window.updateRemixVol = function(val) {
   remixMasterVol = val / 100;
   if (bbMasterVol) bbMasterVol.volume.value = Tone.gainToDb(remixMasterVol);
+  if (_bbFallbackMasterGain) _bbFallbackMasterGain.gain.value = remixMasterVol;
   const el = document.getElementById('remixVolLabel');
   if (el) el.textContent = `${val}%`;
 };
