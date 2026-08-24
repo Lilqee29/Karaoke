@@ -16,7 +16,7 @@ function killAllCreativeAudio() {
   if (_noiseSource) { try { _noiseSource.stop(); } catch(e){} try { _noiseSource.disconnect(); } catch(e){} _noiseSource = null; }
   if (_noiseGainNode) { try { _noiseGainNode.disconnect(); } catch(e){} _noiseGainNode = null; }
   _noisePlaying = false;
-  _waveAutoOsc = null;
+  _waveAutoNodes = null;
 }
 
 // ================================================================
@@ -154,11 +154,13 @@ function setGlitchMode(m) { _glitchMode = m; renderGlitchUI(document.getElementB
 function clearGlitchParticles() { _glitchParticles = []; }
 
 // ================================================================
-//  VISUAL — Audio Visualizer + Mic Reactive
+//  VISUAL — Audio Visualizer + Lofi White Noise + Mic Reactive
 // ================================================================
 let _visualCanvas, _waveCtx, _waveAnim, _waveAnalyser, _waveData;
 let _waveMicStream = null, _waveStyle = 'bars';
-let _waveAutoOsc = null;
+let _waveAutoNodes = null; // { source, gain, filters }
+let _waveVolume = 0.15;
+let _wavePreset = 'lofi'; // lofi | rain | ocean | vinyl | static
 
 function initVisual() {
   const container = document.getElementById('visualContent');
@@ -181,22 +183,32 @@ function initVisual() {
 }
 
 function renderWaveUI(container) {
+  const presets = ['lofi','rain','ocean','vinyl','static'];
   container.innerHTML = `
     <div style="display:flex;flex-direction:column;height:100%;box-sizing:border-box;">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;">
         <span style="font-size:9px;font-weight:bold;color:var(--gb-text);">≋ VISUAL</span>
-        <span style="font-size:5px;opacity:0.6;">${_waveMicStream ? 'MIC ON' : 'AUTO'}</span>
+        <span style="font-size:5px;opacity:0.6;">${_waveMicStream ? 'MIC ON' : _wavePreset.toUpperCase()}</span>
       </div>
       <div style="display:flex;gap:2px;padding:0 6px 4px;flex-wrap:wrap;">
         ${['bars','circular','scope'].map(s => `<button onclick="setWaveStyle('${s}')" style="font-size:5px;padding:2px 5px;${_waveStyle===s?'background:var(--gb-text);color:var(--gb-bg);':''}">${s.toUpperCase()}</button>`).join('')}
         <button onclick="waveToggleMic()" style="font-size:5px;padding:2px 5px;margin-left:auto;" id="waveMicBtn">${_waveMicStream ? '🎤 OFF' : '🎤 ON'}</button>
       </div>
+      <div style="padding:0 6px 4px;display:flex;gap:2px;flex-wrap:wrap;">
+        ${presets.map(p => `<button onclick="setWavePreset('${p}')" style="font-size:4px;padding:2px 4px;${_wavePreset===p&&!_waveMicStream?'background:var(--gb-text);color:var(--gb-bg);':''}">${p.toUpperCase()}</button>`).join('')}
+      </div>
       <div style="flex:1;position:relative;margin:0 6px 6px;border:2px solid var(--gb-text);border-radius:4px;overflow:hidden;background:#000;">
         <canvas id="visualCanvas" style="width:100%;height:100%;display:block;"></canvas>
       </div>
-      <div style="padding:0 6px 6px;font-size:4px;text-align:center;opacity:0.5;">ENABLE MIC FOR REACTIVE VISUALS</div>
+      <div style="padding:0 6px 6px;font-size:4px;text-align:center;opacity:0.5;">LOFI WHITE NOISE · ENABLE MIC FOR REACTIVE</div>
     </div>
   `;
+}
+
+function setWavePreset(name) {
+  if (_waveMicStream) return; // mic mode overrides presets
+  _waveApplyPreset(name);
+  renderWaveUI(document.getElementById('visualContent'));
 }
 
 async function waveToggleMic() {
@@ -210,49 +222,89 @@ async function waveToggleMic() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     _waveMicStream = stream;
+    _waveStopAuto(); // stop white noise when mic is on
     const ctx = getCreativeAudioCtx();
     const src = ctx.createMediaStreamSource(stream);
     _waveAnalyser = ctx.createAnalyser();
     _waveAnalyser.fftSize = 256;
     src.connect(_waveAnalyser);
     _waveData = new Uint8Array(_waveAnalyser.frequencyBinCount);
-    _waveStopAuto(); _waveStartLoop();
+    _waveStartLoop();
     renderWaveUI(document.getElementById('visualContent'));
   } catch(e) { /* mic denied */ }
 }
 
 function _waveStartAuto() {
-  if (_waveAutoOsc) return;
+  if (_waveAutoNodes) return;
   const ctx = getCreativeAudioCtx();
+
+  // Create white noise buffer — pattern from Hubs-Foundation/hubs
+  const bufferSize = 2 * ctx.sampleRate;
+  const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+  const source = ctx.createBufferSource();
+  source.buffer = noiseBuffer;
+  source.loop = true;
+
+  // Lofi filter chain
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = 'lowpass';
+  lowpass.frequency.value = 800;
+  lowpass.Q.value = 0.7;
+
+  const highpass = ctx.createBiquadFilter();
+  highpass.type = 'highpass';
+  highpass.frequency.value = 100;
+
+  const gain = ctx.createGain();
+  gain.gain.value = _waveVolume;
+
+  // Analyser for visualizer
   _waveAnalyser = ctx.createAnalyser();
   _waveAnalyser.fftSize = 256;
   _waveData = new Uint8Array(_waveAnalyser.frequencyBinCount);
-  const osc1 = ctx.createOscillator();
-  const osc2 = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc1.type = 'sine'; osc1.frequency.value = 110;
-  osc2.type = 'triangle'; osc2.frequency.value = 165;
-  gain.gain.value = 0.03;
-  osc1.connect(gain); osc2.connect(gain);
+
+  // Chain: source → lowpass → highpass → gain → analyser → destination
+  source.connect(lowpass);
+  lowpass.connect(highpass);
+  highpass.connect(gain);
   gain.connect(_waveAnalyser);
-  osc1.start(); osc2.start();
-  _waveAutoOsc = { osc1, osc2, gain, interval: setInterval(() => {
-    try {
-      if (!osc1 || !osc1.context) return;
-      osc1.frequency.value = 80 + Math.sin(Date.now() * 0.0003) * 60;
-      osc2.frequency.value = 120 + Math.cos(Date.now() * 0.0005) * 80;
-    } catch(e) {}
-  }, 100)};
+  _waveAnalyser.connect(ctx.destination);
+
+  source.start();
+  _waveAutoNodes = { source, gain, lowpass, highpass };
+  _waveApplyPreset(_wavePreset);
   _waveStartLoop();
 }
 
 function _waveStopAuto() {
-  if (_waveAutoOsc) {
-    try { _waveAutoOsc.osc1.stop(); } catch(e){}
-    try { _waveAutoOsc.osc2.stop(); } catch(e){}
-    try { _waveAutoOsc.gain.disconnect(); } catch(e){}
-    clearInterval(_waveAutoOsc.interval);
-    _waveAutoOsc = null;
+  if (_waveAutoNodes) {
+    try { _waveAutoNodes.source.stop(); } catch(e){}
+    try { _waveAutoNodes.source.disconnect(); } catch(e){}
+    try { _waveAutoNodes.gain.disconnect(); } catch(e){}
+    try { _waveAutoNodes.lowpass.disconnect(); } catch(e){}
+    try { _waveAutoNodes.highpass.disconnect(); } catch(e){}
+    _waveAutoNodes = null;
+  }
+}
+
+function _waveApplyPreset(name) {
+  _wavePreset = name;
+  if (!_waveAutoNodes) return;
+  const { lowpass, highpass, gain } = _waveAutoNodes;
+  switch (name) {
+    case 'lofi':
+      lowpass.frequency.value = 800; highpass.frequency.value = 100; gain.gain.value = _waveVolume; break;
+    case 'rain':
+      lowpass.frequency.value = 2000; highpass.frequency.value = 200; gain.gain.value = _waveVolume * 0.8; break;
+    case 'ocean':
+      lowpass.frequency.value = 400; highpass.frequency.value = 60; gain.gain.value = _waveVolume * 1.2; break;
+    case 'vinyl':
+      lowpass.frequency.value = 3000; highpass.frequency.value = 400; gain.gain.value = _waveVolume * 0.6; break;
+    case 'static':
+      lowpass.frequency.value = 8000; highpass.frequency.value = 2000; gain.gain.value = _waveVolume * 0.4; break;
   }
 }
 
@@ -261,8 +313,7 @@ function _waveStartLoop() {
   const draw = () => {
     if (!_waveCtx || !_visualCanvas) return;
     if (_waveAnalyser) {
-      if (_waveMicStream) _waveAnalyser.getByteFrequencyData(_waveData);
-      else _waveAnalyser.getByteTimeDomainData(_waveData);
+      _waveAnalyser.getByteFrequencyData(_waveData);
     }
     _waveDraw();
     _waveAnim = requestAnimationFrame(draw);
@@ -276,11 +327,12 @@ function _waveDraw() {
   _waveCtx.fillRect(0, 0, w, h);
   if (!_waveData) return;
   const d = _waveData, len = d.length;
+  const t = Date.now() * 0.001;
   if (_waveStyle === 'bars') {
     const bw = w / len;
     for (let i = 0; i < len; i++) {
       const v = d[i] / 255, bh = v * h * 0.85;
-      _waveCtx.fillStyle = `hsl(${(i / len * 120 + _waveAnim * 0.1) % 360},80%,${40 + v * 30}%)`;
+      _waveCtx.fillStyle = `hsl(${(i / len * 120 + t * 20) % 360},80%,${40 + v * 30}%)`;
       _waveCtx.fillRect(i * bw, h - bh, bw - 1, bh);
     }
   } else if (_waveStyle === 'circular') {
