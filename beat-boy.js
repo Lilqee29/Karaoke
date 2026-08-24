@@ -1,8 +1,7 @@
 // ========================================================
-//  BEAT BOY v5.0 — Full Production Suite
-//  Drum samples: tonejs.github.io/audio/drum-samples/
-//  Piano lead:   tonejs.github.io/audio/salamander/
-//  Features: 10 kits, save/load, swing, effects, MIDI/keys
+//  BEAT BOY v6.0 — Full Production Suite
+//  Features: velocity grid, per-row division, per-track EQ/compressor,
+//  per-track effect sends, 10 kits, save/load, swing, effects, MIDI/keys
 // ========================================================
 
 const BB_SAMPLE_BASE = 'https://tonejs.github.io/audio/drum-samples/';
