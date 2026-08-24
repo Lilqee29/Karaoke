@@ -14,7 +14,10 @@ function killAllCreativeAudio() {
   if (_creativeAudioCtx) { try { _creativeAudioCtx.close(); } catch(e){} _creativeAudioCtx = null; }
   if (_waveMicStream) { _waveMicStream.getTracks().forEach(t => t.stop()); _waveMicStream = null; }
   if (_noiseScriptNode) { try { _noiseScriptNode.disconnect(); } catch(e){} _noiseScriptNode = null; }
+  if (_noiseGainNode) { try { _noiseGainNode.disconnect(); } catch(e){} _noiseGainNode = null; }
   if (_noiseInterval) { clearInterval(_noiseInterval); _noiseInterval = null; }
+  _noisePlaying = false;
+  _waveAutoOsc = null;
 }
 function _hash(n) { n = (n >> 13) ^ n; n = (n * (n * n * 60493 + 19990303) + 1376312589) & 0x7fffffff; return (n % 1000) / 1000; }
 
@@ -258,23 +261,26 @@ function _waveStartAuto() {
   _waveAnalyser.fftSize = 256;
   _waveData = new Uint8Array(_waveAnalyser.frequencyBinCount);
 
-  // Generate ambient tones
+  // Generate ambient tones — very quiet so it's not annoying
   const osc1 = ctx.createOscillator();
   const osc2 = ctx.createOscillator();
   const gain = ctx.createGain();
   osc1.type = 'sine'; osc1.frequency.value = 110;
   osc2.type = 'triangle'; osc2.frequency.value = 165;
-  gain.gain.value = 0.08;
+  gain.gain.value = 0.03;
   osc1.connect(gain); osc2.connect(gain);
   gain.connect(_waveAnalyser);
-  _waveAnalyser.connect(ctx.destination);
+  // Don't connect to destination — silent visualization only
+  // User can enable mic for audio-reactive mode
   osc1.start(); osc2.start();
 
-  // Slowly modulate
+  // Slowly modulate frequencies for interesting visuals
   _waveAutoOsc = { osc1, osc2, gain, interval: setInterval(() => {
-    if (!osc1 || !osc1.context) return;
-    osc1.frequency.value = 80 + Math.sin(Date.now() * 0.0003) * 60;
-    osc2.frequency.value = 120 + Math.cos(Date.now() * 0.0005) * 80;
+    try {
+      if (!osc1 || !osc1.context) return;
+      osc1.frequency.value = 80 + Math.sin(Date.now() * 0.0003) * 60;
+      osc2.frequency.value = 120 + Math.cos(Date.now() * 0.0005) * 80;
+    } catch(e) {}
   }, 100)};
 
   _waveStartLoop();
@@ -359,6 +365,7 @@ let _noiseCanvas, _noiseCtx, _noiseAnim;
 let _noiseFormula = 't*((t>>12|t>>8)&63&t>>4)';
 let _noisePlaying = false;
 let _noiseScriptNode = null;
+let _noiseGainNode = null;
 let _noiseInterval = null;
 let _noiseT = 0;
 let _noiseHistory = [];
@@ -420,9 +427,17 @@ function noisePlay() {
   if (_noisePlaying) { noiseStop(); return; }
   try {
     const ctx = getCreativeAudioCtx();
-    const scriptSize = 2048;
-    _noiseScriptNode = ctx.createScriptProcessor(scriptSize, 0, 1);
+    const bufSize = 4096;
+    // createScriptProcessor deprecated but AudioWorklet requires separate file
+    // Using createScriptProcessor with small buffer for compatibility
+    _noiseScriptNode = ctx.createScriptProcessor(bufSize, 0, 1);
     _noiseT = 0;
+
+    // Create gain for volume control
+    const gain = ctx.createGain();
+    gain.gain.value = 0.3;
+    _noiseScriptNode.connect(gain);
+    gain.connect(ctx.destination);
 
     _noiseScriptNode.onaudioprocess = (e) => {
       const out = e.outputBuffer.getChannelData(0);
@@ -433,8 +448,8 @@ function noisePlay() {
       }
     };
 
-    _noiseScriptNode.connect(ctx.destination);
     _noisePlaying = true;
+    _noiseGainNode = gain;
     renderNoiseUI(document.getElementById('noiseContent'));
     _noiseVisLoop();
   } catch(e) { /* audio failed */ }
@@ -442,6 +457,7 @@ function noisePlay() {
 
 function noiseStop() {
   if (_noiseScriptNode) { try { _noiseScriptNode.disconnect(); } catch(e){} _noiseScriptNode = null; }
+  if (_noiseGainNode) { try { _noiseGainNode.disconnect(); } catch(e){} _noiseGainNode = null; }
   _noisePlaying = false;
   renderNoiseUI(document.getElementById('noiseContent'));
 }
@@ -608,7 +624,7 @@ function renderMazeUI(container) {
       const visible = _mazeFog[y][x];
       const cell = _mazeGrid[y][x];
       let ch, clr;
-      if (isPlayer) { ch = '('@')'; clr = '#0ff'; }
+      if (isPlayer) { ch = '@'; clr = '#0ff'; }
       else if (!visible) { ch = '  '; clr = '#111'; }
       else {
         // Check enemy

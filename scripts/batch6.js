@@ -114,10 +114,9 @@ window.copyAscii = function() {
     });
 };
 
-// 3. NOISE GENERATOR
+// 3. NOISE GENERATOR (white/pink/brown noise for radio app)
 let noiseCtx = null;
 let noiseNode = null;
-window.initNoise = function() {};
 window.toggleNoise = function(type) {
     if(noiseNode) {
         noiseNode.stop();
